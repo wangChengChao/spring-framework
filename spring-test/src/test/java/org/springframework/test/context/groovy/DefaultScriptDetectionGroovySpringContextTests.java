@@ -26,8 +26,8 @@ import org.springframework.tests.sample.beans.Pet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration test class that verifies proper detection of a default
- * Groovy script (as opposed to a default XML config file).
+ * Integration test class that verifies proper detection of a default Groovy script (as opposed to a
+ * default XML config file).
  *
  * @author Sam Brannen
  * @since 4.1
@@ -37,25 +37,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 // Config loaded from DefaultScriptDetectionGroovySpringContextTestsContext.groovy
 class DefaultScriptDetectionGroovySpringContextTests {
 
-	@Autowired
-	Employee employee;
+  @Autowired Employee employee;
 
-	@Autowired
-	Pet pet;
+  @Autowired Pet pet;
 
-	@Autowired
-	String foo;
+  @Autowired String foo;
 
+  @Test
+  void verifyAnnotationAutowiredFields() {
+    assertThat(this.employee).as("The employee field should have been autowired.").isNotNull();
+    assertThat(this.employee.getName()).isEqualTo("Dilbert");
 
-	@Test
-	void verifyAnnotationAutowiredFields() {
-		assertThat(this.employee).as("The employee field should have been autowired.").isNotNull();
-		assertThat(this.employee.getName()).isEqualTo("Dilbert");
+    assertThat(this.pet).as("The pet field should have been autowired.").isNotNull();
+    assertThat(this.pet.getName()).isEqualTo("Dogbert");
 
-		assertThat(this.pet).as("The pet field should have been autowired.").isNotNull();
-		assertThat(this.pet.getName()).isEqualTo("Dogbert");
-
-		assertThat(this.foo).as("The foo field should have been autowired.").isEqualTo("Foo");
-	}
-
+    assertThat(this.foo).as("The foo field should have been autowired.").isEqualTo("Foo");
+  }
 }

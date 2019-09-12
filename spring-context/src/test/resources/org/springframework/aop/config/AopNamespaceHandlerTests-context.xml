@@ -6,8 +6,10 @@
 				http://www.springframework.org/schema/aop https://www.springframework.org/schema/aop/spring-aop-2.0.xsd">
 
 	<aop:config>
-		<aop:pointcut id="getNameCalls" expression="execution(* getName(..)) and within(*..ITestBean+)"/>
-		<aop:advisor id="getAgeAdvisor" pointcut="execution(* *..ITestBean.getAge(..))" advice-ref="getAgeCounter"/>
+		<aop:pointcut id="getNameCalls"
+				expression="execution(* getName(..)) and within(*..ITestBean+)"/>
+		<aop:advisor id="getAgeAdvisor" pointcut="execution(* *..ITestBean.getAge(..))"
+				advice-ref="getAgeCounter"/>
 		<aop:advisor id="getNameAdvisor" pointcut-ref="getNameCalls" advice-ref="getNameCounter"/>
 
 		<aop:aspect id="countAgeCalls" ref="countingAdvice">

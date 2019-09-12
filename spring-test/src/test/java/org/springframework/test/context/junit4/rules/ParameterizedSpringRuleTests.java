@@ -37,64 +37,63 @@ import org.springframework.tests.sample.beans.Pet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration test which demonstrates how to use JUnit's {@link Parameterized}
- * runner in conjunction with {@link SpringClassRule} and {@link SpringMethodRule}
- * to provide dependency injection to a <em>parameterized test instance</em>.
+ * Integration test which demonstrates how to use JUnit's {@link Parameterized} runner in
+ * conjunction with {@link SpringClassRule} and {@link SpringMethodRule} to provide dependency
+ * injection to a <em>parameterized test instance</em>.
  *
  * @author Sam Brannen
  * @since 4.2
  * @see org.springframework.test.context.junit4.ParameterizedDependencyInjectionTests
  */
 @RunWith(Parameterized.class)
-@ContextConfiguration("/org/springframework/test/context/junit4/ParameterizedDependencyInjectionTests-context.xml")
+@ContextConfiguration(
+    "/org/springframework/test/context/junit4/ParameterizedDependencyInjectionTests-context.xml")
 public class ParameterizedSpringRuleTests {
 
-	private static final AtomicInteger invocationCount = new AtomicInteger();
+  private static final AtomicInteger invocationCount = new AtomicInteger();
 
-	@ClassRule
-	public static final SpringClassRule springClassRule = new SpringClassRule();
+  @ClassRule public static final SpringClassRule springClassRule = new SpringClassRule();
 
-	@Rule
-	public final SpringMethodRule springMethodRule = new SpringMethodRule();
+  @Rule public final SpringMethodRule springMethodRule = new SpringMethodRule();
 
-	@Autowired
-	private ApplicationContext applicationContext;
+  @Autowired private ApplicationContext applicationContext;
 
-	@Autowired
-	private Pet pet;
+  @Autowired private Pet pet;
 
-	@Parameter(0)
-	public String employeeBeanName;
+  @Parameter(0)
+  public String employeeBeanName;
 
-	@Parameter(1)
-	public String employeeName;
+  @Parameter(1)
+  public String employeeName;
 
+  @Parameters(name = "bean [{0}], employee [{1}]")
+  public static String[][] employeeData() {
+    return new String[][] {{"employee1", "John Smith"}, {"employee2", "Jane Smith"}};
+  }
 
-	@Parameters(name = "bean [{0}], employee [{1}]")
-	public static String[][] employeeData() {
-		return new String[][] { { "employee1", "John Smith" }, { "employee2", "Jane Smith" } };
-	}
+  @BeforeClass
+  public static void BeforeClass() {
+    invocationCount.set(0);
+  }
 
-	@BeforeClass
-	public static void BeforeClass() {
-		invocationCount.set(0);
-	}
+  @Test
+  public final void verifyPetAndEmployee() {
+    invocationCount.incrementAndGet();
 
-	@Test
-	public final void verifyPetAndEmployee() {
-		invocationCount.incrementAndGet();
+    // Verifying dependency injection:
+    assertThat(this.pet).as("The pet field should have been autowired.").isNotNull();
 
-		// Verifying dependency injection:
-		assertThat(this.pet).as("The pet field should have been autowired.").isNotNull();
+    // Verifying 'parameterized' support:
+    Employee employee = this.applicationContext.getBean(this.employeeBeanName, Employee.class);
+    assertThat(employee.getName())
+        .as("Name of the employee configured as bean [" + this.employeeBeanName + "].")
+        .isEqualTo(this.employeeName);
+  }
 
-		// Verifying 'parameterized' support:
-		Employee employee = this.applicationContext.getBean(this.employeeBeanName, Employee.class);
-		assertThat(employee.getName()).as("Name of the employee configured as bean [" + this.employeeBeanName + "].").isEqualTo(this.employeeName);
-	}
-
-	@AfterClass
-	public static void verifyNumParameterizedRuns() {
-		assertThat(invocationCount.get()).as("Number of times the parameterized test method was executed.").isEqualTo(employeeData().length);
-	}
-
+  @AfterClass
+  public static void verifyNumParameterizedRuns() {
+    assertThat(invocationCount.get())
+        .as("Number of times the parameterized test method was executed.")
+        .isEqualTo(employeeData().length);
+  }
 }

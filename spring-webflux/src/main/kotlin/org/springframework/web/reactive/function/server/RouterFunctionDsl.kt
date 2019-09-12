@@ -142,7 +142,7 @@ class RouterFunctionDsl(private val init: RouterFunctionDsl.() -> Unit) {
 	 * (prefix), header, or other request predicate.
 	 * @see RouterFunctions.nest
 	 * @see RequestPredicates.path
-	*/
+	 */
 	fun String.nest(init: RouterFunctionDsl.() -> Unit) {
 		builder.path(this, Supplier { RouterFunctionDsl(init).build() })
 	}
@@ -267,12 +267,12 @@ class RouterFunctionDsl(private val init: RouterFunctionDsl.() -> Unit) {
 	}
 
 	/**
-	* Return a {@code RequestPredicate} that tests if the request's
-	* {@linkplain ServerRequest.Headers#accept() accept} header is
-	* {@linkplain MediaType#isCompatibleWith(MediaType) compatible} with any of the given media types.
-	* @param mediaTypes the media types to match the request's accept header against
-	* @return a predicate that tests the request's accept header against the given media types
-	*/
+	 * Return a {@code RequestPredicate} that tests if the request's
+	 * {@linkplain ServerRequest.Headers#accept() accept} header is
+	 * {@linkplain MediaType#isCompatibleWith(MediaType) compatible} with any of the given media types.
+	 * @param mediaTypes the media types to match the request's accept header against
+	 * @return a predicate that tests the request's accept header against the given media types
+	 */
 	fun accept(mediaType: MediaType): RequestPredicate = RequestPredicates.accept(mediaType)
 
 	/**
@@ -401,7 +401,7 @@ class RouterFunctionDsl(private val init: RouterFunctionDsl.() -> Unit) {
 	 * @see RouterFunctions.route
 	 */
 	operator fun String.invoke(f: (ServerRequest) -> Mono<out ServerResponse>) {
-		builder.add(RouterFunctions.route(RequestPredicates.path(this),  HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) }))
+		builder.add(RouterFunctions.route(RequestPredicates.path(this), HandlerFunction<ServerResponse> { f(it).cast(ServerResponse::class.java) }))
 	}
 
 	/**

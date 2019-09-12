@@ -37,64 +37,62 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
 
 /**
- * Integration tests for custom event publication via
- * {@link TestContext#publishEvent(java.util.function.Function)}.
+ * Integration tests for custom event publication via {@link
+ * TestContext#publishEvent(java.util.function.Function)}.
  *
  * @author Sam Brannen
  * @since 5.2
  */
 @ExtendWith(SpringExtension.class)
-@TestExecutionListeners(listeners = CustomEventPublishingTestExecutionListener.class, mergeMode = MERGE_WITH_DEFAULTS)
+@TestExecutionListeners(
+    listeners = CustomEventPublishingTestExecutionListener.class,
+    mergeMode = MERGE_WITH_DEFAULTS)
 public class CustomTestEventTests {
 
-	private static final List<CustomEvent> events = new ArrayList<>();
+  private static final List<CustomEvent> events = new ArrayList<>();
 
+  @BeforeEach
+  public void clearEvents() {
+    events.clear();
+  }
 
-	@BeforeEach
-	public void clearEvents() {
-		events.clear();
-	}
+  @Test
+  public void customTestEventPublished() {
+    assertThat(events).size().isEqualTo(1);
+    CustomEvent customEvent = events.get(0);
+    assertThat(customEvent.getSource()).isEqualTo(getClass());
+    assertThat(customEvent.getTestName()).isEqualTo("customTestEventPublished");
+  }
 
-	@Test
-	public void customTestEventPublished() {
-		assertThat(events).size().isEqualTo(1);
-		CustomEvent customEvent = events.get(0);
-		assertThat(customEvent.getSource()).isEqualTo(getClass());
-		assertThat(customEvent.getTestName()).isEqualTo("customTestEventPublished");
-	}
+  @Configuration
+  static class Config {
 
+    @EventListener
+    void processCustomEvent(CustomEvent event) {
+      events.add(event);
+    }
+  }
 
-	@Configuration
-	static class Config {
+  @SuppressWarnings("serial")
+  static class CustomEvent extends ApplicationEvent {
 
-		@EventListener
-		void processCustomEvent(CustomEvent event) {
-			events.add(event);
-		}
-	}
+    private final Method testMethod;
 
-	@SuppressWarnings("serial")
-	static class CustomEvent extends ApplicationEvent {
+    public CustomEvent(Class<?> testClass, Method testMethod) {
+      super(testClass);
+      this.testMethod = testMethod;
+    }
 
-		private final Method testMethod;
+    String getTestName() {
+      return this.testMethod.getName();
+    }
+  }
 
+  static class CustomEventPublishingTestExecutionListener implements TestExecutionListener {
 
-		public CustomEvent(Class<?> testClass, Method testMethod) {
-			super(testClass);
-			this.testMethod = testMethod;
-		}
-
-		String getTestName() {
-			return this.testMethod.getName();
-		}
-	}
-
-	static class CustomEventPublishingTestExecutionListener implements TestExecutionListener {
-
-		@Override
-		public void beforeTestExecution(TestContext testContext) throws Exception {
-			testContext.publishEvent(tc -> new CustomEvent(tc.getTestClass(), tc.getTestMethod()));
-		}
-	}
-
+    @Override
+    public void beforeTestExecution(TestContext testContext) throws Exception {
+      testContext.publishEvent(tc -> new CustomEvent(tc.getTestClass(), tc.getTestMethod()));
+    }
+  }
 }

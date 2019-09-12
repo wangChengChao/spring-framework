@@ -9,6 +9,7 @@
 
 	<bean id="counterAspect" class="org.springframework.aop.aspectj.generic.GenericCounterAspect"/>
 
-	<bean id="testBean" class="org.springframework.aop.aspectj.generic.DerivedStringParameterizedClass"/>
+	<bean id="testBean"
+			class="org.springframework.aop.aspectj.generic.DerivedStringParameterizedClass"/>
 
 </beans>

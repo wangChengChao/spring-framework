@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	   xmlns:cache="http://www.springframework.org/schema/cache"
-	   xsi:schemaLocation="http://www.springframework.org/schema/beans
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xmlns:cache="http://www.springframework.org/schema/cache"
+		xsi:schemaLocation="http://www.springframework.org/schema/beans
 	   		https://www.springframework.org/schema/beans/spring-beans.xsd
        		http://www.springframework.org/schema/cache
        		https://www.springframework.org/schema/cache/spring-cache.xsd">
@@ -29,11 +29,12 @@
 	<bean id="errorHandler" class="org.springframework.cache.interceptor.SimpleCacheErrorHandler"/>
 
 	<bean id="defaultCache"
-		  class="org.springframework.cache.concurrent.ConcurrentMapCacheFactoryBean">
+			class="org.springframework.cache.concurrent.ConcurrentMapCacheFactoryBean">
 		<property name="name" value="default"/>
 	</bean>
 
-	<bean id="cacheableService" class="org.springframework.cache.jcache.interceptor.AnnotatedJCacheableService">
+	<bean id="cacheableService"
+			class="org.springframework.cache.jcache.interceptor.AnnotatedJCacheableService">
 		<constructor-arg ref="defaultCache"/>
 	</bean>
 

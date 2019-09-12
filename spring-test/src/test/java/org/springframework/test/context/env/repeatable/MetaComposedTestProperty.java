@@ -25,8 +25,8 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.env.repeatable.MetaComposedTestProperty.MetaMetaInlinedTestProperty;
 
 /**
- * Composed annotation that declares a property via
- * {@link TestPropertySource @TestPropertySource} used as a meta-meta-annotation.
+ * Composed annotation that declares a property via {@link TestPropertySource @TestPropertySource}
+ * used as a meta-meta-annotation.
  *
  * @author Sam Brannen
  * @since 5.2
@@ -36,10 +36,8 @@ import org.springframework.test.context.env.repeatable.MetaComposedTestProperty.
 @MetaMetaInlinedTestProperty
 @interface MetaComposedTestProperty {
 
-	@Target(ElementType.TYPE)
-	@Retention(RetentionPolicy.RUNTIME)
-	@TestPropertySource(properties = "enigma = meta meta")
-	@interface MetaMetaInlinedTestProperty {
-	}
-
+  @Target(ElementType.TYPE)
+  @Retention(RetentionPolicy.RUNTIME)
+  @TestPropertySource(properties = "enigma = meta meta")
+  @interface MetaMetaInlinedTestProperty {}
 }

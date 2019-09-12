@@ -51,127 +51,123 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class EncodedResourceResolverTests {
 
-	private static final Duration TIMEOUT = Duration.ofSeconds(5);
+  private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
+  private ResourceResolverChain resolver;
 
-	private ResourceResolverChain resolver;
+  private List<Resource> locations;
 
-	private List<Resource> locations;
+  @BeforeAll
+  public static void createGzippedResources() throws IOException {
+    createGzippedFile("/js/foo.js");
+    createGzippedFile("foo.css");
+  }
 
+  static void createGzippedFile(String filePath) throws IOException {
+    Resource location = new ClassPathResource("test/", EncodedResourceResolverTests.class);
+    Resource resource = new FileSystemResource(location.createRelative(filePath).getFile());
 
-	@BeforeAll
-	public static void createGzippedResources() throws IOException {
-		createGzippedFile("/js/foo.js");
-		createGzippedFile("foo.css");
-	}
+    Path gzFilePath = Paths.get(resource.getFile().getAbsolutePath() + ".gz");
+    Files.deleteIfExists(gzFilePath);
 
-	static void createGzippedFile(String filePath) throws IOException {
-		Resource location = new ClassPathResource("test/", EncodedResourceResolverTests.class);
-		Resource resource = new FileSystemResource(location.createRelative(filePath).getFile());
+    File gzFile = Files.createFile(gzFilePath).toFile();
+    GZIPOutputStream out = new GZIPOutputStream(new FileOutputStream(gzFile));
+    FileCopyUtils.copy(resource.getInputStream(), out);
+    gzFile.deleteOnExit();
+  }
 
-		Path gzFilePath = Paths.get(resource.getFile().getAbsolutePath() + ".gz");
-		Files.deleteIfExists(gzFilePath);
+  @BeforeEach
+  public void setup() {
+    Cache cache = new ConcurrentMapCache("resourceCache");
 
-		File gzFile = Files.createFile(gzFilePath).toFile();
-		GZIPOutputStream out = new GZIPOutputStream(new FileOutputStream(gzFile));
-		FileCopyUtils.copy(resource.getInputStream(), out);
-		gzFile.deleteOnExit();
-	}
+    VersionResourceResolver versionResolver = new VersionResourceResolver();
+    versionResolver.setStrategyMap(Collections.singletonMap("/**", new ContentVersionStrategy()));
 
+    List<ResourceResolver> resolvers = new ArrayList<>();
+    resolvers.add(new CachingResourceResolver(cache));
+    resolvers.add(new EncodedResourceResolver());
+    resolvers.add(versionResolver);
+    resolvers.add(new PathResourceResolver());
+    this.resolver = new DefaultResourceResolverChain(resolvers);
 
-	@BeforeEach
-	public void setup() {
-		Cache cache = new ConcurrentMapCache("resourceCache");
+    this.locations = new ArrayList<>();
+    this.locations.add(new ClassPathResource("test/", getClass()));
+    this.locations.add(new ClassPathResource("testalternatepath/", getClass()));
+  }
 
-		VersionResourceResolver versionResolver = new VersionResourceResolver();
-		versionResolver.setStrategyMap(Collections.singletonMap("/**", new ContentVersionStrategy()));
+  @Test
+  public void resolveGzipped() {
 
-		List<ResourceResolver> resolvers = new ArrayList<>();
-		resolvers.add(new CachingResourceResolver(cache));
-		resolvers.add(new EncodedResourceResolver());
-		resolvers.add(versionResolver);
-		resolvers.add(new PathResourceResolver());
-		this.resolver = new DefaultResourceResolverChain(resolvers);
+    MockServerWebExchange exchange =
+        MockServerWebExchange.from(MockServerHttpRequest.get("").header("Accept-Encoding", "gzip"));
 
-		this.locations = new ArrayList<>();
-		this.locations.add(new ClassPathResource("test/", getClass()));
-		this.locations.add(new ClassPathResource("testalternatepath/", getClass()));
-	}
+    String file = "js/foo.js";
+    Resource actual = this.resolver.resolveResource(exchange, file, this.locations).block(TIMEOUT);
 
+    assertThat(actual.getDescription()).isEqualTo(getResource(file + ".gz").getDescription());
+    assertThat(actual.getFilename()).isEqualTo(getResource(file).getFilename());
 
-	@Test
-	public void resolveGzipped() {
+    boolean condition = actual instanceof HttpResource;
+    assertThat(condition).isTrue();
+    HttpHeaders headers = ((HttpResource) actual).getResponseHeaders();
+    assertThat(headers.getFirst(HttpHeaders.CONTENT_ENCODING)).isEqualTo("gzip");
+    assertThat(headers.getFirst(HttpHeaders.VARY)).isEqualTo("Accept-Encoding");
+  }
 
-		MockServerWebExchange exchange = MockServerWebExchange.from(
-				MockServerHttpRequest.get("").header("Accept-Encoding", "gzip"));
+  @Test
+  public void resolveGzippedWithVersion() {
 
-		String file = "js/foo.js";
-		Resource actual = this.resolver.resolveResource(exchange, file, this.locations).block(TIMEOUT);
+    MockServerWebExchange exchange =
+        MockServerWebExchange.from(MockServerHttpRequest.get("").header("Accept-Encoding", "gzip"));
 
-		assertThat(actual.getDescription()).isEqualTo(getResource(file + ".gz").getDescription());
-		assertThat(actual.getFilename()).isEqualTo(getResource(file).getFilename());
+    String file = "foo-e36d2e05253c6c7085a91522ce43a0b4.css";
+    Resource actual = this.resolver.resolveResource(exchange, file, this.locations).block(TIMEOUT);
 
-		boolean condition = actual instanceof HttpResource;
-		assertThat(condition).isTrue();
-		HttpHeaders headers = ((HttpResource) actual).getResponseHeaders();
-		assertThat(headers.getFirst(HttpHeaders.CONTENT_ENCODING)).isEqualTo("gzip");
-		assertThat(headers.getFirst(HttpHeaders.VARY)).isEqualTo("Accept-Encoding");
-	}
+    assertThat(actual.getDescription()).isEqualTo(getResource("foo.css.gz").getDescription());
+    assertThat(actual.getFilename()).isEqualTo(getResource("foo.css").getFilename());
+    boolean condition = actual instanceof HttpResource;
+    assertThat(condition).isTrue();
+  }
 
-	@Test
-	public void resolveGzippedWithVersion() {
+  @Test
+  public void resolveFromCacheWithEncodingVariants() {
 
-		MockServerWebExchange exchange = MockServerWebExchange.from(
-				MockServerHttpRequest.get("").header("Accept-Encoding", "gzip"));
+    // 1. Resolve, and cache .gz variant
 
-		String file = "foo-e36d2e05253c6c7085a91522ce43a0b4.css";
-		Resource actual = this.resolver.resolveResource(exchange, file, this.locations).block(TIMEOUT);
+    MockServerWebExchange exchange =
+        MockServerWebExchange.from(MockServerHttpRequest.get("").header("Accept-Encoding", "gzip"));
 
-		assertThat(actual.getDescription()).isEqualTo(getResource("foo.css.gz").getDescription());
-		assertThat(actual.getFilename()).isEqualTo(getResource("foo.css").getFilename());
-		boolean condition = actual instanceof HttpResource;
-		assertThat(condition).isTrue();
-	}
+    String file = "js/foo.js";
+    Resource resolved =
+        this.resolver.resolveResource(exchange, file, this.locations).block(TIMEOUT);
 
-	@Test
-	public void resolveFromCacheWithEncodingVariants() {
+    assertThat(resolved.getDescription()).isEqualTo(getResource(file + ".gz").getDescription());
+    assertThat(resolved.getFilename()).isEqualTo(getResource(file).getFilename());
+    boolean condition = resolved instanceof HttpResource;
+    assertThat(condition).isTrue();
 
-		// 1. Resolve, and cache .gz variant
+    // 2. Resolve unencoded resource
 
-		MockServerWebExchange exchange = MockServerWebExchange.from(
-				MockServerHttpRequest.get("").header("Accept-Encoding", "gzip"));
+    exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/js/foo.js"));
+    resolved = this.resolver.resolveResource(exchange, file, this.locations).block(TIMEOUT);
 
-		String file = "js/foo.js";
-		Resource resolved = this.resolver.resolveResource(exchange, file, this.locations).block(TIMEOUT);
+    assertThat(resolved.getDescription()).isEqualTo(getResource(file).getDescription());
+    assertThat(resolved.getFilename()).isEqualTo(getResource(file).getFilename());
+    boolean condition1 = resolved instanceof HttpResource;
+    assertThat(condition1).isFalse();
+  }
 
-		assertThat(resolved.getDescription()).isEqualTo(getResource(file + ".gz").getDescription());
-		assertThat(resolved.getFilename()).isEqualTo(getResource(file).getFilename());
-		boolean condition = resolved instanceof HttpResource;
-		assertThat(condition).isTrue();
+  @Test // SPR-13149
+  public void resolveWithNullRequest() {
 
-		// 2. Resolve unencoded resource
+    String file = "js/foo.js";
+    Resource resolved = this.resolver.resolveResource(null, file, this.locations).block(TIMEOUT);
 
-		exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/js/foo.js"));
-		resolved = this.resolver.resolveResource(exchange, file, this.locations).block(TIMEOUT);
+    assertThat(resolved.getDescription()).isEqualTo(getResource(file).getDescription());
+    assertThat(resolved.getFilename()).isEqualTo(getResource(file).getFilename());
+  }
 
-		assertThat(resolved.getDescription()).isEqualTo(getResource(file).getDescription());
-		assertThat(resolved.getFilename()).isEqualTo(getResource(file).getFilename());
-		boolean condition1 = resolved instanceof HttpResource;
-		assertThat(condition1).isFalse();
-	}
-
-	@Test  // SPR-13149
-	public void resolveWithNullRequest() {
-
-		String file = "js/foo.js";
-		Resource resolved = this.resolver.resolveResource(null, file, this.locations).block(TIMEOUT);
-
-		assertThat(resolved.getDescription()).isEqualTo(getResource(file).getDescription());
-		assertThat(resolved.getFilename()).isEqualTo(getResource(file).getFilename());
-	}
-
-	private Resource getResource(String filePath) {
-		return new ClassPathResource("test/" + filePath, getClass());
-	}
-
+  private Resource getResource(String filePath) {
+    return new ClassPathResource("test/" + filePath, getClass());
+  }
 }

@@ -38,9 +38,9 @@ import org.springframework.test.jdbc.JdbcTestUtils;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * This class is a JUnit 4 based copy of
- * {@link org.springframework.test.context.jdbc.TransactionalSqlScriptsTests}
- * that has been modified to use {@link SpringClassRule} and {@link SpringMethodRule}.
+ * This class is a JUnit 4 based copy of {@link
+ * org.springframework.test.context.jdbc.TransactionalSqlScriptsTests} that has been modified to use
+ * {@link SpringClassRule} and {@link SpringMethodRule}.
  *
  * @author Sam Brannen
  * @since 4.2
@@ -48,40 +48,41 @@ import static org.assertj.core.api.Assertions.assertThat;
 @RunWith(JUnit4.class)
 @ContextConfiguration(classes = EmptyDatabaseConfig.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-@Sql({ "../../jdbc/schema.sql", "../../jdbc/data.sql" })
+@Sql({"../../jdbc/schema.sql", "../../jdbc/data.sql"})
 @DirtiesContext
 public class TransactionalSqlScriptsSpringRuleTests {
 
-	@ClassRule
-	public static final SpringClassRule springClassRule = new SpringClassRule();
+  @ClassRule public static final SpringClassRule springClassRule = new SpringClassRule();
 
-	@Rule
-	public final SpringMethodRule springMethodRule = new SpringMethodRule();
+  @Rule public final SpringMethodRule springMethodRule = new SpringMethodRule();
 
-	@Rule
-	public Timeout timeout = Timeout.builder().withTimeout(10, TimeUnit.SECONDS).build();
+  @Rule public Timeout timeout = Timeout.builder().withTimeout(10, TimeUnit.SECONDS).build();
 
-	@Autowired
-	JdbcTemplate jdbcTemplate;
+  @Autowired JdbcTemplate jdbcTemplate;
 
+  @Test
+  public void classLevelScripts() {
+    assertNumUsers(1);
+  }
 
-	@Test
-	public void classLevelScripts() {
-		assertNumUsers(1);
-	}
+  @Test
+  @Sql({
+    "../../jdbc/drop-schema.sql",
+    "../../jdbc/schema.sql",
+    "../../jdbc/data.sql",
+    "../../jdbc/data-add-dogbert.sql"
+  })
+  public void methodLevelScripts() {
+    assertNumUsers(2);
+  }
 
-	@Test
-	@Sql({ "../../jdbc/drop-schema.sql", "../../jdbc/schema.sql", "../../jdbc/data.sql", "../../jdbc/data-add-dogbert.sql" })
-	public void methodLevelScripts() {
-		assertNumUsers(2);
-	}
+  private void assertNumUsers(int expected) {
+    assertThat(countRowsInTable("user"))
+        .as("Number of rows in the 'user' table.")
+        .isEqualTo(expected);
+  }
 
-	private void assertNumUsers(int expected) {
-		assertThat(countRowsInTable("user")).as("Number of rows in the 'user' table.").isEqualTo(expected);
-	}
-
-	private int countRowsInTable(String tableName) {
-		return JdbcTestUtils.countRowsInTable(this.jdbcTemplate, tableName);
-	}
-
+  private int countRowsInTable(String tableName) {
+    return JdbcTestUtils.countRowsInTable(this.jdbcTemplate, tableName);
+  }
 }

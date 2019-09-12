@@ -27,7 +27,8 @@
 		<property name="name" value="adrian"/>
 	</bean>
 
-	<bean id="adrian" class="org.springframework.aop.aspectj.autoproxy.MarkerTestBean" parent="adrianParent">
+	<bean id="adrian" class="org.springframework.aop.aspectj.autoproxy.MarkerTestBean"
+			parent="adrianParent">
 		<property name="age" value="34"/>
 	</bean>
 

@@ -25,8 +25,8 @@ import org.springframework.test.context.transaction.AfterTransaction;
 import org.springframework.test.context.transaction.BeforeTransaction;
 
 /**
- * Transactional integration tests that verify commit semantics for
- * {@link SqlConfig#transactionMode} and {@link TransactionMode#ISOLATED}.
+ * Transactional integration tests that verify commit semantics for {@link
+ * SqlConfig#transactionMode} and {@link TransactionMode#ISOLATED}.
  *
  * @author Sam Brannen
  * @since 4.1
@@ -35,20 +35,22 @@ import org.springframework.test.context.transaction.BeforeTransaction;
 @DirtiesContext
 class IsolatedTransactionModeSqlScriptsTests extends AbstractTransactionalTests {
 
-	@BeforeTransaction
-	void beforeTransaction() {
-		assertNumUsers(0);
-	}
+  @BeforeTransaction
+  void beforeTransaction() {
+    assertNumUsers(0);
+  }
 
-	@Test
-	@SqlGroup(@Sql(scripts = "data-add-dogbert.sql", config = @SqlConfig(transactionMode = TransactionMode.ISOLATED)))
-	void methodLevelScripts() {
-		assertNumUsers(1);
-	}
+  @Test
+  @SqlGroup(
+      @Sql(
+          scripts = "data-add-dogbert.sql",
+          config = @SqlConfig(transactionMode = TransactionMode.ISOLATED)))
+  void methodLevelScripts() {
+    assertNumUsers(1);
+  }
 
-	@AfterTransaction
-	void afterTransaction() {
-		assertNumUsers(1);
-	}
-
+  @AfterTransaction
+  void afterTransaction() {
+    assertNumUsers(1);
+  }
 }

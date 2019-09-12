@@ -33,295 +33,304 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class ProfileValueUtilsTests {
 
-	private static final String NON_ANNOTATED_METHOD = "nonAnnotatedMethod";
-	private static final String ENABLED_ANNOTATED_METHOD = "enabledAnnotatedMethod";
-	private static final String DISABLED_ANNOTATED_METHOD = "disabledAnnotatedMethod";
-
-	private static final String NAME = "ProfileValueUtilsTests.profile_value.name";
-	private static final String VALUE = "enigma";
-
-
-	@BeforeAll
-	static void setProfileValue() {
-		System.setProperty(NAME, VALUE);
-	}
-
-	private void assertClassIsEnabled(Class<?> testClass) throws Exception {
-		assertThat(ProfileValueUtils.isTestEnabledInThisEnvironment(testClass)).as("Test class [" + testClass + "] should be enabled.").isTrue();
-	}
-
-	private void assertClassIsDisabled(Class<?> testClass) throws Exception {
-		assertThat(ProfileValueUtils.isTestEnabledInThisEnvironment(testClass)).as("Test class [" + testClass + "] should be disabled.").isFalse();
-	}
+  private static final String NON_ANNOTATED_METHOD = "nonAnnotatedMethod";
+  private static final String ENABLED_ANNOTATED_METHOD = "enabledAnnotatedMethod";
+  private static final String DISABLED_ANNOTATED_METHOD = "disabledAnnotatedMethod";
+
+  private static final String NAME = "ProfileValueUtilsTests.profile_value.name";
+  private static final String VALUE = "enigma";
+
+  @BeforeAll
+  static void setProfileValue() {
+    System.setProperty(NAME, VALUE);
+  }
+
+  private void assertClassIsEnabled(Class<?> testClass) throws Exception {
+    assertThat(ProfileValueUtils.isTestEnabledInThisEnvironment(testClass))
+        .as("Test class [" + testClass + "] should be enabled.")
+        .isTrue();
+  }
+
+  private void assertClassIsDisabled(Class<?> testClass) throws Exception {
+    assertThat(ProfileValueUtils.isTestEnabledInThisEnvironment(testClass))
+        .as("Test class [" + testClass + "] should be disabled.")
+        .isFalse();
+  }
+
+  private void assertMethodIsEnabled(String methodName, Class<?> testClass) throws Exception {
+    Method testMethod = testClass.getMethod(methodName);
+    assertThat(ProfileValueUtils.isTestEnabledInThisEnvironment(testMethod, testClass))
+        .as("Test method [" + testMethod + "] should be enabled.")
+        .isTrue();
+  }
+
+  private void assertMethodIsDisabled(String methodName, Class<?> testClass) throws Exception {
+    Method testMethod = testClass.getMethod(methodName);
+    assertThat(ProfileValueUtils.isTestEnabledInThisEnvironment(testMethod, testClass))
+        .as("Test method [" + testMethod + "] should be disabled.")
+        .isFalse();
+  }
+
+  private void assertMethodIsEnabled(
+      ProfileValueSource profileValueSource, String methodName, Class<?> testClass)
+      throws Exception {
+    Method testMethod = testClass.getMethod(methodName);
+    assertThat(
+            ProfileValueUtils.isTestEnabledInThisEnvironment(
+                profileValueSource, testMethod, testClass))
+        .as(
+            "Test method ["
+                + testMethod
+                + "] should be enabled for ProfileValueSource ["
+                + profileValueSource
+                + "].")
+        .isTrue();
+  }
+
+  private void assertMethodIsDisabled(
+      ProfileValueSource profileValueSource, String methodName, Class<?> testClass)
+      throws Exception {
+    Method testMethod = testClass.getMethod(methodName);
+    assertThat(
+            ProfileValueUtils.isTestEnabledInThisEnvironment(
+                profileValueSource, testMethod, testClass))
+        .as(
+            "Test method ["
+                + testMethod
+                + "] should be disabled for ProfileValueSource ["
+                + profileValueSource
+                + "].")
+        .isFalse();
+  }
+
+  // -------------------------------------------------------------------
+
+  @Test
+  void isTestEnabledInThisEnvironmentForProvidedClass() throws Exception {
+    assertClassIsEnabled(NonAnnotated.class);
+    assertClassIsEnabled(EnabledAnnotatedSingleValue.class);
+    assertClassIsEnabled(EnabledAnnotatedMultiValue.class);
+    assertClassIsEnabled(MetaEnabledClass.class);
+    assertClassIsEnabled(MetaEnabledWithCustomProfileValueSourceClass.class);
+    assertClassIsEnabled(EnabledWithCustomProfileValueSourceOnTestInterface.class);
+
+    assertClassIsDisabled(DisabledAnnotatedSingleValue.class);
+    assertClassIsDisabled(DisabledAnnotatedSingleValueOnTestInterface.class);
+    assertClassIsDisabled(DisabledAnnotatedMultiValue.class);
+    assertClassIsDisabled(MetaDisabledClass.class);
+    assertClassIsDisabled(MetaDisabledWithCustomProfileValueSourceClass.class);
+  }
+
+  @Test
+  void isTestEnabledInThisEnvironmentForProvidedMethodAndClass() throws Exception {
+    assertMethodIsEnabled(NON_ANNOTATED_METHOD, NonAnnotated.class);
+
+    assertMethodIsEnabled(NON_ANNOTATED_METHOD, EnabledAnnotatedSingleValue.class);
+    assertMethodIsEnabled(ENABLED_ANNOTATED_METHOD, EnabledAnnotatedSingleValue.class);
+    assertMethodIsDisabled(DISABLED_ANNOTATED_METHOD, EnabledAnnotatedSingleValue.class);
+
+    assertMethodIsEnabled(NON_ANNOTATED_METHOD, MetaEnabledAnnotatedSingleValue.class);
+    assertMethodIsEnabled(ENABLED_ANNOTATED_METHOD, MetaEnabledAnnotatedSingleValue.class);
+    assertMethodIsDisabled(DISABLED_ANNOTATED_METHOD, MetaEnabledAnnotatedSingleValue.class);
+
+    assertMethodIsEnabled(NON_ANNOTATED_METHOD, EnabledAnnotatedMultiValue.class);
+    assertMethodIsEnabled(ENABLED_ANNOTATED_METHOD, EnabledAnnotatedMultiValue.class);
+    assertMethodIsDisabled(DISABLED_ANNOTATED_METHOD, EnabledAnnotatedMultiValue.class);
 
-	private void assertMethodIsEnabled(String methodName, Class<?> testClass) throws Exception {
-		Method testMethod = testClass.getMethod(methodName);
-		assertThat(ProfileValueUtils.isTestEnabledInThisEnvironment(testMethod, testClass)).as("Test method [" + testMethod + "] should be enabled.").isTrue();
-	}
+    assertMethodIsDisabled(NON_ANNOTATED_METHOD, DisabledAnnotatedSingleValue.class);
+    assertMethodIsDisabled(ENABLED_ANNOTATED_METHOD, DisabledAnnotatedSingleValue.class);
+    assertMethodIsDisabled(DISABLED_ANNOTATED_METHOD, DisabledAnnotatedSingleValue.class);
 
-	private void assertMethodIsDisabled(String methodName, Class<?> testClass) throws Exception {
-		Method testMethod = testClass.getMethod(methodName);
-		assertThat(ProfileValueUtils.isTestEnabledInThisEnvironment(testMethod, testClass)).as("Test method [" + testMethod + "] should be disabled.").isFalse();
-	}
+    assertMethodIsDisabled(NON_ANNOTATED_METHOD, DisabledAnnotatedSingleValueOnTestInterface.class);
 
-	private void assertMethodIsEnabled(ProfileValueSource profileValueSource, String methodName, Class<?> testClass)
-			throws Exception {
-		Method testMethod = testClass.getMethod(methodName);
-		assertThat(ProfileValueUtils.isTestEnabledInThisEnvironment(profileValueSource, testMethod, testClass)).as("Test method [" + testMethod + "] should be enabled for ProfileValueSource [" + profileValueSource
-				+ "].").isTrue();
-	}
+    assertMethodIsDisabled(NON_ANNOTATED_METHOD, MetaDisabledAnnotatedSingleValue.class);
+    assertMethodIsDisabled(ENABLED_ANNOTATED_METHOD, MetaDisabledAnnotatedSingleValue.class);
+    assertMethodIsDisabled(DISABLED_ANNOTATED_METHOD, MetaDisabledAnnotatedSingleValue.class);
 
-	private void assertMethodIsDisabled(ProfileValueSource profileValueSource, String methodName, Class<?> testClass)
-			throws Exception {
-		Method testMethod = testClass.getMethod(methodName);
-		assertThat(ProfileValueUtils.isTestEnabledInThisEnvironment(profileValueSource, testMethod, testClass)).as("Test method [" + testMethod + "] should be disabled for ProfileValueSource [" + profileValueSource
-				+ "].").isFalse();
-	}
+    assertMethodIsDisabled(NON_ANNOTATED_METHOD, DisabledAnnotatedMultiValue.class);
+    assertMethodIsDisabled(ENABLED_ANNOTATED_METHOD, DisabledAnnotatedMultiValue.class);
+    assertMethodIsDisabled(DISABLED_ANNOTATED_METHOD, DisabledAnnotatedMultiValue.class);
+  }
 
-	// -------------------------------------------------------------------
+  @Test
+  void isTestEnabledInThisEnvironmentForProvidedProfileValueSourceMethodAndClass()
+      throws Exception {
 
-	@Test
-	void isTestEnabledInThisEnvironmentForProvidedClass() throws Exception {
-		assertClassIsEnabled(NonAnnotated.class);
-		assertClassIsEnabled(EnabledAnnotatedSingleValue.class);
-		assertClassIsEnabled(EnabledAnnotatedMultiValue.class);
-		assertClassIsEnabled(MetaEnabledClass.class);
-		assertClassIsEnabled(MetaEnabledWithCustomProfileValueSourceClass.class);
-		assertClassIsEnabled(EnabledWithCustomProfileValueSourceOnTestInterface.class);
+    ProfileValueSource profileValueSource = SystemProfileValueSource.getInstance();
 
-		assertClassIsDisabled(DisabledAnnotatedSingleValue.class);
-		assertClassIsDisabled(DisabledAnnotatedSingleValueOnTestInterface.class);
-		assertClassIsDisabled(DisabledAnnotatedMultiValue.class);
-		assertClassIsDisabled(MetaDisabledClass.class);
-		assertClassIsDisabled(MetaDisabledWithCustomProfileValueSourceClass.class);
-	}
+    assertMethodIsEnabled(profileValueSource, NON_ANNOTATED_METHOD, NonAnnotated.class);
 
-	@Test
-	void isTestEnabledInThisEnvironmentForProvidedMethodAndClass() throws Exception {
-		assertMethodIsEnabled(NON_ANNOTATED_METHOD, NonAnnotated.class);
+    assertMethodIsEnabled(
+        profileValueSource, NON_ANNOTATED_METHOD, EnabledAnnotatedSingleValue.class);
+    assertMethodIsEnabled(
+        profileValueSource, ENABLED_ANNOTATED_METHOD, EnabledAnnotatedSingleValue.class);
+    assertMethodIsDisabled(
+        profileValueSource, DISABLED_ANNOTATED_METHOD, EnabledAnnotatedSingleValue.class);
 
-		assertMethodIsEnabled(NON_ANNOTATED_METHOD, EnabledAnnotatedSingleValue.class);
-		assertMethodIsEnabled(ENABLED_ANNOTATED_METHOD, EnabledAnnotatedSingleValue.class);
-		assertMethodIsDisabled(DISABLED_ANNOTATED_METHOD, EnabledAnnotatedSingleValue.class);
+    assertMethodIsEnabled(
+        profileValueSource, NON_ANNOTATED_METHOD, EnabledAnnotatedMultiValue.class);
+    assertMethodIsEnabled(
+        profileValueSource, ENABLED_ANNOTATED_METHOD, EnabledAnnotatedMultiValue.class);
+    assertMethodIsDisabled(
+        profileValueSource, DISABLED_ANNOTATED_METHOD, EnabledAnnotatedMultiValue.class);
 
+    assertMethodIsDisabled(
+        profileValueSource, NON_ANNOTATED_METHOD, DisabledAnnotatedSingleValue.class);
+    assertMethodIsDisabled(
+        profileValueSource, ENABLED_ANNOTATED_METHOD, DisabledAnnotatedSingleValue.class);
+    assertMethodIsDisabled(
+        profileValueSource, DISABLED_ANNOTATED_METHOD, DisabledAnnotatedSingleValue.class);
 
-		assertMethodIsEnabled(NON_ANNOTATED_METHOD, MetaEnabledAnnotatedSingleValue.class);
-		assertMethodIsEnabled(ENABLED_ANNOTATED_METHOD, MetaEnabledAnnotatedSingleValue.class);
-		assertMethodIsDisabled(DISABLED_ANNOTATED_METHOD, MetaEnabledAnnotatedSingleValue.class);
+    assertMethodIsDisabled(
+        profileValueSource, NON_ANNOTATED_METHOD, DisabledAnnotatedMultiValue.class);
+    assertMethodIsDisabled(
+        profileValueSource, ENABLED_ANNOTATED_METHOD, DisabledAnnotatedMultiValue.class);
+    assertMethodIsDisabled(
+        profileValueSource, DISABLED_ANNOTATED_METHOD, DisabledAnnotatedMultiValue.class);
+  }
 
-		assertMethodIsEnabled(NON_ANNOTATED_METHOD, EnabledAnnotatedMultiValue.class);
-		assertMethodIsEnabled(ENABLED_ANNOTATED_METHOD, EnabledAnnotatedMultiValue.class);
-		assertMethodIsDisabled(DISABLED_ANNOTATED_METHOD, EnabledAnnotatedMultiValue.class);
+  // -------------------------------------------------------------------
 
-		assertMethodIsDisabled(NON_ANNOTATED_METHOD, DisabledAnnotatedSingleValue.class);
-		assertMethodIsDisabled(ENABLED_ANNOTATED_METHOD, DisabledAnnotatedSingleValue.class);
-		assertMethodIsDisabled(DISABLED_ANNOTATED_METHOD, DisabledAnnotatedSingleValue.class);
+  @SuppressWarnings("unused")
+  private static class NonAnnotated {
 
-		assertMethodIsDisabled(NON_ANNOTATED_METHOD, DisabledAnnotatedSingleValueOnTestInterface.class);
+    public void nonAnnotatedMethod() {}
+  }
 
-		assertMethodIsDisabled(NON_ANNOTATED_METHOD, MetaDisabledAnnotatedSingleValue.class);
-		assertMethodIsDisabled(ENABLED_ANNOTATED_METHOD, MetaDisabledAnnotatedSingleValue.class);
-		assertMethodIsDisabled(DISABLED_ANNOTATED_METHOD, MetaDisabledAnnotatedSingleValue.class);
+  @SuppressWarnings("unused")
+  @IfProfileValue(name = NAME, value = VALUE)
+  private static class EnabledAnnotatedSingleValue {
 
-		assertMethodIsDisabled(NON_ANNOTATED_METHOD, DisabledAnnotatedMultiValue.class);
-		assertMethodIsDisabled(ENABLED_ANNOTATED_METHOD, DisabledAnnotatedMultiValue.class);
-		assertMethodIsDisabled(DISABLED_ANNOTATED_METHOD, DisabledAnnotatedMultiValue.class);
-	}
+    public void nonAnnotatedMethod() {}
 
-	@Test
-	void isTestEnabledInThisEnvironmentForProvidedProfileValueSourceMethodAndClass() throws Exception {
+    @IfProfileValue(name = NAME, value = VALUE)
+    public void enabledAnnotatedMethod() {}
 
-		ProfileValueSource profileValueSource = SystemProfileValueSource.getInstance();
+    @IfProfileValue(name = NAME, value = VALUE + "X")
+    public void disabledAnnotatedMethod() {}
+  }
 
-		assertMethodIsEnabled(profileValueSource, NON_ANNOTATED_METHOD, NonAnnotated.class);
+  @IfProfileValue(name = NAME, value = VALUE + "X")
+  private interface IfProfileValueTestInterface {}
 
-		assertMethodIsEnabled(profileValueSource, NON_ANNOTATED_METHOD, EnabledAnnotatedSingleValue.class);
-		assertMethodIsEnabled(profileValueSource, ENABLED_ANNOTATED_METHOD, EnabledAnnotatedSingleValue.class);
-		assertMethodIsDisabled(profileValueSource, DISABLED_ANNOTATED_METHOD, EnabledAnnotatedSingleValue.class);
+  @SuppressWarnings("unused")
+  private static class DisabledAnnotatedSingleValueOnTestInterface
+      implements IfProfileValueTestInterface {
 
-		assertMethodIsEnabled(profileValueSource, NON_ANNOTATED_METHOD, EnabledAnnotatedMultiValue.class);
-		assertMethodIsEnabled(profileValueSource, ENABLED_ANNOTATED_METHOD, EnabledAnnotatedMultiValue.class);
-		assertMethodIsDisabled(profileValueSource, DISABLED_ANNOTATED_METHOD, EnabledAnnotatedMultiValue.class);
+    public void nonAnnotatedMethod() {}
+  }
 
-		assertMethodIsDisabled(profileValueSource, NON_ANNOTATED_METHOD, DisabledAnnotatedSingleValue.class);
-		assertMethodIsDisabled(profileValueSource, ENABLED_ANNOTATED_METHOD, DisabledAnnotatedSingleValue.class);
-		assertMethodIsDisabled(profileValueSource, DISABLED_ANNOTATED_METHOD, DisabledAnnotatedSingleValue.class);
+  @SuppressWarnings("unused")
+  @IfProfileValue(
+      name = NAME,
+      values = {"foo", VALUE, "bar"})
+  private static class EnabledAnnotatedMultiValue {
 
-		assertMethodIsDisabled(profileValueSource, NON_ANNOTATED_METHOD, DisabledAnnotatedMultiValue.class);
-		assertMethodIsDisabled(profileValueSource, ENABLED_ANNOTATED_METHOD, DisabledAnnotatedMultiValue.class);
-		assertMethodIsDisabled(profileValueSource, DISABLED_ANNOTATED_METHOD, DisabledAnnotatedMultiValue.class);
-	}
+    public void nonAnnotatedMethod() {}
 
+    @IfProfileValue(name = NAME, value = VALUE)
+    public void enabledAnnotatedMethod() {}
 
-	// -------------------------------------------------------------------
+    @IfProfileValue(name = NAME, value = VALUE + "X")
+    public void disabledAnnotatedMethod() {}
+  }
 
-	@SuppressWarnings("unused")
-	private static class NonAnnotated {
+  @SuppressWarnings("unused")
+  @IfProfileValue(name = NAME, value = VALUE + "X")
+  private static class DisabledAnnotatedSingleValue {
 
-		public void nonAnnotatedMethod() {
-		}
-	}
+    public void nonAnnotatedMethod() {}
 
-	@SuppressWarnings("unused")
-	@IfProfileValue(name = NAME, value = VALUE)
-	private static class EnabledAnnotatedSingleValue {
+    @IfProfileValue(name = NAME, value = VALUE)
+    public void enabledAnnotatedMethod() {}
 
-		public void nonAnnotatedMethod() {
-		}
+    @IfProfileValue(name = NAME, value = VALUE + "X")
+    public void disabledAnnotatedMethod() {}
+  }
 
-		@IfProfileValue(name = NAME, value = VALUE)
-		public void enabledAnnotatedMethod() {
-		}
+  @SuppressWarnings("unused")
+  @IfProfileValue(
+      name = NAME,
+      values = {"foo", "bar"})
+  private static class DisabledAnnotatedMultiValue {
 
-		@IfProfileValue(name = NAME, value = VALUE + "X")
-		public void disabledAnnotatedMethod() {
-		}
-	}
+    public void nonAnnotatedMethod() {}
 
-	@IfProfileValue(name = NAME, value = VALUE + "X")
-	private interface IfProfileValueTestInterface {
-	}
+    @IfProfileValue(name = NAME, value = VALUE)
+    public void enabledAnnotatedMethod() {}
 
-	@SuppressWarnings("unused")
-	private static class DisabledAnnotatedSingleValueOnTestInterface implements IfProfileValueTestInterface {
+    @IfProfileValue(name = NAME, value = VALUE + "X")
+    public void disabledAnnotatedMethod() {}
+  }
 
-		public void nonAnnotatedMethod() {
-		}
-	}
+  @IfProfileValue(name = NAME, value = VALUE)
+  @Retention(RetentionPolicy.RUNTIME)
+  private static @interface MetaEnabled {}
 
-	@SuppressWarnings("unused")
-	@IfProfileValue(name = NAME, values = { "foo", VALUE, "bar" })
-	private static class EnabledAnnotatedMultiValue {
+  @IfProfileValue(name = NAME, value = VALUE + "X")
+  @Retention(RetentionPolicy.RUNTIME)
+  private static @interface MetaDisabled {}
 
-		public void nonAnnotatedMethod() {
-		}
+  @MetaEnabled
+  private static class MetaEnabledClass {}
 
-		@IfProfileValue(name = NAME, value = VALUE)
-		public void enabledAnnotatedMethod() {
-		}
+  @MetaDisabled
+  private static class MetaDisabledClass {}
 
-		@IfProfileValue(name = NAME, value = VALUE + "X")
-		public void disabledAnnotatedMethod() {
-		}
-	}
+  @SuppressWarnings("unused")
+  @MetaEnabled
+  private static class MetaEnabledAnnotatedSingleValue {
 
-	@SuppressWarnings("unused")
-	@IfProfileValue(name = NAME, value = VALUE + "X")
-	private static class DisabledAnnotatedSingleValue {
+    public void nonAnnotatedMethod() {}
 
-		public void nonAnnotatedMethod() {
-		}
+    @MetaEnabled
+    public void enabledAnnotatedMethod() {}
 
-		@IfProfileValue(name = NAME, value = VALUE)
-		public void enabledAnnotatedMethod() {
-		}
+    @MetaDisabled
+    public void disabledAnnotatedMethod() {}
+  }
 
-		@IfProfileValue(name = NAME, value = VALUE + "X")
-		public void disabledAnnotatedMethod() {
-		}
-	}
+  @SuppressWarnings("unused")
+  @MetaDisabled
+  private static class MetaDisabledAnnotatedSingleValue {
 
-	@SuppressWarnings("unused")
-	@IfProfileValue(name = NAME, values = { "foo", "bar" })
-	private static class DisabledAnnotatedMultiValue {
+    public void nonAnnotatedMethod() {}
 
-		public void nonAnnotatedMethod() {
-		}
+    @MetaEnabled
+    public void enabledAnnotatedMethod() {}
 
-		@IfProfileValue(name = NAME, value = VALUE)
-		public void enabledAnnotatedMethod() {
-		}
+    @MetaDisabled
+    public void disabledAnnotatedMethod() {}
+  }
 
-		@IfProfileValue(name = NAME, value = VALUE + "X")
-		public void disabledAnnotatedMethod() {
-		}
-	}
+  public static class HardCodedProfileValueSource implements ProfileValueSource {
 
-	@IfProfileValue(name = NAME, value = VALUE)
-	@Retention(RetentionPolicy.RUNTIME)
-	private static @interface MetaEnabled {
-	}
+    @Override
+    public String get(final String key) {
+      return (key.equals(NAME) ? "42" : null);
+    }
+  }
 
-	@IfProfileValue(name = NAME, value = VALUE + "X")
-	@Retention(RetentionPolicy.RUNTIME)
-	private static @interface MetaDisabled {
-	}
+  @ProfileValueSourceConfiguration(HardCodedProfileValueSource.class)
+  @IfProfileValue(name = NAME, value = "42")
+  @Retention(RetentionPolicy.RUNTIME)
+  private static @interface MetaEnabledWithCustomProfileValueSource {}
 
-	@MetaEnabled
-	private static class MetaEnabledClass {
-	}
+  @ProfileValueSourceConfiguration(HardCodedProfileValueSource.class)
+  @IfProfileValue(name = NAME, value = "13")
+  @Retention(RetentionPolicy.RUNTIME)
+  private static @interface MetaDisabledWithCustomProfileValueSource {}
 
-	@MetaDisabled
-	private static class MetaDisabledClass {
-	}
+  @MetaEnabledWithCustomProfileValueSource
+  private static class MetaEnabledWithCustomProfileValueSourceClass {}
 
-	@SuppressWarnings("unused")
-	@MetaEnabled
-	private static class MetaEnabledAnnotatedSingleValue {
+  @MetaDisabledWithCustomProfileValueSource
+  private static class MetaDisabledWithCustomProfileValueSourceClass {}
 
-		public void nonAnnotatedMethod() {
-		}
+  @ProfileValueSourceConfiguration(HardCodedProfileValueSource.class)
+  private interface CustomProfileValueSourceTestInterface {}
 
-		@MetaEnabled
-		public void enabledAnnotatedMethod() {
-		}
-
-		@MetaDisabled
-		public void disabledAnnotatedMethod() {
-		}
-	}
-
-	@SuppressWarnings("unused")
-	@MetaDisabled
-	private static class MetaDisabledAnnotatedSingleValue {
-
-		public void nonAnnotatedMethod() {
-		}
-
-		@MetaEnabled
-		public void enabledAnnotatedMethod() {
-		}
-
-		@MetaDisabled
-		public void disabledAnnotatedMethod() {
-		}
-	}
-
-	public static class HardCodedProfileValueSource implements ProfileValueSource {
-
-		@Override
-		public String get(final String key) {
-			return (key.equals(NAME) ? "42" : null);
-		}
-	}
-
-	@ProfileValueSourceConfiguration(HardCodedProfileValueSource.class)
-	@IfProfileValue(name = NAME, value = "42")
-	@Retention(RetentionPolicy.RUNTIME)
-	private static @interface MetaEnabledWithCustomProfileValueSource {
-	}
-
-	@ProfileValueSourceConfiguration(HardCodedProfileValueSource.class)
-	@IfProfileValue(name = NAME, value = "13")
-	@Retention(RetentionPolicy.RUNTIME)
-	private static @interface MetaDisabledWithCustomProfileValueSource {
-	}
-
-	@MetaEnabledWithCustomProfileValueSource
-	private static class MetaEnabledWithCustomProfileValueSourceClass {
-	}
-
-	@MetaDisabledWithCustomProfileValueSource
-	private static class MetaDisabledWithCustomProfileValueSourceClass {
-	}
-
-	@ProfileValueSourceConfiguration(HardCodedProfileValueSource.class)
-	private interface CustomProfileValueSourceTestInterface {
-	}
-
-	@IfProfileValue(name = NAME, value = "42")
-	private static class EnabledWithCustomProfileValueSourceOnTestInterface
-			implements CustomProfileValueSourceTestInterface {
-	}
-
+  @IfProfileValue(name = NAME, value = "42")
+  private static class EnabledWithCustomProfileValueSourceOnTestInterface
+      implements CustomProfileValueSourceTestInterface {}
 }

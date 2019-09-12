@@ -7,8 +7,10 @@
 
 	<aop:aspectj-autoproxy/>
 
-	<bean id="counterAspect" class="org.springframework.aop.aspectj.generic.GenericParameterMatchingTests$CounterAspect"/>
+	<bean id="counterAspect"
+			class="org.springframework.aop.aspectj.generic.GenericParameterMatchingTests$CounterAspect"/>
 
-	<bean id="testBean" class="org.springframework.aop.aspectj.generic.GenericParameterMatchingTests$GenericImpl"/>
+	<bean id="testBean"
+			class="org.springframework.aop.aspectj.generic.GenericParameterMatchingTests$GenericImpl"/>
 
 </beans>

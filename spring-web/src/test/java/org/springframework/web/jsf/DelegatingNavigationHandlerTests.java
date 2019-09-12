@@ -33,73 +33,73 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class DelegatingNavigationHandlerTests {
 
-	private final MockFacesContext facesContext = new MockFacesContext();
+  private final MockFacesContext facesContext = new MockFacesContext();
 
-	private final StaticListableBeanFactory beanFactory = new StaticListableBeanFactory();
+  private final StaticListableBeanFactory beanFactory = new StaticListableBeanFactory();
 
-	private final TestNavigationHandler origNavHandler = new TestNavigationHandler();
+  private final TestNavigationHandler origNavHandler = new TestNavigationHandler();
 
-	private final DelegatingNavigationHandlerProxy delNavHandler = new DelegatingNavigationHandlerProxy(origNavHandler) {
-		@Override
-		protected BeanFactory getBeanFactory(FacesContext facesContext) {
-			return beanFactory;
-		}
-	};
+  private final DelegatingNavigationHandlerProxy delNavHandler =
+      new DelegatingNavigationHandlerProxy(origNavHandler) {
+        @Override
+        protected BeanFactory getBeanFactory(FacesContext facesContext) {
+          return beanFactory;
+        }
+      };
 
+  @Test
+  public void handleNavigationWithoutDecoration() {
+    TestNavigationHandler targetHandler = new TestNavigationHandler();
+    beanFactory.addBean("jsfNavigationHandler", targetHandler);
 
-	@Test
-	public void handleNavigationWithoutDecoration() {
-		TestNavigationHandler targetHandler = new TestNavigationHandler();
-		beanFactory.addBean("jsfNavigationHandler", targetHandler);
+    delNavHandler.handleNavigation(facesContext, "fromAction", "myViewId");
+    assertThat(targetHandler.lastFromAction).isEqualTo("fromAction");
+    assertThat(targetHandler.lastOutcome).isEqualTo("myViewId");
+  }
 
-		delNavHandler.handleNavigation(facesContext, "fromAction", "myViewId");
-		assertThat(targetHandler.lastFromAction).isEqualTo("fromAction");
-		assertThat(targetHandler.lastOutcome).isEqualTo("myViewId");
-	}
+  @Test
+  public void handleNavigationWithDecoration() {
+    TestDecoratingNavigationHandler targetHandler = new TestDecoratingNavigationHandler();
+    beanFactory.addBean("jsfNavigationHandler", targetHandler);
 
-	@Test
-	public void handleNavigationWithDecoration() {
-		TestDecoratingNavigationHandler targetHandler = new TestDecoratingNavigationHandler();
-		beanFactory.addBean("jsfNavigationHandler", targetHandler);
+    delNavHandler.handleNavigation(facesContext, "fromAction", "myViewId");
+    assertThat(targetHandler.lastFromAction).isEqualTo("fromAction");
+    assertThat(targetHandler.lastOutcome).isEqualTo("myViewId");
 
-		delNavHandler.handleNavigation(facesContext, "fromAction", "myViewId");
-		assertThat(targetHandler.lastFromAction).isEqualTo("fromAction");
-		assertThat(targetHandler.lastOutcome).isEqualTo("myViewId");
+    // Original handler must have been invoked as well...
+    assertThat(origNavHandler.lastFromAction).isEqualTo("fromAction");
+    assertThat(origNavHandler.lastOutcome).isEqualTo("myViewId");
+  }
 
-		// Original handler must have been invoked as well...
-		assertThat(origNavHandler.lastFromAction).isEqualTo("fromAction");
-		assertThat(origNavHandler.lastOutcome).isEqualTo("myViewId");
-	}
+  static class TestNavigationHandler extends NavigationHandler {
 
+    private String lastFromAction;
+    private String lastOutcome;
 
-	static class TestNavigationHandler extends NavigationHandler {
+    @Override
+    public void handleNavigation(FacesContext facesContext, String fromAction, String outcome) {
+      lastFromAction = fromAction;
+      lastOutcome = outcome;
+    }
+  }
 
-		private String lastFromAction;
-		private String lastOutcome;
+  static class TestDecoratingNavigationHandler extends DecoratingNavigationHandler {
 
-		@Override
-		public void handleNavigation(FacesContext facesContext, String fromAction, String outcome) {
-			lastFromAction = fromAction;
-			lastOutcome = outcome;
-		}
-	}
+    private String lastFromAction;
+    private String lastOutcome;
 
+    @Override
+    public void handleNavigation(
+        FacesContext facesContext,
+        @Nullable String fromAction,
+        @Nullable String outcome,
+        @Nullable NavigationHandler originalNavigationHandler) {
 
-	static class TestDecoratingNavigationHandler extends DecoratingNavigationHandler {
-
-		private String lastFromAction;
-		private String lastOutcome;
-
-		@Override
-		public void handleNavigation(FacesContext facesContext, @Nullable String fromAction,
-				@Nullable String outcome, @Nullable NavigationHandler originalNavigationHandler) {
-
-			lastFromAction = fromAction;
-			lastOutcome = outcome;
-			if (originalNavigationHandler != null) {
-				originalNavigationHandler.handleNavigation(facesContext, fromAction, outcome);
-			}
-		}
-	}
-
+      lastFromAction = fromAction;
+      lastOutcome = outcome;
+      if (originalNavigationHandler != null) {
+        originalNavigationHandler.handleNavigation(facesContext, fromAction, outcome);
+      }
+    }
+  }
 }

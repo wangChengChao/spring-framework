@@ -31,9 +31,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ContextConfiguration
 public class BasicGroovyWacTests extends AbstractBasicWacTests {
 
-	@Test
-	public void groovyFooAutowired() {
-		assertThat(foo).isEqualTo("Groovy Foo");
-	}
-
+  @Test
+  public void groovyFooAutowired() {
+    assertThat(foo).isEqualTo("Groovy Foo");
+  }
 }

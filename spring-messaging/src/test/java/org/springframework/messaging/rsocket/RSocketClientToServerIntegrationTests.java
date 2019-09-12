@@ -51,229 +51,242 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class RSocketClientToServerIntegrationTests {
 
-	private static AnnotationConfigApplicationContext context;
+  private static AnnotationConfigApplicationContext context;
 
-	private static CloseableChannel server;
+  private static CloseableChannel server;
 
-	private static FireAndForgetCountingInterceptor interceptor = new FireAndForgetCountingInterceptor();
+  private static FireAndForgetCountingInterceptor interceptor =
+      new FireAndForgetCountingInterceptor();
 
-	private static RSocketRequester requester;
+  private static RSocketRequester requester;
 
+  @BeforeAll
+  @SuppressWarnings("ConstantConditions")
+  public static void setupOnce() {
 
-	@BeforeAll
-	@SuppressWarnings("ConstantConditions")
-	public static void setupOnce() {
+    MimeType metadataMimeType =
+        MimeTypeUtils.parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_ROUTING.getString());
 
-		MimeType metadataMimeType = MimeTypeUtils.parseMimeType(
-				WellKnownMimeType.MESSAGE_RSOCKET_ROUTING.getString());
+    context = new AnnotationConfigApplicationContext(ServerConfig.class);
+    RSocketMessageHandler messageHandler = context.getBean(RSocketMessageHandler.class);
+    SocketAcceptor responder = messageHandler.responder();
 
-		context = new AnnotationConfigApplicationContext(ServerConfig.class);
-		RSocketMessageHandler messageHandler = context.getBean(RSocketMessageHandler.class);
-		SocketAcceptor responder = messageHandler.responder();
+    server =
+        RSocketFactory.receive()
+            .addResponderPlugin(interceptor)
+            .frameDecoder(PayloadDecoder.ZERO_COPY)
+            .acceptor(responder)
+            .transport(TcpServerTransport.create("localhost", 7000))
+            .start()
+            .block();
 
-		server = RSocketFactory.receive()
-				.addResponderPlugin(interceptor)
-				.frameDecoder(PayloadDecoder.ZERO_COPY)
-				.acceptor(responder)
-				.transport(TcpServerTransport.create("localhost", 7000))
-				.start()
-				.block();
+    requester =
+        RSocketRequester.builder()
+            .metadataMimeType(metadataMimeType)
+            .rsocketStrategies(context.getBean(RSocketStrategies.class))
+            .connectTcp("localhost", 7000)
+            .block();
+  }
 
-		requester = RSocketRequester.builder()
-				.metadataMimeType(metadataMimeType)
-				.rsocketStrategies(context.getBean(RSocketStrategies.class))
-				.connectTcp("localhost", 7000)
-				.block();
-	}
+  @AfterAll
+  public static void tearDownOnce() {
+    requester.rsocket().dispose();
+    server.dispose();
+  }
 
-	@AfterAll
-	public static void tearDownOnce() {
-		requester.rsocket().dispose();
-		server.dispose();
-	}
+  @Test
+  public void fireAndForget() {
+    Flux.range(1, 3)
+        .concatMap(i -> requester.route("receive").data("Hello " + i).send())
+        .blockLast();
 
+    StepVerifier.create(context.getBean(ServerController.class).fireForgetPayloads)
+        .expectNext("Hello 1")
+        .expectNext("Hello 2")
+        .expectNext("Hello 3")
+        .thenAwait(Duration.ofMillis(50))
+        .thenCancel()
+        .verify(Duration.ofSeconds(5));
 
-	@Test
-	public void fireAndForget() {
-		Flux.range(1, 3)
-				.concatMap(i -> requester.route("receive").data("Hello " + i).send())
-				.blockLast();
+    assertThat(interceptor.getRSocketCount()).isEqualTo(1);
+    assertThat(interceptor.getFireAndForgetCount(0))
+        .as("Fire and forget requests did not actually complete handling on the server side")
+        .isEqualTo(3);
+  }
 
-		StepVerifier.create(context.getBean(ServerController.class).fireForgetPayloads)
-				.expectNext("Hello 1")
-				.expectNext("Hello 2")
-				.expectNext("Hello 3")
-				.thenAwait(Duration.ofMillis(50))
-				.thenCancel()
-				.verify(Duration.ofSeconds(5));
+  @Test
+  public void echo() {
+    Flux<String> result =
+        Flux.range(1, 3)
+            .concatMap(i -> requester.route("echo").data("Hello " + i).retrieveMono(String.class));
 
-		assertThat(interceptor.getRSocketCount()).isEqualTo(1);
-		assertThat(interceptor.getFireAndForgetCount(0))
-				.as("Fire and forget requests did not actually complete handling on the server side")
-				.isEqualTo(3);
-	}
+    StepVerifier.create(result)
+        .expectNext("Hello 1")
+        .expectNext("Hello 2")
+        .expectNext("Hello 3")
+        .expectComplete()
+        .verify(Duration.ofSeconds(5));
+  }
 
-	@Test
-	public void echo() {
-		Flux<String> result = Flux.range(1, 3).concatMap(i ->
-				requester.route("echo").data("Hello " + i).retrieveMono(String.class));
+  @Test
+  public void echoAsync() {
+    Flux<String> result =
+        Flux.range(1, 3)
+            .concatMap(
+                i -> requester.route("echo-async").data("Hello " + i).retrieveMono(String.class));
 
-		StepVerifier.create(result)
-				.expectNext("Hello 1").expectNext("Hello 2").expectNext("Hello 3")
-				.expectComplete()
-				.verify(Duration.ofSeconds(5));
-	}
+    StepVerifier.create(result)
+        .expectNext("Hello 1 async")
+        .expectNext("Hello 2 async")
+        .expectNext("Hello 3 async")
+        .expectComplete()
+        .verify(Duration.ofSeconds(5));
+  }
 
-	@Test
-	public void echoAsync() {
-		Flux<String> result = Flux.range(1, 3).concatMap(i ->
-				requester.route("echo-async").data("Hello " + i).retrieveMono(String.class));
+  @Test
+  public void echoStream() {
+    Flux<String> result = requester.route("echo-stream").data("Hello").retrieveFlux(String.class);
 
-		StepVerifier.create(result)
-				.expectNext("Hello 1 async").expectNext("Hello 2 async").expectNext("Hello 3 async")
-				.expectComplete()
-				.verify(Duration.ofSeconds(5));
-	}
+    StepVerifier.create(result)
+        .expectNext("Hello 0")
+        .expectNextCount(6)
+        .expectNext("Hello 7")
+        .thenCancel()
+        .verify(Duration.ofSeconds(5));
+  }
 
-	@Test
-	public void echoStream() {
-		Flux<String> result = requester.route("echo-stream").data("Hello").retrieveFlux(String.class);
+  @Test
+  public void echoChannel() {
+    Flux<String> result =
+        requester
+            .route("echo-channel")
+            .data(Flux.range(1, 10).map(i -> "Hello " + i), String.class)
+            .retrieveFlux(String.class);
 
-		StepVerifier.create(result)
-				.expectNext("Hello 0").expectNextCount(6).expectNext("Hello 7")
-				.thenCancel()
-				.verify(Duration.ofSeconds(5));
-	}
+    StepVerifier.create(result)
+        .expectNext("Hello 1 async")
+        .expectNextCount(8)
+        .expectNext("Hello 10 async")
+        .thenCancel() // https://github.com/rsocket/rsocket-java/issues/613
+        .verify(Duration.ofSeconds(5));
+  }
 
-	@Test
-	public void echoChannel() {
-		Flux<String> result = requester.route("echo-channel")
-				.data(Flux.range(1, 10).map(i -> "Hello " + i), String.class)
-				.retrieveFlux(String.class);
+  @Test
+  public void voidReturnValue() {
+    Flux<String> result =
+        requester.route("void-return-value").data("Hello").retrieveFlux(String.class);
+    StepVerifier.create(result).expectComplete().verify(Duration.ofSeconds(5));
+  }
 
-		StepVerifier.create(result)
-				.expectNext("Hello 1 async").expectNextCount(8).expectNext("Hello 10 async")
-				.thenCancel()  // https://github.com/rsocket/rsocket-java/issues/613
-				.verify(Duration.ofSeconds(5));
-	}
+  @Test
+  public void voidReturnValueFromExceptionHandler() {
+    Flux<String> result =
+        requester.route("void-return-value").data("bad").retrieveFlux(String.class);
+    StepVerifier.create(result).expectComplete().verify(Duration.ofSeconds(5));
+  }
 
-	@Test
-	public void voidReturnValue() {
-		Flux<String> result = requester.route("void-return-value").data("Hello").retrieveFlux(String.class);
-		StepVerifier.create(result).expectComplete().verify(Duration.ofSeconds(5));
-	}
+  @Test
+  public void handleWithThrownException() {
+    Mono<String> result = requester.route("thrown-exception").data("a").retrieveMono(String.class);
+    StepVerifier.create(result)
+        .expectNext("Invalid input error handled")
+        .expectComplete()
+        .verify(Duration.ofSeconds(5));
+  }
 
-	@Test
-	public void voidReturnValueFromExceptionHandler() {
-		Flux<String> result = requester.route("void-return-value").data("bad").retrieveFlux(String.class);
-		StepVerifier.create(result).expectComplete().verify(Duration.ofSeconds(5));
-	}
+  @Test
+  public void handleWithErrorSignal() {
+    Mono<String> result = requester.route("error-signal").data("a").retrieveMono(String.class);
+    StepVerifier.create(result)
+        .expectNext("Invalid input error handled")
+        .expectComplete()
+        .verify(Duration.ofSeconds(5));
+  }
 
-	@Test
-	public void handleWithThrownException() {
-		Mono<String> result = requester.route("thrown-exception").data("a").retrieveMono(String.class);
-		StepVerifier.create(result)
-				.expectNext("Invalid input error handled")
-				.expectComplete()
-				.verify(Duration.ofSeconds(5));
-	}
+  @Test
+  public void noMatchingRoute() {
+    Mono<String> result = requester.route("invalid").data("anything").retrieveMono(String.class);
+    StepVerifier.create(result)
+        .expectErrorMessage("No handler for destination 'invalid'")
+        .verify(Duration.ofSeconds(5));
+  }
 
-	@Test
-	public void handleWithErrorSignal() {
-		Mono<String> result = requester.route("error-signal").data("a").retrieveMono(String.class);
-		StepVerifier.create(result)
-				.expectNext("Invalid input error handled")
-				.expectComplete()
-				.verify(Duration.ofSeconds(5));
-	}
+  @Controller
+  static class ServerController {
 
-	@Test
-	public void noMatchingRoute() {
-		Mono<String> result = requester.route("invalid").data("anything").retrieveMono(String.class);
-		StepVerifier.create(result)
-				.expectErrorMessage("No handler for destination 'invalid'")
-				.verify(Duration.ofSeconds(5));
-	}
+    final ReplayProcessor<String> fireForgetPayloads = ReplayProcessor.create();
 
+    @MessageMapping("receive")
+    void receive(String payload) {
+      this.fireForgetPayloads.onNext(payload);
+    }
 
-	@Controller
-	static class ServerController {
+    @MessageMapping("echo")
+    String echo(String payload) {
+      return payload;
+    }
 
-		final ReplayProcessor<String> fireForgetPayloads = ReplayProcessor.create();
+    @MessageMapping("echo-async")
+    Mono<String> echoAsync(String payload) {
+      return Mono.delay(Duration.ofMillis(10)).map(aLong -> payload + " async");
+    }
 
-		@MessageMapping("receive")
-		void receive(String payload) {
-			this.fireForgetPayloads.onNext(payload);
-		}
+    @MessageMapping("echo-stream")
+    Flux<String> echoStream(String payload) {
+      return Flux.interval(Duration.ofMillis(10)).map(aLong -> payload + " " + aLong);
+    }
 
-		@MessageMapping("echo")
-		String echo(String payload) {
-			return payload;
-		}
+    @MessageMapping("echo-channel")
+    Flux<String> echoChannel(Flux<String> payloads) {
+      return payloads.delayElements(Duration.ofMillis(10)).map(payload -> payload + " async");
+    }
 
-		@MessageMapping("echo-async")
-		Mono<String> echoAsync(String payload) {
-			return Mono.delay(Duration.ofMillis(10)).map(aLong -> payload + " async");
-		}
+    @MessageMapping("thrown-exception")
+    Mono<String> handleAndThrow(String payload) {
+      throw new IllegalArgumentException("Invalid input error");
+    }
 
-		@MessageMapping("echo-stream")
-		Flux<String> echoStream(String payload) {
-			return Flux.interval(Duration.ofMillis(10)).map(aLong -> payload + " " + aLong);
-		}
+    @MessageMapping("error-signal")
+    Mono<String> handleAndReturnError(String payload) {
+      return Mono.error(new IllegalArgumentException("Invalid input error"));
+    }
 
-		@MessageMapping("echo-channel")
-		Flux<String> echoChannel(Flux<String> payloads) {
-			return payloads.delayElements(Duration.ofMillis(10)).map(payload -> payload + " async");
-		}
+    @MessageMapping("void-return-value")
+    Mono<Void> voidReturnValue(String payload) {
+      return !payload.equals("bad")
+          ? Mono.delay(Duration.ofMillis(10)).then(Mono.empty())
+          : Mono.error(new IllegalStateException("bad"));
+    }
 
-		@MessageMapping("thrown-exception")
-		Mono<String> handleAndThrow(String payload) {
-			throw new IllegalArgumentException("Invalid input error");
-		}
+    @MessageExceptionHandler
+    Mono<String> handleException(IllegalArgumentException ex) {
+      return Mono.delay(Duration.ofMillis(10)).map(aLong -> ex.getMessage() + " handled");
+    }
 
-		@MessageMapping("error-signal")
-		Mono<String> handleAndReturnError(String payload) {
-			return Mono.error(new IllegalArgumentException("Invalid input error"));
-		}
+    @MessageExceptionHandler
+    Mono<Void> handleExceptionWithVoidReturnValue(IllegalStateException ex) {
+      return Mono.delay(Duration.ofMillis(10)).then(Mono.empty());
+    }
+  }
 
-		@MessageMapping("void-return-value")
-		Mono<Void> voidReturnValue(String payload) {
-			return !payload.equals("bad") ?
-					Mono.delay(Duration.ofMillis(10)).then(Mono.empty()) :
-					Mono.error(new IllegalStateException("bad"));
-		}
+  @Configuration
+  static class ServerConfig {
 
-		@MessageExceptionHandler
-		Mono<String> handleException(IllegalArgumentException ex) {
-			return Mono.delay(Duration.ofMillis(10)).map(aLong -> ex.getMessage() + " handled");
-		}
+    @Bean
+    public ServerController controller() {
+      return new ServerController();
+    }
 
-		@MessageExceptionHandler
-		Mono<Void> handleExceptionWithVoidReturnValue(IllegalStateException ex) {
-			return Mono.delay(Duration.ofMillis(10)).then(Mono.empty());
-		}
-	}
+    @Bean
+    public RSocketMessageHandler messageHandler() {
+      RSocketMessageHandler handler = new RSocketMessageHandler();
+      handler.setRSocketStrategies(rsocketStrategies());
+      return handler;
+    }
 
-
-	@Configuration
-	static class ServerConfig {
-
-		@Bean
-		public ServerController controller() {
-			return new ServerController();
-		}
-
-		@Bean
-		public RSocketMessageHandler messageHandler() {
-			RSocketMessageHandler handler = new RSocketMessageHandler();
-			handler.setRSocketStrategies(rsocketStrategies());
-			return handler;
-		}
-
-		@Bean
-		public RSocketStrategies rsocketStrategies() {
-			return RSocketStrategies.create();
-		}
-	}
-
+    @Bean
+    public RSocketStrategies rsocketStrategies() {
+      return RSocketStrategies.create();
+    }
+  }
 }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "https://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN"
+		"https://www.springframework.org/dtd/spring-beans-2.0.dtd">
 
 <!--
 	Shows common interceptor along with advisor.
@@ -10,7 +11,8 @@
 		Matches all Advisors in the factory: we don't use a prefix
 	</description>
 
-	<bean id="aapc" class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator">
+	<bean id="aapc"
+			class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator">
 		<!-- This common interceptor will be applied always, before custom lockable advisor -->
 		<property name="interceptorNames">
 			<value>nopInterceptor</value>
@@ -41,7 +43,8 @@
 		<property name="age" value="4"/>
 	</bean>
 
-	<bean id="packageVisibleMethod" class="org.springframework.aop.framework.autoproxy.PackageVisibleMethod"/>
+	<bean id="packageVisibleMethod"
+			class="org.springframework.aop.framework.autoproxy.PackageVisibleMethod"/>
 
 </beans>
 

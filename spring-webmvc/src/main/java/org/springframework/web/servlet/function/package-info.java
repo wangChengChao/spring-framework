@@ -1,6 +1,4 @@
-/**
- * Provides the types that make up Spring's functional web framework for Servlet environments.
- */
+/** Provides the types that make up Spring's functional web framework for Servlet environments. */
 @NonNullApi
 @NonNullFields
 package org.springframework.web.servlet.function;

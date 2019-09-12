@@ -26,22 +26,19 @@ import java.lang.annotation.Target;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * {@code @EnabledForTestGroups} is used to enable the annotated test class or
- * test method for one or more {@link TestGroup} {@linkplain #value values}.
+ * {@code @EnabledForTestGroups} is used to enable the annotated test class or test method for one
+ * or more {@link TestGroup} {@linkplain #value values}.
  *
  * @author Sam Brannen
  * @since 5.2
  */
-@Target({ ElementType.TYPE, ElementType.METHOD })
+@Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Inherited
 @ExtendWith(TestGroupsCondition.class)
 public @interface EnabledForTestGroups {
 
-	/**
-	 * One or more {@link TestGroup}s that must be active.
-	 */
-	TestGroup[] value();
-
+  /** One or more {@link TestGroup}s that must be active. */
+  TestGroup[] value();
 }

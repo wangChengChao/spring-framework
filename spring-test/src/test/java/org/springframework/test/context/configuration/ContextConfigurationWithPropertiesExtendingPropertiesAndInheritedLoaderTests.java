@@ -27,10 +27,9 @@ import org.springframework.tests.sample.beans.Pet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests which verify that the same custom {@link ContextLoader} can
- * be used at all levels within a test class hierarchy when the
- * {@code loader} is <i>inherited</i> (i.e., not explicitly declared) via
- * {@link ContextConfiguration &#064;ContextConfiguration}.
+ * Integration tests which verify that the same custom {@link ContextLoader} can be used at all
+ * levels within a test class hierarchy when the {@code loader} is <i>inherited</i> (i.e., not
+ * explicitly declared) via {@link ContextConfiguration &#064;ContextConfiguration}.
  *
  * @author Sam Brannen
  * @since 3.0
@@ -38,23 +37,21 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @see ContextConfigurationWithPropertiesExtendingPropertiesTests
  */
 @ContextConfiguration
-public class ContextConfigurationWithPropertiesExtendingPropertiesAndInheritedLoaderTests extends
-		PropertiesBasedSpringJUnit4ClassRunnerAppCtxTests {
+public class ContextConfigurationWithPropertiesExtendingPropertiesAndInheritedLoaderTests
+    extends PropertiesBasedSpringJUnit4ClassRunnerAppCtxTests {
 
-	@Autowired
-	private Pet dog;
+  @Autowired private Pet dog;
 
-	@Autowired
-	private String testString2;
+  @Autowired private String testString2;
 
+  @Test
+  public void verifyExtendedAnnotationAutowiredFields() {
+    assertThat(this.dog).as("The dog field should have been autowired.").isNotNull();
+    assertThat(this.dog.getName()).isEqualTo("Fido");
 
-	@Test
-	public void verifyExtendedAnnotationAutowiredFields() {
-		assertThat(this.dog).as("The dog field should have been autowired.").isNotNull();
-		assertThat(this.dog.getName()).isEqualTo("Fido");
-
-		assertThat(this.testString2).as("The testString2 field should have been autowired.").isNotNull();
-		assertThat(this.testString2).isEqualTo("Test String #2");
-	}
-
+    assertThat(this.testString2)
+        .as("The testString2 field should have been autowired.")
+        .isNotNull();
+    assertThat(this.testString2).isEqualTo("Test String #2");
+  }
 }

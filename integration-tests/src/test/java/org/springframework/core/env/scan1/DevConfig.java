@@ -24,9 +24,8 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 class DevConfig {
 
-	@Bean
-	public Object devBean() {
-		return new Object();
-	}
-
+  @Bean
+  public Object devBean() {
+    return new Object();
+  }
 }

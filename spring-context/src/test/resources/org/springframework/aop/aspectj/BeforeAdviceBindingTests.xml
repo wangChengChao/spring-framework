@@ -10,7 +10,8 @@
 			<aop:before method="oneIntArg" pointcut="execution(* setAge(int)) and args(age)"/>
 			<aop:before method="oneObjectArg" pointcut="execution(* getAge()) and this(bean)"/>
 			<aop:before method="oneIntAndOneObject"
-					pointcut="execution(* setAge(..)) and args(age) and target(bean)" arg-names="age,bean"/>
+					pointcut="execution(* setAge(..)) and args(age) and target(bean)"
+					arg-names="age,bean"/>
 			<aop:before method="needsJoinPoint" pointcut="execution(* getAge())"/>
 			<aop:before method="needsJoinPointStaticPart" pointcut="execution(* getAge())"/>
 		</aop:aspect>

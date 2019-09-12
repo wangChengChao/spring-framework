@@ -30,137 +30,130 @@ import org.springframework.http.codec.HttpMessageWriter;
 import org.springframework.util.Assert;
 
 /**
- * Default implementation of {@link CodecConfigurer} that serves as a base for
- * client and server specific variants.
+ * Default implementation of {@link CodecConfigurer} that serves as a base for client and server
+ * specific variants.
  *
  * @author Rossen Stoyanchev
  * @since 5.0
  */
 class BaseCodecConfigurer implements CodecConfigurer {
 
-	private final BaseDefaultCodecs defaultCodecs;
+  private final BaseDefaultCodecs defaultCodecs;
 
-	private final DefaultCustomCodecs customCodecs = new DefaultCustomCodecs();
+  private final DefaultCustomCodecs customCodecs = new DefaultCustomCodecs();
 
+  /**
+   * Constructor with the base {@link BaseDefaultCodecs} to use, which can be a client or server
+   * specific variant.
+   */
+  BaseCodecConfigurer(BaseDefaultCodecs defaultCodecs) {
+    Assert.notNull(defaultCodecs, "'defaultCodecs' is required");
+    this.defaultCodecs = defaultCodecs;
+  }
 
-	/**
-	 * Constructor with the base {@link BaseDefaultCodecs} to use, which can be
-	 * a client or server specific variant.
-	 */
-	BaseCodecConfigurer(BaseDefaultCodecs defaultCodecs) {
-		Assert.notNull(defaultCodecs, "'defaultCodecs' is required");
-		this.defaultCodecs = defaultCodecs;
-	}
+  @Override
+  public DefaultCodecs defaultCodecs() {
+    return this.defaultCodecs;
+  }
 
+  @Override
+  public void registerDefaults(boolean shouldRegister) {
+    this.defaultCodecs.registerDefaults(shouldRegister);
+  }
 
-	@Override
-	public DefaultCodecs defaultCodecs() {
-		return this.defaultCodecs;
-	}
+  @Override
+  public CustomCodecs customCodecs() {
+    return this.customCodecs;
+  }
 
-	@Override
-	public void registerDefaults(boolean shouldRegister) {
-		this.defaultCodecs.registerDefaults(shouldRegister);
-	}
+  @Override
+  public List<HttpMessageReader<?>> getReaders() {
+    List<HttpMessageReader<?>> result = new ArrayList<>();
 
-	@Override
-	public CustomCodecs customCodecs() {
-		return this.customCodecs;
-	}
+    result.addAll(this.customCodecs.getTypedReaders());
+    result.addAll(this.defaultCodecs.getTypedReaders());
 
-	@Override
-	public List<HttpMessageReader<?>> getReaders() {
-		List<HttpMessageReader<?>> result = new ArrayList<>();
+    result.addAll(this.customCodecs.getObjectReaders());
+    result.addAll(this.defaultCodecs.getObjectReaders());
 
-		result.addAll(this.customCodecs.getTypedReaders());
-		result.addAll(this.defaultCodecs.getTypedReaders());
+    result.addAll(this.defaultCodecs.getCatchAllReaders());
+    return result;
+  }
 
-		result.addAll(this.customCodecs.getObjectReaders());
-		result.addAll(this.defaultCodecs.getObjectReaders());
+  @Override
+  public List<HttpMessageWriter<?>> getWriters() {
+    return getWritersInternal(false);
+  }
 
-		result.addAll(this.defaultCodecs.getCatchAllReaders());
-		return result;
-	}
+  /**
+   * Internal method that returns the configured writers.
+   *
+   * @param forMultipart whether to returns writers for general use ("false"), or for multipart
+   *     requests only ("true"). Generally the two sets are the same except for the multipart writer
+   *     itself.
+   */
+  protected List<HttpMessageWriter<?>> getWritersInternal(boolean forMultipart) {
+    List<HttpMessageWriter<?>> result = new ArrayList<>();
 
-	@Override
-	public List<HttpMessageWriter<?>> getWriters() {
-		return getWritersInternal(false);
-	}
+    result.addAll(this.customCodecs.getTypedWriters());
+    result.addAll(this.defaultCodecs.getTypedWriters(forMultipart));
 
-	/**
-	 * Internal method that returns the configured writers.
-	 * @param forMultipart whether to returns writers for general use ("false"),
-	 * or for multipart requests only ("true"). Generally the two sets are the
-	 * same except for the multipart writer itself.
-	 */
-	protected List<HttpMessageWriter<?>> getWritersInternal(boolean forMultipart) {
-		List<HttpMessageWriter<?>> result = new ArrayList<>();
+    result.addAll(this.customCodecs.getObjectWriters());
+    result.addAll(this.defaultCodecs.getObjectWriters(forMultipart));
 
-		result.addAll(this.customCodecs.getTypedWriters());
-		result.addAll(this.defaultCodecs.getTypedWriters(forMultipart));
+    result.addAll(this.defaultCodecs.getCatchAllWriters());
+    return result;
+  }
 
-		result.addAll(this.customCodecs.getObjectWriters());
-		result.addAll(this.defaultCodecs.getObjectWriters(forMultipart));
+  /** Default implementation of {@code CustomCodecs}. */
+  private static final class DefaultCustomCodecs implements CustomCodecs {
 
-		result.addAll(this.defaultCodecs.getCatchAllWriters());
-		return result;
-	}
+    private final List<HttpMessageReader<?>> typedReaders = new ArrayList<>();
 
+    private final List<HttpMessageWriter<?>> typedWriters = new ArrayList<>();
 
-	/**
-	 * Default implementation of {@code CustomCodecs}.
-	 */
-	private static final class DefaultCustomCodecs implements CustomCodecs {
+    private final List<HttpMessageReader<?>> objectReaders = new ArrayList<>();
 
-		private final List<HttpMessageReader<?>> typedReaders = new ArrayList<>();
+    private final List<HttpMessageWriter<?>> objectWriters = new ArrayList<>();
 
-		private final List<HttpMessageWriter<?>> typedWriters = new ArrayList<>();
+    @Override
+    public void decoder(Decoder<?> decoder) {
+      reader(new DecoderHttpMessageReader<>(decoder));
+    }
 
-		private final List<HttpMessageReader<?>> objectReaders = new ArrayList<>();
+    @Override
+    public void encoder(Encoder<?> encoder) {
+      writer(new EncoderHttpMessageWriter<>(encoder));
+    }
 
-		private final List<HttpMessageWriter<?>> objectWriters = new ArrayList<>();
+    @Override
+    public void reader(HttpMessageReader<?> reader) {
+      boolean canReadToObject = reader.canRead(ResolvableType.forClass(Object.class), null);
+      (canReadToObject ? this.objectReaders : this.typedReaders).add(reader);
+    }
 
+    @Override
+    public void writer(HttpMessageWriter<?> writer) {
+      boolean canWriteObject = writer.canWrite(ResolvableType.forClass(Object.class), null);
+      (canWriteObject ? this.objectWriters : this.typedWriters).add(writer);
+    }
 
-		@Override
-		public void decoder(Decoder<?> decoder) {
-			reader(new DecoderHttpMessageReader<>(decoder));
-		}
+    // Package private accessors...
 
-		@Override
-		public void encoder(Encoder<?> encoder) {
-			writer(new EncoderHttpMessageWriter<>(encoder));
-		}
+    List<HttpMessageReader<?>> getTypedReaders() {
+      return this.typedReaders;
+    }
 
-		@Override
-		public void reader(HttpMessageReader<?> reader) {
-			boolean canReadToObject = reader.canRead(ResolvableType.forClass(Object.class), null);
-			(canReadToObject ? this.objectReaders : this.typedReaders).add(reader);
-		}
+    List<HttpMessageWriter<?>> getTypedWriters() {
+      return this.typedWriters;
+    }
 
-		@Override
-		public void writer(HttpMessageWriter<?> writer) {
-			boolean canWriteObject = writer.canWrite(ResolvableType.forClass(Object.class), null);
-			(canWriteObject ? this.objectWriters : this.typedWriters).add(writer);
-		}
+    List<HttpMessageReader<?>> getObjectReaders() {
+      return this.objectReaders;
+    }
 
-
-		// Package private accessors...
-
-		List<HttpMessageReader<?>> getTypedReaders() {
-			return this.typedReaders;
-		}
-
-		List<HttpMessageWriter<?>> getTypedWriters() {
-			return this.typedWriters;
-		}
-
-		List<HttpMessageReader<?>> getObjectReaders() {
-			return this.objectReaders;
-		}
-
-		List<HttpMessageWriter<?>> getObjectWriters() {
-			return this.objectWriters;
-		}
-	}
-
+    List<HttpMessageWriter<?>> getObjectWriters() {
+      return this.objectWriters;
+    }
+  }
 }

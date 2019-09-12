@@ -55,201 +55,231 @@ import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
 
 /**
- * Base class providing support methods for Jackson 2.9 encoding. For non-streaming use
- * cases, {@link Flux} elements are collected into a {@link List} before serialization for
- * performance reason.
+ * Base class providing support methods for Jackson 2.9 encoding. For non-streaming use cases,
+ * {@link Flux} elements are collected into a {@link List} before serialization for performance
+ * reason.
  *
  * @author Sebastien Deleuze
  * @author Arjen Poutsma
  * @since 5.0
  */
-public abstract class AbstractJackson2Encoder extends Jackson2CodecSupport implements HttpMessageEncoder<Object> {
+public abstract class AbstractJackson2Encoder extends Jackson2CodecSupport
+    implements HttpMessageEncoder<Object> {
 
-	private static final byte[] NEWLINE_SEPARATOR = {'\n'};
+  private static final byte[] NEWLINE_SEPARATOR = {'\n'};
 
-	private static final Map<MediaType, byte[]> STREAM_SEPARATORS;
+  private static final Map<MediaType, byte[]> STREAM_SEPARATORS;
 
-	static {
-		STREAM_SEPARATORS = new HashMap<>();
-		STREAM_SEPARATORS.put(MediaType.APPLICATION_STREAM_JSON, NEWLINE_SEPARATOR);
-		STREAM_SEPARATORS.put(MediaType.parseMediaType("application/stream+x-jackson-smile"), new byte[0]);
-	}
+  static {
+    STREAM_SEPARATORS = new HashMap<>();
+    STREAM_SEPARATORS.put(MediaType.APPLICATION_STREAM_JSON, NEWLINE_SEPARATOR);
+    STREAM_SEPARATORS.put(
+        MediaType.parseMediaType("application/stream+x-jackson-smile"), new byte[0]);
+  }
 
+  private final List<MediaType> streamingMediaTypes = new ArrayList<>(1);
 
-	private final List<MediaType> streamingMediaTypes = new ArrayList<>(1);
+  /** Constructor with a Jackson {@link ObjectMapper} to use. */
+  protected AbstractJackson2Encoder(ObjectMapper mapper, MimeType... mimeTypes) {
+    super(mapper, mimeTypes);
+  }
 
+  /**
+   * Configure "streaming" media types for which flushing should be performed automatically vs at
+   * the end of the stream.
+   *
+   * <p>By default this is set to {@link MediaType#APPLICATION_STREAM_JSON}.
+   *
+   * @param mediaTypes one or more media types to add to the list
+   * @see HttpMessageEncoder#getStreamingMediaTypes()
+   */
+  public void setStreamingMediaTypes(List<MediaType> mediaTypes) {
+    this.streamingMediaTypes.clear();
+    this.streamingMediaTypes.addAll(mediaTypes);
+  }
 
-	/**
-	 * Constructor with a Jackson {@link ObjectMapper} to use.
-	 */
-	protected AbstractJackson2Encoder(ObjectMapper mapper, MimeType... mimeTypes) {
-		super(mapper, mimeTypes);
-	}
+  @Override
+  public boolean canEncode(ResolvableType elementType, @Nullable MimeType mimeType) {
+    Class<?> clazz = elementType.toClass();
+    return supportsMimeType(mimeType)
+        && (Object.class == clazz
+            || (!String.class.isAssignableFrom(elementType.resolve(clazz))
+                && getObjectMapper().canSerialize(clazz)));
+  }
 
+  @Override
+  public Flux<DataBuffer> encode(
+      Publisher<?> inputStream,
+      DataBufferFactory bufferFactory,
+      ResolvableType elementType,
+      @Nullable MimeType mimeType,
+      @Nullable Map<String, Object> hints) {
 
-	/**
-	 * Configure "streaming" media types for which flushing should be performed
-	 * automatically vs at the end of the stream.
-	 * <p>By default this is set to {@link MediaType#APPLICATION_STREAM_JSON}.
-	 * @param mediaTypes one or more media types to add to the list
-	 * @see HttpMessageEncoder#getStreamingMediaTypes()
-	 */
-	public void setStreamingMediaTypes(List<MediaType> mediaTypes) {
-		this.streamingMediaTypes.clear();
-		this.streamingMediaTypes.addAll(mediaTypes);
-	}
+    Assert.notNull(inputStream, "'inputStream' must not be null");
+    Assert.notNull(bufferFactory, "'bufferFactory' must not be null");
+    Assert.notNull(elementType, "'elementType' must not be null");
 
+    JsonEncoding encoding = getJsonEncoding(mimeType);
 
-	@Override
-	public boolean canEncode(ResolvableType elementType, @Nullable MimeType mimeType) {
-		Class<?> clazz = elementType.toClass();
-		return supportsMimeType(mimeType) && (Object.class == clazz ||
-				(!String.class.isAssignableFrom(elementType.resolve(clazz)) && getObjectMapper().canSerialize(clazz)));
-	}
+    if (inputStream instanceof Mono) {
+      return Mono.from(inputStream)
+          .map(value -> encodeValue(value, bufferFactory, elementType, mimeType, hints, encoding))
+          .flux();
+    } else {
+      return this.streamingMediaTypes.stream()
+          .filter(mediaType -> mediaType.isCompatibleWith(mimeType))
+          .findFirst()
+          .map(
+              mediaType -> {
+                byte[] separator = STREAM_SEPARATORS.getOrDefault(mediaType, NEWLINE_SEPARATOR);
+                return Flux.from(inputStream)
+                    .map(
+                        value -> {
+                          DataBuffer buffer =
+                              encodeValue(
+                                  value, bufferFactory, elementType, mimeType, hints, encoding);
+                          if (separator != null) {
+                            buffer.write(separator);
+                          }
+                          return buffer;
+                        });
+              })
+          .orElseGet(
+              () -> {
+                ResolvableType listType =
+                    ResolvableType.forClassWithGenerics(List.class, elementType);
+                return Flux.from(inputStream)
+                    .collectList()
+                    .map(
+                        list ->
+                            encodeValue(list, bufferFactory, listType, mimeType, hints, encoding))
+                    .flux();
+              });
+    }
+  }
 
-	@Override
-	public Flux<DataBuffer> encode(Publisher<?> inputStream, DataBufferFactory bufferFactory,
-			ResolvableType elementType, @Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
+  @Override
+  public DataBuffer encodeValue(
+      Object value,
+      DataBufferFactory bufferFactory,
+      ResolvableType valueType,
+      @Nullable MimeType mimeType,
+      @Nullable Map<String, Object> hints) {
 
-		Assert.notNull(inputStream, "'inputStream' must not be null");
-		Assert.notNull(bufferFactory, "'bufferFactory' must not be null");
-		Assert.notNull(elementType, "'elementType' must not be null");
+    return encodeValue(value, bufferFactory, valueType, mimeType, hints, getJsonEncoding(mimeType));
+  }
 
-		JsonEncoding encoding = getJsonEncoding(mimeType);
+  private DataBuffer encodeValue(
+      Object value,
+      DataBufferFactory bufferFactory,
+      ResolvableType valueType,
+      @Nullable MimeType mimeType,
+      @Nullable Map<String, Object> hints,
+      JsonEncoding encoding) {
 
-		if (inputStream instanceof Mono) {
-			return Mono.from(inputStream).map(value ->
-					encodeValue(value, bufferFactory, elementType, mimeType, hints, encoding)).flux();
-		}
-		else {
-			return this.streamingMediaTypes.stream()
-					.filter(mediaType -> mediaType.isCompatibleWith(mimeType))
-					.findFirst()
-					.map(mediaType -> {
-						byte[] separator = STREAM_SEPARATORS.getOrDefault(mediaType, NEWLINE_SEPARATOR);
-						return Flux.from(inputStream).map(value -> {
-							DataBuffer buffer = encodeValue(
-									value, bufferFactory, elementType, mimeType, hints, encoding);
-							if (separator != null) {
-								buffer.write(separator);
-							}
-							return buffer;
-						});
-					})
-					.orElseGet(() -> {
-						ResolvableType listType = ResolvableType.forClassWithGenerics(List.class, elementType);
-						return Flux.from(inputStream).collectList().map(list ->
-								encodeValue(list, bufferFactory, listType, mimeType, hints, encoding)).flux();
-					});
-		}
-	}
+    if (!Hints.isLoggingSuppressed(hints)) {
+      LogFormatUtils.traceDebug(
+          logger,
+          traceOn -> {
+            String formatted = LogFormatUtils.formatValue(value, !traceOn);
+            return Hints.getLogPrefix(hints) + "Encoding [" + formatted + "]";
+          });
+    }
 
-	@Override
-	public DataBuffer encodeValue(Object value, DataBufferFactory bufferFactory,
-			ResolvableType valueType, @Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
+    JavaType javaType = getJavaType(valueType.getType(), null);
+    Class<?> jsonView =
+        (hints != null ? (Class<?>) hints.get(Jackson2CodecSupport.JSON_VIEW_HINT) : null);
+    ObjectWriter writer =
+        (jsonView != null
+            ? getObjectMapper().writerWithView(jsonView)
+            : getObjectMapper().writer());
 
-		return encodeValue(value, bufferFactory, valueType, mimeType, hints, getJsonEncoding(mimeType));
-	}
+    if (javaType.isContainerType()) {
+      writer = writer.forType(javaType);
+    }
 
-	private DataBuffer encodeValue(Object value, DataBufferFactory bufferFactory, ResolvableType valueType,
-			@Nullable MimeType mimeType, @Nullable Map<String, Object> hints, JsonEncoding encoding) {
+    writer = customizeWriter(writer, mimeType, valueType, hints);
 
-		if (!Hints.isLoggingSuppressed(hints)) {
-			LogFormatUtils.traceDebug(logger, traceOn -> {
-				String formatted = LogFormatUtils.formatValue(value, !traceOn);
-				return Hints.getLogPrefix(hints) + "Encoding [" + formatted + "]";
-			});
-		}
+    DataBuffer buffer = bufferFactory.allocateBuffer();
+    boolean release = true;
+    OutputStream outputStream = buffer.asOutputStream();
 
-		JavaType javaType = getJavaType(valueType.getType(), null);
-		Class<?> jsonView = (hints != null ? (Class<?>) hints.get(Jackson2CodecSupport.JSON_VIEW_HINT) : null);
-		ObjectWriter writer = (jsonView != null ?
-				getObjectMapper().writerWithView(jsonView) : getObjectMapper().writer());
+    try {
+      JsonGenerator generator =
+          getObjectMapper().getFactory().createGenerator(outputStream, encoding);
+      writer.writeValue(generator, value);
+      generator.flush();
+      release = false;
+    } catch (InvalidDefinitionException ex) {
+      throw new CodecException("Type definition error: " + ex.getType(), ex);
+    } catch (JsonProcessingException ex) {
+      throw new EncodingException("JSON encoding error: " + ex.getOriginalMessage(), ex);
+    } catch (IOException ex) {
+      throw new IllegalStateException("Unexpected I/O error while writing to data buffer", ex);
+    } finally {
+      if (release) {
+        DataBufferUtils.release(buffer);
+      }
+    }
 
-		if (javaType.isContainerType()) {
-			writer = writer.forType(javaType);
-		}
+    return buffer;
+  }
 
-		writer = customizeWriter(writer, mimeType, valueType, hints);
+  protected ObjectWriter customizeWriter(
+      ObjectWriter writer,
+      @Nullable MimeType mimeType,
+      ResolvableType elementType,
+      @Nullable Map<String, Object> hints) {
 
-		DataBuffer buffer = bufferFactory.allocateBuffer();
-		boolean release = true;
-		OutputStream outputStream = buffer.asOutputStream();
+    return writer;
+  }
 
-		try {
-			JsonGenerator generator = getObjectMapper().getFactory().createGenerator(outputStream, encoding);
-			writer.writeValue(generator, value);
-			generator.flush();
-			release = false;
-		}
-		catch (InvalidDefinitionException ex) {
-			throw new CodecException("Type definition error: " + ex.getType(), ex);
-		}
-		catch (JsonProcessingException ex) {
-			throw new EncodingException("JSON encoding error: " + ex.getOriginalMessage(), ex);
-		}
-		catch (IOException ex) {
-			throw new IllegalStateException("Unexpected I/O error while writing to data buffer",
-					ex);
-		}
-		finally {
-			if (release) {
-				DataBufferUtils.release(buffer);
-			}
-		}
+  /**
+   * Determine the JSON encoding to use for the given mime type.
+   *
+   * @param mimeType the mime type as requested by the caller
+   * @return the JSON encoding to use (never {@code null})
+   * @since 5.0.5
+   */
+  protected JsonEncoding getJsonEncoding(@Nullable MimeType mimeType) {
+    if (mimeType != null && mimeType.getCharset() != null) {
+      Charset charset = mimeType.getCharset();
+      for (JsonEncoding encoding : JsonEncoding.values()) {
+        if (charset.name().equals(encoding.getJavaName())) {
+          return encoding;
+        }
+      }
+    }
+    return JsonEncoding.UTF8;
+  }
 
-		return buffer;
-	}
+  // HttpMessageEncoder...
 
-	protected ObjectWriter customizeWriter(ObjectWriter writer, @Nullable MimeType mimeType,
-			ResolvableType elementType, @Nullable Map<String, Object> hints) {
+  @Override
+  public List<MimeType> getEncodableMimeTypes() {
+    return getMimeTypes();
+  }
 
-		return writer;
-	}
+  @Override
+  public List<MediaType> getStreamingMediaTypes() {
+    return Collections.unmodifiableList(this.streamingMediaTypes);
+  }
 
-	/**
-	 * Determine the JSON encoding to use for the given mime type.
-	 * @param mimeType the mime type as requested by the caller
-	 * @return the JSON encoding to use (never {@code null})
-	 * @since 5.0.5
-	 */
-	protected JsonEncoding getJsonEncoding(@Nullable MimeType mimeType) {
-		if (mimeType != null && mimeType.getCharset() != null) {
-			Charset charset = mimeType.getCharset();
-			for (JsonEncoding encoding : JsonEncoding.values()) {
-				if (charset.name().equals(encoding.getJavaName())) {
-					return encoding;
-				}
-			}
-		}
-		return JsonEncoding.UTF8;
-	}
+  @Override
+  public Map<String, Object> getEncodeHints(
+      @Nullable ResolvableType actualType,
+      ResolvableType elementType,
+      @Nullable MediaType mediaType,
+      ServerHttpRequest request,
+      ServerHttpResponse response) {
 
+    return (actualType != null ? getHints(actualType) : Hints.none());
+  }
 
-	// HttpMessageEncoder...
+  // Jackson2CodecSupport ...
 
-	@Override
-	public List<MimeType> getEncodableMimeTypes() {
-		return getMimeTypes();
-	}
-
-	@Override
-	public List<MediaType> getStreamingMediaTypes() {
-		return Collections.unmodifiableList(this.streamingMediaTypes);
-	}
-
-	@Override
-	public Map<String, Object> getEncodeHints(@Nullable ResolvableType actualType, ResolvableType elementType,
-			@Nullable MediaType mediaType, ServerHttpRequest request, ServerHttpResponse response) {
-
-		return (actualType != null ? getHints(actualType) : Hints.none());
-	}
-
-	// Jackson2CodecSupport ...
-
-	@Override
-	protected <A extends Annotation> A getAnnotation(MethodParameter parameter, Class<A> annotType) {
-		return parameter.getMethodAnnotation(annotType);
-	}
-
+  @Override
+  protected <A extends Annotation> A getAnnotation(MethodParameter parameter, Class<A> annotType) {
+    return parameter.getMethodAnnotation(annotType);
+  }
 }

@@ -50,183 +50,179 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
  */
 public class ViewResolutionIntegrationTests {
 
-	@Test
-	public void freemarker() throws Exception {
-		MockHttpServletResponse response = runTest(FreeMarkerWebConfig.class);
-		assertThat(response.getContentAsString()).isEqualTo("<html><body>Hello World!</body></html>");
-	}
+  @Test
+  public void freemarker() throws Exception {
+    MockHttpServletResponse response = runTest(FreeMarkerWebConfig.class);
+    assertThat(response.getContentAsString()).isEqualTo("<html><body>Hello World!</body></html>");
+  }
 
-	@Test
-	public void tiles() throws Exception {
-		MockHttpServletResponse response = runTest(TilesWebConfig.class);
-		assertThat(response.getForwardedUrl()).isEqualTo("/WEB-INF/index.jsp");
-	}
+  @Test
+  public void tiles() throws Exception {
+    MockHttpServletResponse response = runTest(TilesWebConfig.class);
+    assertThat(response.getForwardedUrl()).isEqualTo("/WEB-INF/index.jsp");
+  }
 
-	@Test
-	public void groovyMarkup() throws Exception {
-		MockHttpServletResponse response = runTest(GroovyMarkupWebConfig.class);
-		assertThat(response.getContentAsString()).isEqualTo("<html><body>Hello World!</body></html>");
-	}
+  @Test
+  public void groovyMarkup() throws Exception {
+    MockHttpServletResponse response = runTest(GroovyMarkupWebConfig.class);
+    assertThat(response.getContentAsString()).isEqualTo("<html><body>Hello World!</body></html>");
+  }
 
-	@Test
-	public void freemarkerInvalidConfig() throws Exception {
-		assertThatExceptionOfType(RuntimeException.class).isThrownBy(() ->
-				runTest(InvalidFreeMarkerWebConfig.class))
-			.withMessageContaining("In addition to a FreeMarker view resolver ");
-	}
+  @Test
+  public void freemarkerInvalidConfig() throws Exception {
+    assertThatExceptionOfType(RuntimeException.class)
+        .isThrownBy(() -> runTest(InvalidFreeMarkerWebConfig.class))
+        .withMessageContaining("In addition to a FreeMarker view resolver ");
+  }
 
-	@Test
-	public void tilesInvalidConfig() throws Exception {
-		assertThatExceptionOfType(RuntimeException.class).isThrownBy(() ->
-				runTest(InvalidTilesWebConfig.class))
-			.withMessageContaining("In addition to a Tiles view resolver ");
-	}
+  @Test
+  public void tilesInvalidConfig() throws Exception {
+    assertThatExceptionOfType(RuntimeException.class)
+        .isThrownBy(() -> runTest(InvalidTilesWebConfig.class))
+        .withMessageContaining("In addition to a Tiles view resolver ");
+  }
 
-	@Test
-	public void groovyMarkupInvalidConfig() throws Exception {
-		assertThatExceptionOfType(RuntimeException.class).isThrownBy(() ->
-				runTest(InvalidGroovyMarkupWebConfig.class))
-			.withMessageContaining("In addition to a Groovy markup view resolver ");
-	}
+  @Test
+  public void groovyMarkupInvalidConfig() throws Exception {
+    assertThatExceptionOfType(RuntimeException.class)
+        .isThrownBy(() -> runTest(InvalidGroovyMarkupWebConfig.class))
+        .withMessageContaining("In addition to a Groovy markup view resolver ");
+  }
 
-	// SPR-12013
+  // SPR-12013
 
-	@Test
-	public void existingViewResolver() throws Exception {
-		MockHttpServletResponse response = runTest(ExistingViewResolverConfig.class);
-		assertThat(response.getContentAsString()).isEqualTo("<html><body>Hello World!</body></html>");
-	}
+  @Test
+  public void existingViewResolver() throws Exception {
+    MockHttpServletResponse response = runTest(ExistingViewResolverConfig.class);
+    assertThat(response.getContentAsString()).isEqualTo("<html><body>Hello World!</body></html>");
+  }
 
+  private MockHttpServletResponse runTest(Class<?> configClass)
+      throws ServletException, IOException {
+    String basePath = "org/springframework/web/servlet/config/annotation";
+    MockServletContext servletContext = new MockServletContext(basePath);
+    MockServletConfig servletConfig = new MockServletConfig(servletContext);
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/");
+    MockHttpServletResponse response = new MockHttpServletResponse();
 
-	private MockHttpServletResponse runTest(Class<?> configClass) throws ServletException, IOException {
-		String basePath = "org/springframework/web/servlet/config/annotation";
-		MockServletContext servletContext = new MockServletContext(basePath);
-		MockServletConfig servletConfig = new MockServletConfig(servletContext);
-		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/");
-		MockHttpServletResponse response = new MockHttpServletResponse();
+    AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();
+    context.register(configClass);
+    context.setServletContext(servletContext);
+    context.refresh();
+    DispatcherServlet servlet = new DispatcherServlet(context);
+    servlet.init(servletConfig);
+    servlet.service(request, response);
+    return response;
+  }
 
-		AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();
-		context.register(configClass);
-		context.setServletContext(servletContext);
-		context.refresh();
-		DispatcherServlet servlet = new DispatcherServlet(context);
-		servlet.init(servletConfig);
-		servlet.service(request, response);
-		return response;
-	}
+  @Controller
+  static class SampleController {
 
+    @RequestMapping(value = "/", method = RequestMethod.GET)
+    public String sample(ModelMap model) {
+      model.addAttribute("hello", "Hello World!");
+      return "index";
+    }
+  }
 
-	@Controller
-	static class SampleController {
+  @EnableWebMvc
+  abstract static class AbstractWebConfig implements WebMvcConfigurer {
 
-		@RequestMapping(value = "/", method = RequestMethod.GET)
-		public String sample(ModelMap model) {
-			model.addAttribute("hello", "Hello World!");
-			return "index";
-		}
-	}
+    @Bean
+    public SampleController sampleController() {
+      return new SampleController();
+    }
+  }
 
-	@EnableWebMvc
-	static abstract class AbstractWebConfig implements WebMvcConfigurer {
+  @Configuration
+  static class FreeMarkerWebConfig extends AbstractWebConfig {
 
-		@Bean
-		public SampleController sampleController() {
-			return new SampleController();
-		}
-	}
+    @Override
+    public void configureViewResolvers(ViewResolverRegistry registry) {
+      registry.freeMarker();
+    }
 
-	@Configuration
-	static class FreeMarkerWebConfig extends AbstractWebConfig {
+    @Bean
+    public FreeMarkerConfigurer freeMarkerConfigurer() {
+      FreeMarkerConfigurer configurer = new FreeMarkerConfigurer();
+      configurer.setTemplateLoaderPath("/WEB-INF/");
+      return configurer;
+    }
+  }
 
-		@Override
-		public void configureViewResolvers(ViewResolverRegistry registry) {
-			registry.freeMarker();
-		}
+  @Configuration
+  static class TilesWebConfig extends AbstractWebConfig {
 
-		@Bean
-		public FreeMarkerConfigurer freeMarkerConfigurer() {
-			FreeMarkerConfigurer configurer = new FreeMarkerConfigurer();
-			configurer.setTemplateLoaderPath("/WEB-INF/");
-			return configurer;
-		}
-	}
+    @Override
+    public void configureViewResolvers(ViewResolverRegistry registry) {
+      registry.tiles();
+    }
 
-	@Configuration
-	static class TilesWebConfig extends AbstractWebConfig {
+    @Bean
+    public TilesConfigurer tilesConfigurer() {
+      TilesConfigurer configurer = new TilesConfigurer();
+      configurer.setDefinitions("/WEB-INF/tiles.xml");
+      return configurer;
+    }
+  }
 
-		@Override
-		public void configureViewResolvers(ViewResolverRegistry registry) {
-			registry.tiles();
-		}
+  @Configuration
+  static class GroovyMarkupWebConfig extends AbstractWebConfig {
 
-		@Bean
-		public TilesConfigurer tilesConfigurer() {
-			TilesConfigurer configurer = new TilesConfigurer();
-			configurer.setDefinitions("/WEB-INF/tiles.xml");
-			return configurer;
-		}
-	}
+    @Override
+    public void configureViewResolvers(ViewResolverRegistry registry) {
+      registry.groovy();
+    }
 
-	@Configuration
-	static class GroovyMarkupWebConfig extends AbstractWebConfig {
+    @Bean
+    public GroovyMarkupConfigurer groovyMarkupConfigurer() {
+      GroovyMarkupConfigurer configurer = new GroovyMarkupConfigurer();
+      configurer.setResourceLoaderPath("/WEB-INF/");
+      return configurer;
+    }
+  }
 
-		@Override
-		public void configureViewResolvers(ViewResolverRegistry registry) {
-			registry.groovy();
-		}
+  @Configuration
+  static class InvalidFreeMarkerWebConfig extends WebMvcConfigurationSupport {
 
-		@Bean
-		public GroovyMarkupConfigurer groovyMarkupConfigurer() {
-			GroovyMarkupConfigurer configurer = new GroovyMarkupConfigurer();
-			configurer.setResourceLoaderPath("/WEB-INF/");
-			return configurer;
-		}
-	}
+    @Override
+    public void configureViewResolvers(ViewResolverRegistry registry) {
+      registry.freeMarker();
+    }
+  }
 
-	@Configuration
-	static class InvalidFreeMarkerWebConfig extends WebMvcConfigurationSupport {
+  @Configuration
+  static class InvalidTilesWebConfig extends WebMvcConfigurationSupport {
 
-		@Override
-		public void configureViewResolvers(ViewResolverRegistry registry) {
-			registry.freeMarker();
-		}
-	}
+    @Override
+    public void configureViewResolvers(ViewResolverRegistry registry) {
+      registry.tiles();
+    }
+  }
 
-	@Configuration
-	static class InvalidTilesWebConfig extends WebMvcConfigurationSupport {
+  @Configuration
+  static class InvalidGroovyMarkupWebConfig extends WebMvcConfigurationSupport {
 
-		@Override
-		public void configureViewResolvers(ViewResolverRegistry registry) {
-			registry.tiles();
-		}
-	}
+    @Override
+    public void configureViewResolvers(ViewResolverRegistry registry) {
+      registry.groovy();
+    }
+  }
 
-	@Configuration
-	static class InvalidGroovyMarkupWebConfig extends WebMvcConfigurationSupport {
+  /** Test @EnableWebMvc in the presence of pre-existing ViewResolver. */
+  @Configuration
+  static class ExistingViewResolverConfig extends AbstractWebConfig {
 
-		@Override
-		public void configureViewResolvers(ViewResolverRegistry registry) {
-			registry.groovy();
-		}
-	}
+    @Bean
+    public FreeMarkerViewResolver freeMarkerViewResolver() {
+      return new FreeMarkerViewResolver("", ".ftl");
+    }
 
-	/**
-	 * Test @EnableWebMvc in the presence of pre-existing ViewResolver.
-	 */
-	@Configuration
-	static class ExistingViewResolverConfig extends AbstractWebConfig {
-
-		@Bean
-		public FreeMarkerViewResolver freeMarkerViewResolver() {
-			return new FreeMarkerViewResolver("", ".ftl");
-		}
-
-		@Bean
-		public FreeMarkerConfigurer freeMarkerConfigurer() {
-			FreeMarkerConfigurer configurer = new FreeMarkerConfigurer();
-			configurer.setTemplateLoaderPath("/WEB-INF/");
-			return configurer;
-		}
-	}
-
+    @Bean
+    public FreeMarkerConfigurer freeMarkerConfigurer() {
+      FreeMarkerConfigurer configurer = new FreeMarkerConfigurer();
+      configurer.setTemplateLoaderPath("/WEB-INF/");
+      return configurer;
+    }
+  }
 }

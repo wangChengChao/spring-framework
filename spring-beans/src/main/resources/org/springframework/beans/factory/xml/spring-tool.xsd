@@ -17,13 +17,35 @@
 	<xsd:element name="annotation">
 		<xsd:complexType>
 			<xsd:sequence minOccurs="0">
-				<xsd:element name="expected-type" type="typedParameterType" minOccurs="0" maxOccurs="1"/>
-				<xsd:element name="assignable-to" type="assignableToType" minOccurs="0" maxOccurs="1"/>
-				<xsd:element name="exports" type="exportsType" minOccurs="0" maxOccurs="unbounded"/>
-				<xsd:element name="registers-scope" type="registersScopeType" minOccurs="0" maxOccurs="unbounded"/>
-				<xsd:element name="expected-method" type="expectedMethodType" minOccurs="0" maxOccurs="unbounded"/>
+				<xsd:element
+						name="expected-type"
+						type="typedParameterType"
+						minOccurs="0"
+						maxOccurs="1"/>
+				<xsd:element
+						name="assignable-to"
+						type="assignableToType"
+						minOccurs="0"
+						maxOccurs="1"/>
+				<xsd:element
+						name="exports"
+						type="exportsType"
+						minOccurs="0"
+						maxOccurs="unbounded"/>
+				<xsd:element
+						name="registers-scope"
+						type="registersScopeType"
+						minOccurs="0"
+						maxOccurs="unbounded"/>
+				<xsd:element
+						name="expected-method"
+						type="expectedMethodType"
+						minOccurs="0"
+						maxOccurs="unbounded"/>
 			</xsd:sequence>
-			<xsd:attribute name="kind" default="direct">
+			<xsd:attribute
+					name="kind"
+					default="direct">
 				<xsd:simpleType>
 					<xsd:restriction base="xsd:string">
 						<xsd:enumeration value="ref"/>
@@ -35,12 +57,19 @@
 	</xsd:element>
 
 	<xsd:complexType name="typedParameterType">
-		<xsd:attribute name="type" type="xsd:string" use="required"/>
+		<xsd:attribute
+				name="type"
+				type="xsd:string"
+				use="required"/>
 	</xsd:complexType>
 
 	<xsd:complexType name="assignableToType">
-		<xsd:attribute name="type" type="xsd:string"/>
-		<xsd:attribute name="restriction" default="both">
+		<xsd:attribute
+				name="type"
+				type="xsd:string"/>
+		<xsd:attribute
+				name="restriction"
+				default="both">
 			<xsd:simpleType>
 				<xsd:restriction base="xsd:NMTOKEN">
 					<xsd:enumeration value="both"/>
@@ -52,7 +81,9 @@
 	</xsd:complexType>
 
 	<xsd:complexType name="expectedMethodType">
-		<xsd:attribute name="type" type="xsd:string">
+		<xsd:attribute
+				name="type"
+				type="xsd:string">
 			<xsd:annotation>
 				<xsd:documentation><![CDATA[
 	Defines an XPath query that can be executed against the node annotated with this
@@ -60,7 +91,9 @@
 		]]></xsd:documentation>
 			</xsd:annotation>
 		</xsd:attribute>
-		<xsd:attribute name="type-ref" type="xsd:string">
+		<xsd:attribute
+				name="type-ref"
+				type="xsd:string">
 			<xsd:annotation>
 				<xsd:documentation><![CDATA[
 	Defines an XPath query that can be executed against the node annotated with this
@@ -68,7 +101,9 @@
 		]]></xsd:documentation>
 			</xsd:annotation>
 		</xsd:attribute>
-		<xsd:attribute name="expression" type="xsd:string">
+		<xsd:attribute
+				name="expression"
+				type="xsd:string">
 			<xsd:annotation>
 				<xsd:documentation><![CDATA[
 	Defines an AspectJ method execution pointcut expressions that matches valid methods
@@ -83,14 +118,19 @@
 	Indicates that an annotated type exports an application visible component.
 		]]></xsd:documentation>
 		</xsd:annotation>
-		<xsd:attribute name="type" type="xsd:string">
+		<xsd:attribute
+				name="type"
+				type="xsd:string">
 			<xsd:annotation>
 				<xsd:documentation><![CDATA[
 	The type of the exported component. May be null if the type is not known until runtime.
 		]]></xsd:documentation>
 			</xsd:annotation>
 		</xsd:attribute>
-		<xsd:attribute name="identifier" type="xsd:string" default="@id">
+		<xsd:attribute
+				name="identifier"
+				type="xsd:string"
+				default="@id">
 			<xsd:annotation>
 				<xsd:documentation><![CDATA[
 	Defines an XPath query that can be executed against the node annotated with this
@@ -101,7 +141,10 @@
 	</xsd:complexType>
 
 	<xsd:complexType name="registersScopeType">
-		<xsd:attribute name="name" type="xsd:string" use="required">
+		<xsd:attribute
+				name="name"
+				type="xsd:string"
+				use="required">
 			<xsd:annotation>
 				<xsd:documentation><![CDATA[
 	Defines the name of a custom bean scope that the annotated type registers, e.g. "conversation".

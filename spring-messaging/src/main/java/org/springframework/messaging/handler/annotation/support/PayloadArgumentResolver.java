@@ -21,9 +21,9 @@ import org.springframework.messaging.converter.MessageConverter;
 import org.springframework.validation.Validator;
 
 /**
- * A resolver to extract and convert the payload of a message using a
- * {@link MessageConverter}. It also validates the payload using a
- * {@link Validator} if the argument is annotated with a Validation annotation.
+ * A resolver to extract and convert the payload of a message using a {@link MessageConverter}. It
+ * also validates the payload using a {@link Validator} if the argument is annotated with a
+ * Validation annotation.
  *
  * @author Rossen Stoyanchev
  * @author Juergen Hoeller
@@ -35,40 +35,41 @@ import org.springframework.validation.Validator;
 @Deprecated
 public class PayloadArgumentResolver extends PayloadMethodArgumentResolver {
 
-	/**
-	 * Create a new {@code PayloadArgumentResolver} with the given
-	 * {@link MessageConverter}.
-	 * @param messageConverter the MessageConverter to use (required)
-	 * @since 4.0.9
-	 */
-	public PayloadArgumentResolver(MessageConverter messageConverter) {
-		this(messageConverter, null);
-	}
+  /**
+   * Create a new {@code PayloadArgumentResolver} with the given {@link MessageConverter}.
+   *
+   * @param messageConverter the MessageConverter to use (required)
+   * @since 4.0.9
+   */
+  public PayloadArgumentResolver(MessageConverter messageConverter) {
+    this(messageConverter, null);
+  }
 
-	/**
-	 * Create a new {@code PayloadArgumentResolver} with the given
-	 * {@link MessageConverter} and {@link Validator}.
-	 * @param messageConverter the MessageConverter to use (required)
-	 * @param validator the Validator to use (optional)
-	 */
-	public PayloadArgumentResolver(MessageConverter messageConverter, @Nullable Validator validator) {
-		this(messageConverter, validator, true);
-	}
+  /**
+   * Create a new {@code PayloadArgumentResolver} with the given {@link MessageConverter} and {@link
+   * Validator}.
+   *
+   * @param messageConverter the MessageConverter to use (required)
+   * @param validator the Validator to use (optional)
+   */
+  public PayloadArgumentResolver(MessageConverter messageConverter, @Nullable Validator validator) {
+    this(messageConverter, validator, true);
+  }
 
-	/**
-	 * Create a new {@code PayloadArgumentResolver} with the given
-	 * {@link MessageConverter} and {@link Validator}.
-	 * @param messageConverter the MessageConverter to use (required)
-	 * @param validator the Validator to use (optional)
-	 * @param useDefaultResolution if "true" (the default) this resolver supports
-	 * all parameters; if "false" then only arguments with the {@code @Payload}
-	 * annotation are supported.
-	 */
-	public PayloadArgumentResolver(MessageConverter messageConverter, @Nullable Validator validator,
-			boolean useDefaultResolution) {
+  /**
+   * Create a new {@code PayloadArgumentResolver} with the given {@link MessageConverter} and {@link
+   * Validator}.
+   *
+   * @param messageConverter the MessageConverter to use (required)
+   * @param validator the Validator to use (optional)
+   * @param useDefaultResolution if "true" (the default) this resolver supports all parameters; if
+   *     "false" then only arguments with the {@code @Payload} annotation are supported.
+   */
+  public PayloadArgumentResolver(
+      MessageConverter messageConverter,
+      @Nullable Validator validator,
+      boolean useDefaultResolution) {
 
-
-		super(messageConverter, validator, useDefaultResolution);
-	}
-
+    super(messageConverter, validator, useDefaultResolution);
+  }
 }

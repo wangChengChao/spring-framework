@@ -29,8 +29,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests that verify detection of a default properties file
- * when {@link TestPropertySource @TestPropertySource} is <em>empty</em>.
+ * Integration tests that verify detection of a default properties file when {@link
+ * TestPropertySource @TestPropertySource} is <em>empty</em>.
  *
  * @author Sam Brannen
  * @since 4.1
@@ -40,26 +40,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource
 class DefaultPropertiesFileDetectionTestPropertySourceTests {
 
-	@Autowired
-	protected Environment env;
+  @Autowired protected Environment env;
 
+  @Test
+  void verifyPropertiesAreAvailableInEnvironment() {
+    // from DefaultPropertiesFileDetectionTestPropertySourceTests.properties
+    assertEnvironmentValue("riddle", "auto detected");
+  }
 
-	@Test
-	void verifyPropertiesAreAvailableInEnvironment() {
-		// from DefaultPropertiesFileDetectionTestPropertySourceTests.properties
-		assertEnvironmentValue("riddle", "auto detected");
-	}
+  protected void assertEnvironmentValue(String key, String expected) {
+    assertThat(env.getProperty(key)).as("Value of key [" + key + "].").isEqualTo(expected);
+  }
 
-	protected void assertEnvironmentValue(String key, String expected) {
-		assertThat(env.getProperty(key)).as("Value of key [" + key + "].").isEqualTo(expected);
-	}
+  // -------------------------------------------------------------------
 
-
-	// -------------------------------------------------------------------
-
-	@Configuration
-	static class Config {
-		/* no user beans required for these tests */
-	}
-
+  @Configuration
+  static class Config {
+    /* no user beans required for these tests */
+  }
 }

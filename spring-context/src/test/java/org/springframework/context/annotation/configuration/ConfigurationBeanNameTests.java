@@ -29,68 +29,74 @@ import org.springframework.stereotype.Component;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
 /**
  * Unit tests ensuring that configuration class bean names as expressed via @Configuration
- * or @Component 'value' attributes are indeed respected, and that customization of bean
- * naming through a BeanNameGenerator strategy works as expected.
+ * or @Component 'value' attributes are indeed respected, and that customization of bean naming
+ * through a BeanNameGenerator strategy works as expected.
  *
  * @author Chris Beams
  * @since 3.1.1
  */
 public class ConfigurationBeanNameTests {
 
-	@Test
-	public void registerOuterConfig() {
-		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
-		ctx.register(A.class);
-		ctx.refresh();
-		assertThat(ctx.containsBean("outer")).isTrue();
-		assertThat(ctx.containsBean("imported")).isTrue();
-		assertThat(ctx.containsBean("nested")).isTrue();
-		assertThat(ctx.containsBean("nestedBean")).isTrue();
-	}
+  @Test
+  public void registerOuterConfig() {
+    AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+    ctx.register(A.class);
+    ctx.refresh();
+    assertThat(ctx.containsBean("outer")).isTrue();
+    assertThat(ctx.containsBean("imported")).isTrue();
+    assertThat(ctx.containsBean("nested")).isTrue();
+    assertThat(ctx.containsBean("nestedBean")).isTrue();
+  }
 
-	@Test
-	public void registerNestedConfig() {
-		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
-		ctx.register(A.B.class);
-		ctx.refresh();
-		assertThat(ctx.containsBean("outer")).isFalse();
-		assertThat(ctx.containsBean("imported")).isFalse();
-		assertThat(ctx.containsBean("nested")).isTrue();
-		assertThat(ctx.containsBean("nestedBean")).isTrue();
-	}
+  @Test
+  public void registerNestedConfig() {
+    AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+    ctx.register(A.B.class);
+    ctx.refresh();
+    assertThat(ctx.containsBean("outer")).isFalse();
+    assertThat(ctx.containsBean("imported")).isFalse();
+    assertThat(ctx.containsBean("nested")).isTrue();
+    assertThat(ctx.containsBean("nestedBean")).isTrue();
+  }
 
-	@Test
-	public void registerOuterConfig_withBeanNameGenerator() {
-		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
-		ctx.setBeanNameGenerator(new AnnotationBeanNameGenerator() {
-			@Override
-			public String generateBeanName(
-					BeanDefinition definition, BeanDefinitionRegistry registry) {
-				return "custom-" + super.generateBeanName(definition, registry);
-			}
-		});
-		ctx.register(A.class);
-		ctx.refresh();
-		assertThat(ctx.containsBean("custom-outer")).isTrue();
-		assertThat(ctx.containsBean("custom-imported")).isTrue();
-		assertThat(ctx.containsBean("custom-nested")).isTrue();
-		assertThat(ctx.containsBean("nestedBean")).isTrue();
-	}
+  @Test
+  public void registerOuterConfig_withBeanNameGenerator() {
+    AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+    ctx.setBeanNameGenerator(
+        new AnnotationBeanNameGenerator() {
+          @Override
+          public String generateBeanName(
+              BeanDefinition definition, BeanDefinitionRegistry registry) {
+            return "custom-" + super.generateBeanName(definition, registry);
+          }
+        });
+    ctx.register(A.class);
+    ctx.refresh();
+    assertThat(ctx.containsBean("custom-outer")).isTrue();
+    assertThat(ctx.containsBean("custom-imported")).isTrue();
+    assertThat(ctx.containsBean("custom-nested")).isTrue();
+    assertThat(ctx.containsBean("nestedBean")).isTrue();
+  }
 
-	@Configuration("outer")
-	@Import(C.class)
-	static class A {
-		@Component("nested")
-		static class B {
-			@Bean public String nestedBean() { return ""; }
-		}
-	}
+  @Configuration("outer")
+  @Import(C.class)
+  static class A {
+    @Component("nested")
+    static class B {
+      @Bean
+      public String nestedBean() {
+        return "";
+      }
+    }
+  }
 
-	@Configuration("imported")
-	static class C {
-		@Bean public String s() { return "s"; }
-	}
+  @Configuration("imported")
+  static class C {
+    @Bean
+    public String s() {
+      return "s";
+    }
+  }
 }

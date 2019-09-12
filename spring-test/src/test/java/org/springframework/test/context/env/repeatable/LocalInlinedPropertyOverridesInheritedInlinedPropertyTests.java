@@ -21,8 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.context.TestPropertySource;
 
 /**
- * Integration tests for {@link TestPropertySource @TestPropertySource} as a
- * repeatable annotation.
+ * Integration tests for {@link TestPropertySource @TestPropertySource} as a repeatable annotation.
  *
  * @author Anatoliy Korovin
  * @author Sam Brannen
@@ -30,14 +29,14 @@ import org.springframework.test.context.TestPropertySource;
  */
 @TestPropertySource(properties = "key1 = local value")
 @TestPropertySource(properties = "second = local override")
-class LocalInlinedPropertyOverridesInheritedInlinedPropertyTests extends RepeatedTestPropertySourceTests {
+class LocalInlinedPropertyOverridesInheritedInlinedPropertyTests
+    extends RepeatedTestPropertySourceTests {
 
-	@Test
-	@Override
-	void test() {
-		assertEnvironmentValue("key1", "local value");
-		assertEnvironmentValue("second", "local override");
-		assertEnvironmentValue("first", "repeated override");
-	}
-
+  @Test
+  @Override
+  void test() {
+    assertEnvironmentValue("key1", "local value");
+    assertEnvironmentValue("second", "local override");
+    assertEnvironmentValue("first", "repeated override");
+  }
 }

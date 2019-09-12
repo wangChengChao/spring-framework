@@ -31,96 +31,95 @@ import org.springframework.core.io.buffer.PooledDataBuffer;
 import org.springframework.util.ObjectUtils;
 
 /**
- * Unlike {@link org.springframework.core.io.buffer.LeakAwareDataBufferFactory}
- * this one is an instance of {@link NettyDataBufferFactory} which is necessary
- * since {@link PayloadUtils} does instanceof checks, and that also allows
- * intercepting {@link NettyDataBufferFactory#wrap(ByteBuf)}.
+ * Unlike {@link org.springframework.core.io.buffer.LeakAwareDataBufferFactory} this one is an
+ * instance of {@link NettyDataBufferFactory} which is necessary since {@link PayloadUtils} does
+ * instanceof checks, and that also allows intercepting {@link
+ * NettyDataBufferFactory#wrap(ByteBuf)}.
  */
 public class LeakAwareNettyDataBufferFactory extends NettyDataBufferFactory {
 
-	private final List<DataBufferLeakInfo> created = new ArrayList<>();
+  private final List<DataBufferLeakInfo> created = new ArrayList<>();
 
+  public LeakAwareNettyDataBufferFactory(ByteBufAllocator byteBufAllocator) {
+    super(byteBufAllocator);
+  }
 
-	public LeakAwareNettyDataBufferFactory(ByteBufAllocator byteBufAllocator) {
-		super(byteBufAllocator);
-	}
+  public void checkForLeaks(Duration duration) throws InterruptedException {
+    Instant start = Instant.now();
+    while (true) {
+      try {
+        this.created.forEach(
+            info -> {
+              if (((PooledDataBuffer) info.getDataBuffer()).isAllocated()) {
+                throw info.getError();
+              }
+            });
+        break;
+      } catch (AssertionError ex) {
+        if (Instant.now().isAfter(start.plus(duration))) {
+          throw ex;
+        }
+      }
+      Thread.sleep(50);
+    }
+  }
 
+  public void reset() {
+    this.created.clear();
+  }
 
-	public void checkForLeaks(Duration duration) throws InterruptedException {
-		Instant start = Instant.now();
-		while (true) {
-			try {
-				this.created.forEach(info -> {
-					if (((PooledDataBuffer) info.getDataBuffer()).isAllocated()) {
-						throw info.getError();
-					}
-				});
-				break;
-			}
-			catch (AssertionError ex) {
-				if (Instant.now().isAfter(start.plus(duration))) {
-					throw ex;
-				}
-			}
-			Thread.sleep(50);
-		}
-	}
+  @Override
+  public NettyDataBuffer allocateBuffer() {
+    return (NettyDataBuffer) recordHint(super.allocateBuffer());
+  }
 
-	public void reset() {
-		this.created.clear();
-	}
+  @Override
+  public NettyDataBuffer allocateBuffer(int initialCapacity) {
+    return (NettyDataBuffer) recordHint(super.allocateBuffer(initialCapacity));
+  }
 
+  @Override
+  public NettyDataBuffer wrap(ByteBuf byteBuf) {
+    NettyDataBuffer dataBuffer = super.wrap(byteBuf);
+    if (byteBuf != Unpooled.EMPTY_BUFFER) {
+      recordHint(dataBuffer);
+    }
+    return dataBuffer;
+  }
 
-	@Override
-	public NettyDataBuffer allocateBuffer() {
-		return (NettyDataBuffer) recordHint(super.allocateBuffer());
-	}
+  @Override
+  public DataBuffer join(List<? extends DataBuffer> dataBuffers) {
+    return recordHint(super.join(dataBuffers));
+  }
 
-	@Override
-	public NettyDataBuffer allocateBuffer(int initialCapacity) {
-		return (NettyDataBuffer) recordHint(super.allocateBuffer(initialCapacity));
-	}
+  private DataBuffer recordHint(DataBuffer buffer) {
+    AssertionError error =
+        new AssertionError(
+            String.format(
+                "DataBuffer leak: {%s} {%s} not released.%nStacktrace at buffer creation: ",
+                buffer,
+                ObjectUtils.getIdentityHexString(((NettyDataBuffer) buffer).getNativeBuffer())));
+    this.created.add(new DataBufferLeakInfo(buffer, error));
+    return buffer;
+  }
 
-	@Override
-	public NettyDataBuffer wrap(ByteBuf byteBuf) {
-		NettyDataBuffer dataBuffer = super.wrap(byteBuf);
-		if (byteBuf != Unpooled.EMPTY_BUFFER) {
-			recordHint(dataBuffer);
-		}
-		return dataBuffer;
-	}
+  private static class DataBufferLeakInfo {
 
-	@Override
-	public DataBuffer join(List<? extends DataBuffer> dataBuffers) {
-		return recordHint(super.join(dataBuffers));
-	}
+    private final DataBuffer dataBuffer;
 
-	private DataBuffer recordHint(DataBuffer buffer) {
-		AssertionError error = new AssertionError(String.format(
-				"DataBuffer leak: {%s} {%s} not released.%nStacktrace at buffer creation: ", buffer,
-				ObjectUtils.getIdentityHexString(((NettyDataBuffer) buffer).getNativeBuffer())));
-		this.created.add(new DataBufferLeakInfo(buffer, error));
-		return buffer;
-	}
+    private final AssertionError error;
 
+    DataBufferLeakInfo(DataBuffer dataBuffer, AssertionError error) {
+      this.dataBuffer = dataBuffer;
+      this.error = error;
+    }
 
-	private static class DataBufferLeakInfo {
+    DataBuffer getDataBuffer() {
+      return this.dataBuffer;
+    }
 
-		private final DataBuffer dataBuffer;
-
-		private final AssertionError error;
-
-		DataBufferLeakInfo(DataBuffer dataBuffer, AssertionError error) {
-			this.dataBuffer = dataBuffer;
-			this.error = error;
-		}
-
-		DataBuffer getDataBuffer() {
-			return this.dataBuffer;
-		}
-
-		AssertionError getError() {
-			return this.error;
-		}
-	}
+    AssertionError getError() {
+      return this.error;
+    }
+  }
 }

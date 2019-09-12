@@ -11,5 +11,6 @@
 		<task:scheduled ref="myTask" method="doWork" fixed-rate="10"/>
 	</task:scheduled-tasks>
 
-	<bean id="myTask" class="org.springframework.scheduling.config.LazyScheduledTasksBeanDefinitionParserTests$Task"/>
+	<bean id="myTask"
+			class="org.springframework.scheduling.config.LazyScheduledTasksBeanDefinitionParserTests$Task"/>
 </beans>

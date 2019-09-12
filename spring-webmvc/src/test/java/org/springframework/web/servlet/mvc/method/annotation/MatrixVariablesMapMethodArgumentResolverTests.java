@@ -45,152 +45,181 @@ import static org.springframework.web.method.MvcAnnotationPredicates.matrixAttri
  */
 public class MatrixVariablesMapMethodArgumentResolverTests {
 
-	private MatrixVariableMapMethodArgumentResolver resolver;
+  private MatrixVariableMapMethodArgumentResolver resolver;
 
-	private ModelAndViewContainer mavContainer;
+  private ModelAndViewContainer mavContainer;
 
-	private ServletWebRequest webRequest;
+  private ServletWebRequest webRequest;
 
-	private MockHttpServletRequest request;
+  private MockHttpServletRequest request;
 
-	private final ResolvableMethod testMethod = ResolvableMethod.on(this.getClass()).named("handle").build();
+  private final ResolvableMethod testMethod =
+      ResolvableMethod.on(this.getClass()).named("handle").build();
 
+  @BeforeEach
+  public void setup() throws Exception {
+    this.resolver = new MatrixVariableMapMethodArgumentResolver();
+    this.mavContainer = new ModelAndViewContainer();
+    this.request = new MockHttpServletRequest();
+    this.webRequest = new ServletWebRequest(request, new MockHttpServletResponse());
 
-	@BeforeEach
-	public void setup() throws Exception {
-		this.resolver = new MatrixVariableMapMethodArgumentResolver();
-		this.mavContainer = new ModelAndViewContainer();
-		this.request = new MockHttpServletRequest();
-		this.webRequest = new ServletWebRequest(request, new MockHttpServletResponse());
+    Map<String, MultiValueMap<String, String>> params = new LinkedHashMap<>();
+    this.request.setAttribute(HandlerMapping.MATRIX_VARIABLES_ATTRIBUTE, params);
+  }
 
-		Map<String, MultiValueMap<String, String>> params = new LinkedHashMap<>();
-		this.request.setAttribute(HandlerMapping.MATRIX_VARIABLES_ATTRIBUTE, params);
-	}
+  @Test
+  public void supportsParameter() {
 
+    assertThat(this.resolver.supportsParameter(this.testMethod.arg(String.class))).isFalse();
 
-	@Test
-	public void supportsParameter() {
+    assertThat(
+            this.resolver.supportsParameter(
+                this.testMethod
+                    .annot(matrixAttribute().noName())
+                    .arg(Map.class, String.class, String.class)))
+        .isTrue();
 
-		assertThat(this.resolver.supportsParameter(this.testMethod.arg(String.class))).isFalse();
+    assertThat(
+            this.resolver.supportsParameter(
+                this.testMethod
+                    .annot(matrixAttribute().noPathVar())
+                    .arg(MultiValueMap.class, String.class, String.class)))
+        .isTrue();
 
-		assertThat(this.resolver.supportsParameter(this.testMethod.annot(matrixAttribute().noName())
-				.arg(Map.class, String.class, String.class))).isTrue();
+    assertThat(
+            this.resolver.supportsParameter(
+                this.testMethod
+                    .annot(matrixAttribute().pathVar("cars"))
+                    .arg(MultiValueMap.class, String.class, String.class)))
+        .isTrue();
 
-		assertThat(this.resolver.supportsParameter(this.testMethod.annot(matrixAttribute().noPathVar())
-				.arg(MultiValueMap.class, String.class, String.class))).isTrue();
+    assertThat(
+            this.resolver.supportsParameter(
+                this.testMethod
+                    .annot(matrixAttribute().name("name"))
+                    .arg(Map.class, String.class, String.class)))
+        .isFalse();
+  }
 
-		assertThat(this.resolver.supportsParameter(this.testMethod.annot(matrixAttribute().pathVar("cars"))
-				.arg(MultiValueMap.class, String.class, String.class))).isTrue();
+  @Test
+  public void resolveArgument() throws Exception {
+    MultiValueMap<String, String> params = getVariablesFor("cars");
+    params.add("colors", "red");
+    params.add("colors", "green");
+    params.add("colors", "blue");
+    params.add("year", "2012");
 
-		assertThat(this.resolver.supportsParameter(this.testMethod.annot(matrixAttribute().name("name"))
-				.arg(Map.class, String.class, String.class))).isFalse();
-	}
+    MethodParameter param =
+        this.testMethod
+            .annot(matrixAttribute().noName())
+            .arg(Map.class, String.class, String.class);
 
-	@Test
-	public void resolveArgument() throws Exception {
-		MultiValueMap<String, String> params = getVariablesFor("cars");
-		params.add("colors", "red");
-		params.add("colors", "green");
-		params.add("colors", "blue");
-		params.add("year", "2012");
+    @SuppressWarnings("unchecked")
+    Map<String, String> map =
+        (Map<String, String>)
+            this.resolver.resolveArgument(param, this.mavContainer, this.webRequest, null);
 
-		MethodParameter param = this.testMethod.annot(matrixAttribute().noName())
-				.arg(Map.class, String.class, String.class);
+    assertThat(map.get("colors")).isEqualTo("red");
 
-		@SuppressWarnings("unchecked")
-		Map<String, String> map = (Map<String, String>)
-				this.resolver.resolveArgument(param, this.mavContainer, this.webRequest, null);
+    param =
+        this.testMethod
+            .annot(matrixAttribute().noPathVar())
+            .arg(MultiValueMap.class, String.class, String.class);
 
-		assertThat(map.get("colors")).isEqualTo("red");
+    @SuppressWarnings("unchecked")
+    MultiValueMap<String, String> multivalueMap =
+        (MultiValueMap<String, String>)
+            this.resolver.resolveArgument(param, this.mavContainer, this.webRequest, null);
 
-		param = this.testMethod
-				.annot(matrixAttribute().noPathVar())
-				.arg(MultiValueMap.class, String.class, String.class);
+    assertThat(multivalueMap.get("colors")).isEqualTo(Arrays.asList("red", "green", "blue"));
+  }
 
-		@SuppressWarnings("unchecked")
-		MultiValueMap<String, String> multivalueMap = (MultiValueMap<String, String>)
-				this.resolver.resolveArgument(param, this.mavContainer, this.webRequest, null);
+  @Test
+  public void resolveArgumentPathVariable() throws Exception {
+    MultiValueMap<String, String> params1 = getVariablesFor("cars");
+    params1.add("colors", "red");
+    params1.add("colors", "purple");
 
-		assertThat(multivalueMap.get("colors")).isEqualTo(Arrays.asList("red", "green", "blue"));
-	}
+    MultiValueMap<String, String> params2 = getVariablesFor("planes");
+    params2.add("colors", "yellow");
+    params2.add("colors", "orange");
 
-	@Test
-	public void resolveArgumentPathVariable() throws Exception {
-		MultiValueMap<String, String> params1 = getVariablesFor("cars");
-		params1.add("colors", "red");
-		params1.add("colors", "purple");
+    MethodParameter param =
+        this.testMethod
+            .annot(matrixAttribute().pathVar("cars"))
+            .arg(MultiValueMap.class, String.class, String.class);
 
-		MultiValueMap<String, String> params2 = getVariablesFor("planes");
-		params2.add("colors", "yellow");
-		params2.add("colors", "orange");
+    @SuppressWarnings("unchecked")
+    Map<String, ?> mapForPathVar =
+        (Map<String, ?>)
+            this.resolver.resolveArgument(param, this.mavContainer, this.webRequest, null);
 
-		MethodParameter param = this.testMethod.annot(matrixAttribute().pathVar("cars"))
-				.arg(MultiValueMap.class, String.class, String.class);
+    assertThat(mapForPathVar.get("colors")).isEqualTo(Arrays.asList("red", "purple"));
 
-		@SuppressWarnings("unchecked")
-		Map<String, ?> mapForPathVar = (Map<String, ?>) this.resolver.resolveArgument(
-				param, this.mavContainer, this.webRequest, null);
+    param =
+        this.testMethod
+            .annot(matrixAttribute().noName())
+            .arg(Map.class, String.class, String.class);
 
-		assertThat(mapForPathVar.get("colors")).isEqualTo(Arrays.asList("red", "purple"));
+    @SuppressWarnings("unchecked")
+    Map<String, String> mapAll =
+        (Map<String, String>)
+            this.resolver.resolveArgument(param, this.mavContainer, this.webRequest, null);
 
-		param = this.testMethod.annot(matrixAttribute().noName()).arg(Map.class, String.class, String.class);
+    assertThat(mapAll.get("colors")).isEqualTo("red");
+  }
 
-		@SuppressWarnings("unchecked")
-		Map<String, String> mapAll = (Map<String, String>)
-				this.resolver.resolveArgument(param, this.mavContainer, this.webRequest, null);
+  @Test
+  public void resolveArgumentNoParams() throws Exception {
 
-		assertThat(mapAll.get("colors")).isEqualTo("red");
-	}
+    MethodParameter param =
+        this.testMethod
+            .annot(matrixAttribute().noName())
+            .arg(Map.class, String.class, String.class);
 
-	@Test
-	public void resolveArgumentNoParams() throws Exception {
+    @SuppressWarnings("unchecked")
+    Map<String, String> map =
+        (Map<String, String>)
+            this.resolver.resolveArgument(param, this.mavContainer, this.webRequest, null);
 
-		MethodParameter param = this.testMethod.annot(matrixAttribute().noName())
-				.arg(Map.class, String.class, String.class);
+    assertThat(map).isEqualTo(Collections.emptyMap());
+  }
 
-		@SuppressWarnings("unchecked")
-		Map<String, String> map = (Map<String, String>)
-				this.resolver.resolveArgument(param, this.mavContainer, this.webRequest, null);
+  @Test
+  public void resolveArgumentNoMatch() throws Exception {
+    MultiValueMap<String, String> params2 = getVariablesFor("planes");
+    params2.add("colors", "yellow");
+    params2.add("colors", "orange");
 
-		assertThat(map).isEqualTo(Collections.emptyMap());
-	}
+    MethodParameter param =
+        this.testMethod
+            .annot(matrixAttribute().pathVar("cars"))
+            .arg(MultiValueMap.class, String.class, String.class);
 
-	@Test
-	public void resolveArgumentNoMatch() throws Exception {
-		MultiValueMap<String, String> params2 = getVariablesFor("planes");
-		params2.add("colors", "yellow");
-		params2.add("colors", "orange");
+    @SuppressWarnings("unchecked")
+    Map<String, String> map =
+        (Map<String, String>)
+            this.resolver.resolveArgument(param, this.mavContainer, this.webRequest, null);
 
-		MethodParameter param = this.testMethod.annot(matrixAttribute().pathVar("cars"))
-				.arg(MultiValueMap.class, String.class, String.class);
+    assertThat(map).isEqualTo(Collections.emptyMap());
+  }
 
-		@SuppressWarnings("unchecked")
-		Map<String, String> map = (Map<String, String>)
-				this.resolver.resolveArgument(param, this.mavContainer, this.webRequest, null);
+  @SuppressWarnings("unchecked")
+  private MultiValueMap<String, String> getVariablesFor(String pathVarName) {
+    Map<String, MultiValueMap<String, String>> matrixVariables =
+        (Map<String, MultiValueMap<String, String>>)
+            this.request.getAttribute(HandlerMapping.MATRIX_VARIABLES_ATTRIBUTE);
 
-		assertThat(map).isEqualTo(Collections.emptyMap());
-	}
+    MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+    matrixVariables.put(pathVarName, params);
+    return params;
+  }
 
-
-	@SuppressWarnings("unchecked")
-	private MultiValueMap<String, String> getVariablesFor(String pathVarName) {
-		Map<String, MultiValueMap<String, String>> matrixVariables =
-				(Map<String, MultiValueMap<String, String>>) this.request.getAttribute(
-						HandlerMapping.MATRIX_VARIABLES_ATTRIBUTE);
-
-		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-		matrixVariables.put(pathVarName, params);
-		return params;
-	}
-
-
-	@SuppressWarnings("unused")
-	public void handle(
-			String stringArg,
-			@MatrixVariable Map<String, String> map,
-			@MatrixVariable MultiValueMap<String, String> multivalueMap,
-			@MatrixVariable(pathVar="cars") MultiValueMap<String, String> mapForPathVar,
-			@MatrixVariable("name") Map<String, String> mapWithName) {
-	}
-
+  @SuppressWarnings("unused")
+  public void handle(
+      String stringArg,
+      @MatrixVariable Map<String, String> map,
+      @MatrixVariable MultiValueMap<String, String> multivalueMap,
+      @MatrixVariable(pathVar = "cars") MultiValueMap<String, String> mapForPathVar,
+      @MatrixVariable("name") Map<String, String> mapWithName) {}
 }

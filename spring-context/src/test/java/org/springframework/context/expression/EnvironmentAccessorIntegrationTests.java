@@ -28,28 +28,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.beans.factory.support.BeanDefinitionBuilder.genericBeanDefinition;
 
 /**
- * Integration tests for {@link EnvironmentAccessor}, which is registered with
- * SpEL for all {@link AbstractApplicationContext} implementations via
- * {@link StandardBeanExpressionResolver}.
+ * Integration tests for {@link EnvironmentAccessor}, which is registered with SpEL for all {@link
+ * AbstractApplicationContext} implementations via {@link StandardBeanExpressionResolver}.
  *
  * @author Chris Beams
  */
 public class EnvironmentAccessorIntegrationTests {
 
-	@Test
-	public void braceAccess() {
-		DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
-		bf.registerBeanDefinition("testBean",
-				genericBeanDefinition(TestBean.class)
-					.addPropertyValue("name", "#{environment['my.name']}")
-					.getBeanDefinition());
+  @Test
+  public void braceAccess() {
+    DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
+    bf.registerBeanDefinition(
+        "testBean",
+        genericBeanDefinition(TestBean.class)
+            .addPropertyValue("name", "#{environment['my.name']}")
+            .getBeanDefinition());
 
-		GenericApplicationContext ctx = new GenericApplicationContext(bf);
-		ctx.getEnvironment().getPropertySources().addFirst(new MockPropertySource().withProperty("my.name", "myBean"));
-		ctx.refresh();
+    GenericApplicationContext ctx = new GenericApplicationContext(bf);
+    ctx.getEnvironment()
+        .getPropertySources()
+        .addFirst(new MockPropertySource().withProperty("my.name", "myBean"));
+    ctx.refresh();
 
-		assertThat(ctx.getBean(TestBean.class).getName()).isEqualTo("myBean");
-		ctx.close();
-	}
-
+    assertThat(ctx.getBean(TestBean.class).getName()).isEqualTo("myBean");
+    ctx.close();
+  }
 }

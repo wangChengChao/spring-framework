@@ -61,205 +61,207 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 public class SubscriptionMethodReturnValueHandlerTests {
 
-	public static final MimeType MIME_TYPE = new MimeType("text", "plain", StandardCharsets.UTF_8);
+  public static final MimeType MIME_TYPE = new MimeType("text", "plain", StandardCharsets.UTF_8);
 
-	private static final String PAYLOAD = "payload";
+  private static final String PAYLOAD = "payload";
 
+  @Mock private MessageChannel messageChannel;
 
-	@Mock
-	private MessageChannel messageChannel;
+  @Captor private ArgumentCaptor<Message<?>> messageCaptor;
 
-	@Captor
-	private ArgumentCaptor<Message<?>> messageCaptor;
+  private SubscriptionMethodReturnValueHandler handler;
 
-	private SubscriptionMethodReturnValueHandler handler;
+  private SubscriptionMethodReturnValueHandler jsonHandler;
 
-	private SubscriptionMethodReturnValueHandler jsonHandler;
+  private MethodParameter subscribeEventReturnType;
 
-	private MethodParameter subscribeEventReturnType;
+  private MethodParameter subscribeEventSendToReturnType;
 
-	private MethodParameter subscribeEventSendToReturnType;
+  private MethodParameter messageMappingReturnType;
 
-	private MethodParameter messageMappingReturnType;
+  private MethodParameter subscribeEventJsonViewReturnType;
 
-	private MethodParameter subscribeEventJsonViewReturnType;
+  @BeforeEach
+  public void setup() throws Exception {
+    SimpMessagingTemplate messagingTemplate = new SimpMessagingTemplate(this.messageChannel);
+    messagingTemplate.setMessageConverter(new StringMessageConverter());
+    this.handler = new SubscriptionMethodReturnValueHandler(messagingTemplate);
 
+    SimpMessagingTemplate jsonMessagingTemplate = new SimpMessagingTemplate(this.messageChannel);
+    jsonMessagingTemplate.setMessageConverter(new MappingJackson2MessageConverter());
+    this.jsonHandler = new SubscriptionMethodReturnValueHandler(jsonMessagingTemplate);
 
-	@BeforeEach
-	public void setup() throws Exception {
-		SimpMessagingTemplate messagingTemplate = new SimpMessagingTemplate(this.messageChannel);
-		messagingTemplate.setMessageConverter(new StringMessageConverter());
-		this.handler = new SubscriptionMethodReturnValueHandler(messagingTemplate);
+    Method method = this.getClass().getDeclaredMethod("getData");
+    this.subscribeEventReturnType = new MethodParameter(method, -1);
 
-		SimpMessagingTemplate jsonMessagingTemplate = new SimpMessagingTemplate(this.messageChannel);
-		jsonMessagingTemplate.setMessageConverter(new MappingJackson2MessageConverter());
-		this.jsonHandler = new SubscriptionMethodReturnValueHandler(jsonMessagingTemplate);
+    method = this.getClass().getDeclaredMethod("getDataAndSendTo");
+    this.subscribeEventSendToReturnType = new MethodParameter(method, -1);
 
-		Method method = this.getClass().getDeclaredMethod("getData");
-		this.subscribeEventReturnType = new MethodParameter(method, -1);
+    method = this.getClass().getDeclaredMethod("handle");
+    this.messageMappingReturnType = new MethodParameter(method, -1);
 
-		method = this.getClass().getDeclaredMethod("getDataAndSendTo");
-		this.subscribeEventSendToReturnType = new MethodParameter(method, -1);
+    method = this.getClass().getDeclaredMethod("getJsonView");
+    this.subscribeEventJsonViewReturnType = new MethodParameter(method, -1);
+  }
 
-		method = this.getClass().getDeclaredMethod("handle");
-		this.messageMappingReturnType = new MethodParameter(method, -1);
+  @Test
+  public void supportsReturnType() throws Exception {
+    assertThat(this.handler.supportsReturnType(this.subscribeEventReturnType)).isTrue();
+    assertThat(this.handler.supportsReturnType(this.subscribeEventSendToReturnType)).isFalse();
+    assertThat(this.handler.supportsReturnType(this.messageMappingReturnType)).isFalse();
+  }
 
-		method = this.getClass().getDeclaredMethod("getJsonView");
-		this.subscribeEventJsonViewReturnType = new MethodParameter(method, -1);
-	}
+  @Test
+  public void testMessageSentToChannel() throws Exception {
+    given(this.messageChannel.send(any(Message.class))).willReturn(true);
 
+    String sessionId = "sess1";
+    String subscriptionId = "subs1";
+    String destination = "/dest";
+    Message<?> inputMessage = createInputMessage(sessionId, subscriptionId, destination, null);
 
-	@Test
-	public void supportsReturnType() throws Exception {
-		assertThat(this.handler.supportsReturnType(this.subscribeEventReturnType)).isTrue();
-		assertThat(this.handler.supportsReturnType(this.subscribeEventSendToReturnType)).isFalse();
-		assertThat(this.handler.supportsReturnType(this.messageMappingReturnType)).isFalse();
-	}
+    this.handler.handleReturnValue(PAYLOAD, this.subscribeEventReturnType, inputMessage);
 
-	@Test
-	public void testMessageSentToChannel() throws Exception {
-		given(this.messageChannel.send(any(Message.class))).willReturn(true);
+    verify(this.messageChannel).send(this.messageCaptor.capture());
+    assertThat(this.messageCaptor.getValue()).isNotNull();
 
-		String sessionId = "sess1";
-		String subscriptionId = "subs1";
-		String destination = "/dest";
-		Message<?> inputMessage = createInputMessage(sessionId, subscriptionId, destination, null);
+    Message<?> message = this.messageCaptor.getValue();
+    SimpMessageHeaderAccessor headerAccessor = SimpMessageHeaderAccessor.wrap(message);
 
-		this.handler.handleReturnValue(PAYLOAD, this.subscribeEventReturnType, inputMessage);
+    assertThat(headerAccessor.getId())
+        .as("SimpMessageHeaderAccessor should have disabled id")
+        .isNull();
+    assertThat(headerAccessor.getTimestamp())
+        .as("SimpMessageHeaderAccessor should have disabled timestamp")
+        .isNull();
+    assertThat(headerAccessor.getSessionId()).isEqualTo(sessionId);
+    assertThat(headerAccessor.getSubscriptionId()).isEqualTo(subscriptionId);
+    assertThat(headerAccessor.getDestination()).isEqualTo(destination);
+    assertThat(headerAccessor.getContentType()).isEqualTo(MIME_TYPE);
+    assertThat(headerAccessor.getHeader(SimpMessagingTemplate.CONVERSION_HINT_HEADER))
+        .isEqualTo(this.subscribeEventReturnType);
+  }
 
-		verify(this.messageChannel).send(this.messageCaptor.capture());
-		assertThat(this.messageCaptor.getValue()).isNotNull();
+  @Test
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  public void testHeadersPassedToMessagingTemplate() throws Exception {
+    String sessionId = "sess1";
+    String subscriptionId = "subs1";
+    String destination = "/dest";
+    Message<?> inputMessage = createInputMessage(sessionId, subscriptionId, destination, null);
 
-		Message<?> message = this.messageCaptor.getValue();
-		SimpMessageHeaderAccessor headerAccessor = SimpMessageHeaderAccessor.wrap(message);
+    MessageSendingOperations messagingTemplate = mock(MessageSendingOperations.class);
+    SubscriptionMethodReturnValueHandler handler =
+        new SubscriptionMethodReturnValueHandler(messagingTemplate);
 
-		assertThat(headerAccessor.getId()).as("SimpMessageHeaderAccessor should have disabled id").isNull();
-		assertThat(headerAccessor.getTimestamp()).as("SimpMessageHeaderAccessor should have disabled timestamp").isNull();
-		assertThat(headerAccessor.getSessionId()).isEqualTo(sessionId);
-		assertThat(headerAccessor.getSubscriptionId()).isEqualTo(subscriptionId);
-		assertThat(headerAccessor.getDestination()).isEqualTo(destination);
-		assertThat(headerAccessor.getContentType()).isEqualTo(MIME_TYPE);
-		assertThat(headerAccessor.getHeader(SimpMessagingTemplate.CONVERSION_HINT_HEADER)).isEqualTo(this.subscribeEventReturnType);
-	}
+    handler.handleReturnValue(PAYLOAD, this.subscribeEventReturnType, inputMessage);
 
-	@Test
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public void testHeadersPassedToMessagingTemplate() throws Exception {
-		String sessionId = "sess1";
-		String subscriptionId = "subs1";
-		String destination = "/dest";
-		Message<?> inputMessage = createInputMessage(sessionId, subscriptionId, destination, null);
+    ArgumentCaptor<MessageHeaders> captor = ArgumentCaptor.forClass(MessageHeaders.class);
+    verify(messagingTemplate).convertAndSend(eq("/dest"), eq(PAYLOAD), captor.capture());
 
-		MessageSendingOperations messagingTemplate = mock(MessageSendingOperations.class);
-		SubscriptionMethodReturnValueHandler handler = new SubscriptionMethodReturnValueHandler(messagingTemplate);
+    SimpMessageHeaderAccessor headerAccessor =
+        MessageHeaderAccessor.getAccessor(captor.getValue(), SimpMessageHeaderAccessor.class);
 
-		handler.handleReturnValue(PAYLOAD, this.subscribeEventReturnType, inputMessage);
+    assertThat(headerAccessor).isNotNull();
+    assertThat(headerAccessor.isMutable()).isTrue();
+    assertThat(headerAccessor.getSessionId()).isEqualTo(sessionId);
+    assertThat(headerAccessor.getSubscriptionId()).isEqualTo(subscriptionId);
+    assertThat(headerAccessor.getHeader(SimpMessagingTemplate.CONVERSION_HINT_HEADER))
+        .isEqualTo(this.subscribeEventReturnType);
+  }
 
-		ArgumentCaptor<MessageHeaders> captor = ArgumentCaptor.forClass(MessageHeaders.class);
-		verify(messagingTemplate).convertAndSend(eq("/dest"), eq(PAYLOAD), captor.capture());
+  @Test
+  public void testJsonView() throws Exception {
+    given(this.messageChannel.send(any(Message.class))).willReturn(true);
 
-		SimpMessageHeaderAccessor headerAccessor =
-				MessageHeaderAccessor.getAccessor(captor.getValue(), SimpMessageHeaderAccessor.class);
+    String sessionId = "sess1";
+    String subscriptionId = "subs1";
+    String destination = "/dest";
+    Message<?> inputMessage = createInputMessage(sessionId, subscriptionId, destination, null);
 
-		assertThat(headerAccessor).isNotNull();
-		assertThat(headerAccessor.isMutable()).isTrue();
-		assertThat(headerAccessor.getSessionId()).isEqualTo(sessionId);
-		assertThat(headerAccessor.getSubscriptionId()).isEqualTo(subscriptionId);
-		assertThat(headerAccessor.getHeader(SimpMessagingTemplate.CONVERSION_HINT_HEADER)).isEqualTo(this.subscribeEventReturnType);
-	}
+    this.jsonHandler.handleReturnValue(
+        getJsonView(), this.subscribeEventJsonViewReturnType, inputMessage);
 
-	@Test
-	public void testJsonView() throws Exception {
-		given(this.messageChannel.send(any(Message.class))).willReturn(true);
+    verify(this.messageChannel).send(this.messageCaptor.capture());
+    Message<?> message = this.messageCaptor.getValue();
+    assertThat(message).isNotNull();
 
-		String sessionId = "sess1";
-		String subscriptionId = "subs1";
-		String destination = "/dest";
-		Message<?> inputMessage = createInputMessage(sessionId, subscriptionId, destination, null);
+    assertThat(new String((byte[]) message.getPayload(), StandardCharsets.UTF_8))
+        .isEqualTo("{\"withView1\":\"with\"}");
+  }
 
-		this.jsonHandler.handleReturnValue(getJsonView(), this.subscribeEventJsonViewReturnType, inputMessage);
+  private Message<?> createInputMessage(
+      String sessId, String subsId, String dest, Principal principal) {
+    SimpMessageHeaderAccessor headers = SimpMessageHeaderAccessor.create();
+    headers.setSessionId(sessId);
+    headers.setSubscriptionId(subsId);
+    headers.setDestination(dest);
+    headers.setUser(principal);
+    return MessageBuilder.withPayload(new byte[0]).copyHeaders(headers.toMap()).build();
+  }
 
-		verify(this.messageChannel).send(this.messageCaptor.capture());
-		Message<?> message = this.messageCaptor.getValue();
-		assertThat(message).isNotNull();
+  @SubscribeMapping("/data") // not needed for the tests but here for completeness
+  private String getData() {
+    return PAYLOAD;
+  }
 
-		assertThat(new String((byte[]) message.getPayload(), StandardCharsets.UTF_8)).isEqualTo("{\"withView1\":\"with\"}");
-	}
+  @SubscribeMapping("/data") // not needed for the tests but here for completeness
+  @SendTo("/sendToDest")
+  private String getDataAndSendTo() {
+    return PAYLOAD;
+  }
 
+  @MessageMapping("/handle") // not needed for the tests but here for completeness
+  public String handle() {
+    return PAYLOAD;
+  }
 
-	private Message<?> createInputMessage(String sessId, String subsId, String dest, Principal principal) {
-		SimpMessageHeaderAccessor headers = SimpMessageHeaderAccessor.create();
-		headers.setSessionId(sessId);
-		headers.setSubscriptionId(subsId);
-		headers.setDestination(dest);
-		headers.setUser(principal);
-		return MessageBuilder.withPayload(new byte[0]).copyHeaders(headers.toMap()).build();
-	}
+  @SubscribeMapping("/jsonview") // not needed for the tests but here for completeness
+  @JsonView(MyJacksonView1.class)
+  public JacksonViewBean getJsonView() {
+    JacksonViewBean payload = new JacksonViewBean();
+    payload.setWithView1("with");
+    payload.setWithView2("with");
+    payload.setWithoutView("without");
+    return payload;
+  }
 
+  private interface MyJacksonView1 {};
 
-	@SubscribeMapping("/data") // not needed for the tests but here for completeness
-	private String getData() {
-		return PAYLOAD;
-	}
+  private interface MyJacksonView2 {};
 
-	@SubscribeMapping("/data") // not needed for the tests but here for completeness
-	@SendTo("/sendToDest")
-	private String getDataAndSendTo() {
-		return PAYLOAD;
-	}
+  private static class JacksonViewBean {
 
-	@MessageMapping("/handle")	// not needed for the tests but here for completeness
-	public String handle() {
-		return PAYLOAD;
-	}
+    @JsonView(MyJacksonView1.class)
+    private String withView1;
 
-	@SubscribeMapping("/jsonview")	// not needed for the tests but here for completeness
-	@JsonView(MyJacksonView1.class)
-	public JacksonViewBean getJsonView() {
-		JacksonViewBean payload = new JacksonViewBean();
-		payload.setWithView1("with");
-		payload.setWithView2("with");
-		payload.setWithoutView("without");
-		return payload;
-	}
+    @JsonView(MyJacksonView2.class)
+    private String withView2;
 
+    private String withoutView;
 
-	private interface MyJacksonView1 {};
-	private interface MyJacksonView2 {};
+    public String getWithView1() {
+      return withView1;
+    }
 
-	private static class JacksonViewBean {
+    public void setWithView1(String withView1) {
+      this.withView1 = withView1;
+    }
 
-		@JsonView(MyJacksonView1.class)
-		private String withView1;
+    public String getWithView2() {
+      return withView2;
+    }
 
-		@JsonView(MyJacksonView2.class)
-		private String withView2;
+    public void setWithView2(String withView2) {
+      this.withView2 = withView2;
+    }
 
-		private String withoutView;
+    public String getWithoutView() {
+      return withoutView;
+    }
 
-		public String getWithView1() {
-			return withView1;
-		}
-
-		public void setWithView1(String withView1) {
-			this.withView1 = withView1;
-		}
-
-		public String getWithView2() {
-			return withView2;
-		}
-
-		public void setWithView2(String withView2) {
-			this.withView2 = withView2;
-		}
-
-		public String getWithoutView() {
-			return withoutView;
-		}
-
-		public void setWithoutView(String withoutView) {
-			this.withoutView = withoutView;
-		}
-	}
-
+    public void setWithoutView(String withoutView) {
+      this.withoutView = withoutView;
+    }
+  }
 }

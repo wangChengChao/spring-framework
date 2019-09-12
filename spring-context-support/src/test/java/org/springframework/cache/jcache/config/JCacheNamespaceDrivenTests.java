@@ -27,31 +27,29 @@ import org.springframework.context.support.GenericXmlApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * @author Stephane Nicoll
- */
+/** @author Stephane Nicoll */
 public class JCacheNamespaceDrivenTests extends AbstractJCacheAnnotationTests {
 
-	@Override
-	protected ApplicationContext getApplicationContext() {
-		return new GenericXmlApplicationContext(
-				"/org/springframework/cache/jcache/config/jCacheNamespaceDriven.xml");
-	}
+  @Override
+  protected ApplicationContext getApplicationContext() {
+    return new GenericXmlApplicationContext(
+        "/org/springframework/cache/jcache/config/jCacheNamespaceDriven.xml");
+  }
 
-	@Test
-	public void cacheResolver() {
-		ConfigurableApplicationContext context = new GenericXmlApplicationContext(
-				"/org/springframework/cache/jcache/config/jCacheNamespaceDriven-resolver.xml");
+  @Test
+  public void cacheResolver() {
+    ConfigurableApplicationContext context =
+        new GenericXmlApplicationContext(
+            "/org/springframework/cache/jcache/config/jCacheNamespaceDriven-resolver.xml");
 
-		DefaultJCacheOperationSource ci = context.getBean(DefaultJCacheOperationSource.class);
-		assertThat(ci.getCacheResolver()).isSameAs(context.getBean("cacheResolver"));
-		context.close();
-	}
+    DefaultJCacheOperationSource ci = context.getBean(DefaultJCacheOperationSource.class);
+    assertThat(ci.getCacheResolver()).isSameAs(context.getBean("cacheResolver"));
+    context.close();
+  }
 
-	@Test
-	public void testCacheErrorHandler() {
-		JCacheInterceptor ci = ctx.getBean(JCacheInterceptor.class);
-		assertThat(ci.getErrorHandler()).isSameAs(ctx.getBean("errorHandler", CacheErrorHandler.class));
-	}
-
+  @Test
+  public void testCacheErrorHandler() {
+    JCacheInterceptor ci = ctx.getBean(JCacheInterceptor.class);
+    assertThat(ci.getErrorHandler()).isSameAs(ctx.getBean("errorHandler", CacheErrorHandler.class));
+  }
 }

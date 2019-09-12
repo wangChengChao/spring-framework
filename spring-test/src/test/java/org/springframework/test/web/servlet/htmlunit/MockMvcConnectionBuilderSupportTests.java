@@ -59,103 +59,100 @@ import static org.mockito.Mockito.mock;
 @SuppressWarnings("rawtypes")
 public class MockMvcConnectionBuilderSupportTests {
 
-	private final WebClient client = mock(WebClient.class);
+  private final WebClient client = mock(WebClient.class);
 
-	private MockMvcWebConnectionBuilderSupport builder;
+  private MockMvcWebConnectionBuilderSupport builder;
 
-	@Autowired
-	private WebApplicationContext wac;
+  @Autowired private WebApplicationContext wac;
 
+  @BeforeEach
+  public void setup() {
+    given(this.client.getWebConnection()).willReturn(mock(WebConnection.class));
+    this.builder = new MockMvcWebConnectionBuilderSupport(this.wac) {};
+  }
 
-	@BeforeEach
-	public void setup() {
-		given(this.client.getWebConnection()).willReturn(mock(WebConnection.class));
-		this.builder = new MockMvcWebConnectionBuilderSupport(this.wac) {};
-	}
+  @Test
+  public void constructorMockMvcNull() {
+    assertThatIllegalArgumentException()
+        .isThrownBy(() -> new MockMvcWebConnectionBuilderSupport((MockMvc) null) {});
+  }
 
+  @Test
+  public void constructorContextNull() {
+    assertThatIllegalArgumentException()
+        .isThrownBy(() -> new MockMvcWebConnectionBuilderSupport((WebApplicationContext) null) {});
+  }
 
-	@Test
-	public void constructorMockMvcNull() {
-		assertThatIllegalArgumentException().isThrownBy(() ->
-				new MockMvcWebConnectionBuilderSupport((MockMvc) null){});
-	}
+  @Test
+  public void context() throws Exception {
+    WebConnection conn = this.builder.createConnection(this.client);
 
-	@Test
-	public void constructorContextNull() {
-		assertThatIllegalArgumentException().isThrownBy(() ->
-				new MockMvcWebConnectionBuilderSupport((WebApplicationContext) null){});
-	}
+    assertMockMvcUsed(conn, "http://localhost/");
+    assertMockMvcNotUsed(conn, "https://example.com/");
+  }
 
-	@Test
-	public void context() throws Exception {
-		WebConnection conn = this.builder.createConnection(this.client);
+  @Test
+  public void mockMvc() throws Exception {
+    MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
+    WebConnection conn =
+        new MockMvcWebConnectionBuilderSupport(mockMvc) {}.createConnection(this.client);
 
-		assertMockMvcUsed(conn, "http://localhost/");
-		assertMockMvcNotUsed(conn, "https://example.com/");
-	}
+    assertMockMvcUsed(conn, "http://localhost/");
+    assertMockMvcNotUsed(conn, "https://example.com/");
+  }
 
-	@Test
-	public void mockMvc() throws Exception {
-		MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
-		WebConnection conn = new MockMvcWebConnectionBuilderSupport(mockMvc) {}.createConnection(this.client);
+  @Test
+  public void mockMvcExampleDotCom() throws Exception {
+    WebConnection conn =
+        this.builder.useMockMvcForHosts("example.com").createConnection(this.client);
 
-		assertMockMvcUsed(conn, "http://localhost/");
-		assertMockMvcNotUsed(conn, "https://example.com/");
-	}
+    assertMockMvcUsed(conn, "http://localhost/");
+    assertMockMvcUsed(conn, "https://example.com/");
+    assertMockMvcNotUsed(conn, "http://other.example/");
+  }
 
-	@Test
-	public void mockMvcExampleDotCom() throws Exception {
-		WebConnection conn = this.builder.useMockMvcForHosts("example.com").createConnection(this.client);
+  @Test
+  public void mockMvcAlwaysUseMockMvc() throws Exception {
+    WebConnection conn = this.builder.alwaysUseMockMvc().createConnection(this.client);
+    assertMockMvcUsed(conn, "http://other.example/");
+  }
 
-		assertMockMvcUsed(conn, "http://localhost/");
-		assertMockMvcUsed(conn, "https://example.com/");
-		assertMockMvcNotUsed(conn, "http://other.example/");
-	}
+  @Test
+  public void defaultContextPathEmpty() throws Exception {
+    WebConnection conn = this.builder.createConnection(this.client);
+    assertThat(getResponse(conn, "http://localhost/abc").getContentAsString()).isEqualTo("");
+  }
 
-	@Test
-	public void mockMvcAlwaysUseMockMvc() throws Exception {
-		WebConnection conn = this.builder.alwaysUseMockMvc().createConnection(this.client);
-		assertMockMvcUsed(conn, "http://other.example/");
-	}
+  @Test
+  public void defaultContextPathCustom() throws Exception {
+    WebConnection conn = this.builder.contextPath("/abc").createConnection(this.client);
+    assertThat(getResponse(conn, "http://localhost/abc/def").getContentAsString())
+        .isEqualTo("/abc");
+  }
 
-	@Test
-	public void defaultContextPathEmpty() throws Exception {
-		WebConnection conn = this.builder.createConnection(this.client);
-		assertThat(getResponse(conn, "http://localhost/abc").getContentAsString()).isEqualTo("");
-	}
+  private void assertMockMvcUsed(WebConnection connection, String url) throws Exception {
+    assertThat(getResponse(connection, url)).isNotNull();
+  }
 
-	@Test
-	public void defaultContextPathCustom() throws Exception {
-		WebConnection conn = this.builder.contextPath("/abc").createConnection(this.client);
-		assertThat(getResponse(conn, "http://localhost/abc/def").getContentAsString()).isEqualTo("/abc");
-	}
+  private void assertMockMvcNotUsed(WebConnection connection, String url) throws Exception {
+    assertThat(getResponse(connection, url)).isNull();
+  }
 
+  private WebResponse getResponse(WebConnection connection, String url) throws IOException {
+    return connection.getResponse(new WebRequest(new URL(url)));
+  }
 
-	private void assertMockMvcUsed(WebConnection connection, String url) throws Exception {
-		assertThat(getResponse(connection, url)).isNotNull();
-	}
+  @Configuration
+  @EnableWebMvc
+  static class Config {
 
-	private void assertMockMvcNotUsed(WebConnection connection, String url) throws Exception {
-		assertThat(getResponse(connection, url)).isNull();
-	}
+    @RestController
+    static class ContextPathController {
 
-	private WebResponse getResponse(WebConnection connection, String url) throws IOException {
-		return connection.getResponse(new WebRequest(new URL(url)));
-	}
-
-
-	@Configuration
-	@EnableWebMvc
-	static class Config {
-
-		@RestController
-		static class ContextPathController {
-
-			@RequestMapping("/def")
-			public String contextPath(HttpServletRequest request) {
-				return request.getContextPath();
-			}
-		}
-	}
-
+      @RequestMapping("/def")
+      public String contextPath(HttpServletRequest request) {
+        return request.getContextPath();
+      }
+    }
+  }
 }

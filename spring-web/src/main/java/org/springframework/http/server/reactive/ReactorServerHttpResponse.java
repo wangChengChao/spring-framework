@@ -42,83 +42,80 @@ import org.springframework.util.Assert;
  * @author Rossen Stoyanchev
  * @since 5.0
  */
-class ReactorServerHttpResponse extends AbstractServerHttpResponse implements ZeroCopyHttpOutputMessage {
+class ReactorServerHttpResponse extends AbstractServerHttpResponse
+    implements ZeroCopyHttpOutputMessage {
 
-	private final HttpServerResponse response;
+  private final HttpServerResponse response;
 
+  public ReactorServerHttpResponse(HttpServerResponse response, DataBufferFactory bufferFactory) {
+    super(bufferFactory, new HttpHeaders(new NettyHeadersAdapter(response.responseHeaders())));
+    Assert.notNull(response, "HttpServerResponse must not be null");
+    this.response = response;
+  }
 
-	public ReactorServerHttpResponse(HttpServerResponse response, DataBufferFactory bufferFactory) {
-		super(bufferFactory, new HttpHeaders(new NettyHeadersAdapter(response.responseHeaders())));
-		Assert.notNull(response, "HttpServerResponse must not be null");
-		this.response = response;
-	}
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T> T getNativeResponse() {
+    return (T) this.response;
+  }
 
+  @Override
+  public HttpStatus getStatusCode() {
+    HttpStatus httpStatus = super.getStatusCode();
+    return (httpStatus != null ? httpStatus : HttpStatus.resolve(this.response.status().code()));
+  }
 
-	@SuppressWarnings("unchecked")
-	@Override
-	public <T> T getNativeResponse() {
-		return (T) this.response;
-	}
+  @Override
+  protected void applyStatusCode() {
+    Integer statusCode = getStatusCodeValue();
+    if (statusCode != null) {
+      this.response.status(statusCode);
+    }
+  }
 
-	@Override
-	public HttpStatus getStatusCode() {
-		HttpStatus httpStatus = super.getStatusCode();
-		return (httpStatus != null ? httpStatus : HttpStatus.resolve(this.response.status().code()));
-	}
+  @Override
+  protected Mono<Void> writeWithInternal(Publisher<? extends DataBuffer> publisher) {
+    return this.response.send(toByteBufs(publisher)).then();
+  }
 
+  @Override
+  protected Mono<Void> writeAndFlushWithInternal(
+      Publisher<? extends Publisher<? extends DataBuffer>> publisher) {
+    return this.response.sendGroups(Flux.from(publisher).map(this::toByteBufs)).then();
+  }
 
-	@Override
-	protected void applyStatusCode() {
-		Integer statusCode = getStatusCodeValue();
-		if (statusCode != null) {
-			this.response.status(statusCode);
-		}
-	}
+  @Override
+  protected void applyHeaders() {}
 
-	@Override
-	protected Mono<Void> writeWithInternal(Publisher<? extends DataBuffer> publisher) {
-		return this.response.send(toByteBufs(publisher)).then();
-	}
+  @Override
+  protected void applyCookies() {
+    for (String name : getCookies().keySet()) {
+      for (ResponseCookie httpCookie : getCookies().get(name)) {
+        Cookie cookie = new DefaultCookie(name, httpCookie.getValue());
+        if (!httpCookie.getMaxAge().isNegative()) {
+          cookie.setMaxAge(httpCookie.getMaxAge().getSeconds());
+        }
+        if (httpCookie.getDomain() != null) {
+          cookie.setDomain(httpCookie.getDomain());
+        }
+        if (httpCookie.getPath() != null) {
+          cookie.setPath(httpCookie.getPath());
+        }
+        cookie.setSecure(httpCookie.isSecure());
+        cookie.setHttpOnly(httpCookie.isHttpOnly());
+        this.response.addCookie(cookie);
+      }
+    }
+  }
 
-	@Override
-	protected Mono<Void> writeAndFlushWithInternal(Publisher<? extends Publisher<? extends DataBuffer>> publisher) {
-		return this.response.sendGroups(Flux.from(publisher).map(this::toByteBufs)).then();
-	}
+  @Override
+  public Mono<Void> writeWith(Path file, long position, long count) {
+    return doCommit(() -> this.response.sendFile(file, position, count).then());
+  }
 
-	@Override
-	protected void applyHeaders() {
-	}
-
-	@Override
-	protected void applyCookies() {
-		for (String name : getCookies().keySet()) {
-			for (ResponseCookie httpCookie : getCookies().get(name)) {
-				Cookie cookie = new DefaultCookie(name, httpCookie.getValue());
-				if (!httpCookie.getMaxAge().isNegative()) {
-					cookie.setMaxAge(httpCookie.getMaxAge().getSeconds());
-				}
-				if (httpCookie.getDomain() != null) {
-					cookie.setDomain(httpCookie.getDomain());
-				}
-				if (httpCookie.getPath() != null) {
-					cookie.setPath(httpCookie.getPath());
-				}
-				cookie.setSecure(httpCookie.isSecure());
-				cookie.setHttpOnly(httpCookie.isHttpOnly());
-				this.response.addCookie(cookie);
-			}
-		}
-	}
-
-	@Override
-	public Mono<Void> writeWith(Path file, long position, long count) {
-		return doCommit(() -> this.response.sendFile(file, position, count).then());
-	}
-
-	private Publisher<ByteBuf> toByteBufs(Publisher<? extends DataBuffer> dataBuffers) {
-		return dataBuffers instanceof Mono ?
-				Mono.from(dataBuffers).map(NettyDataBufferFactory::toByteBuf) :
-				Flux.from(dataBuffers).map(NettyDataBufferFactory::toByteBuf);
-	}
-
+  private Publisher<ByteBuf> toByteBufs(Publisher<? extends DataBuffer> dataBuffers) {
+    return dataBuffers instanceof Mono
+        ? Mono.from(dataBuffers).map(NettyDataBufferFactory::toByteBuf)
+        : Flux.from(dataBuffers).map(NettyDataBufferFactory::toByteBuf);
+  }
 }

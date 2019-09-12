@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="http://www.springframework.org/schema/beans
 		https://www.springframework.org/schema/beans/spring-beans-3.1.xsd"
 		default-merge="false">
 
-	<bean id="abstractTestBean" class="org.springframework.tests.sample.beans.TestBean" abstract="true">
+	<bean
+			id="abstractTestBean"
+			class="org.springframework.tests.sample.beans.TestBean"
+			abstract="true">
 		<property name="someList">
 			<list>
 				<value>alpha</value>
@@ -14,7 +17,9 @@
 		</property>
 	</bean>
 
-	<bean id="topLevelConcreteTestBean" parent="abstractTestBean">
+	<bean
+			id="topLevelConcreteTestBean"
+			parent="abstractTestBean">
 		<property name="someList">
 			<list>
 				<value>charlie</value>
@@ -24,7 +29,9 @@
 	</bean>
 
 	<beans default-merge="true">
-		<bean id="firstLevelNestedTestBean" parent="topLevelConcreteTestBean">
+		<bean
+				id="firstLevelNestedTestBean"
+				parent="topLevelConcreteTestBean">
 			<property name="someList">
 				<list>
 					<value>echo</value>
@@ -34,7 +41,9 @@
 		</bean>
 
 		<beans>
-			<bean id="secondLevelNestedTestBean" parent="firstLevelNestedTestBean">
+			<bean
+					id="secondLevelNestedTestBean"
+					parent="firstLevelNestedTestBean">
 				<property name="someList">
 					<list>
 						<value>golf</value>

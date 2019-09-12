@@ -13,21 +13,21 @@
 		<!-- Explicit testing the whitespace body variant here -->
 	</aop:aspectj-autoproxy>
 
-	<bean class="org.springframework.aop.support.NameMatchMethodPointcutAdvisor" >
-		<property name="advice" ref="multiplyReturnValueInterceptor" />
-		<property name="mappedName" value="getAge" />
+	<bean class="org.springframework.aop.support.NameMatchMethodPointcutAdvisor">
+		<property name="advice" ref="multiplyReturnValueInterceptor"/>
+		<property name="mappedName" value="getAge"/>
 	</bean>
 
 	<bean id="multiplyReturnValueInterceptor"
-			class="org.springframework.aop.aspectj.autoproxy.benchmark.MultiplyReturnValueInterceptor" >
-		<property name="multiple" value="2" />
+			class="org.springframework.aop.aspectj.autoproxy.benchmark.MultiplyReturnValueInterceptor">
+		<property name="multiple" value="2"/>
 	</bean>
 
 	<bean class="org.springframework.aop.aspectj.autoproxy.benchmark.TraceBeforeAdvice"
-			factory-method="advisor" />
+			factory-method="advisor"/>
 
 	<bean class="org.springframework.aop.aspectj.autoproxy.benchmark.TraceAfterReturningAdvice"
-			factory-method="advisor" />
+			factory-method="advisor"/>
 
 	<bean class="org.springframework.aop.aspectj.autoproxy.benchmark.TraceAspect"/>
 

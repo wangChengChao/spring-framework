@@ -27,8 +27,8 @@ import org.springframework.tests.sample.beans.Pet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests that verify support for configuration classes in
- * the Spring TestContext Framework.
+ * Integration tests that verify support for configuration classes in the Spring TestContext
+ * Framework.
  *
  * <p>Configuration will be loaded from {@link DefaultConfigClassesBaseTests.ContextConfiguration}
  * and {@link DefaultConfigClassesInheritedTests.ContextConfiguration}.
@@ -39,24 +39,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ContextConfiguration
 public class DefaultConfigClassesInheritedTests extends DefaultConfigClassesBaseTests {
 
-	@Configuration
-	static class ContextConfiguration {
+  @Configuration
+  static class ContextConfiguration {
 
-		@Bean
-		public Pet pet() {
-			return new Pet("Fido");
-		}
-	}
+    @Bean
+    public Pet pet() {
+      return new Pet("Fido");
+    }
+  }
 
+  @Autowired private Pet pet;
 
-	@Autowired
-	private Pet pet;
-
-
-	@Test
-	public void verifyPetSetFromExtendedContextConfig() {
-		assertThat(this.pet).as("The pet should have been autowired.").isNotNull();
-		assertThat(this.pet.getName()).isEqualTo("Fido");
-	}
-
+  @Test
+  public void verifyPetSetFromExtendedContextConfig() {
+    assertThat(this.pet).as("The pet should have been autowired.").isNotNull();
+    assertThat(this.pet.getName()).isEqualTo("Fido");
+  }
 }

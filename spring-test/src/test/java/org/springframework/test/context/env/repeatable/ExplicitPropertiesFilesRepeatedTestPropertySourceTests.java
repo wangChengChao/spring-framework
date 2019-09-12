@@ -21,11 +21,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.context.TestPropertySource;
 
 /**
- * Integration tests for {@link TestPropertySource @TestPropertySource} as a
- * repeatable annotation.
+ * Integration tests for {@link TestPropertySource @TestPropertySource} as a repeatable annotation.
  *
- * <p>Same as {@link ReversedExplicitPropertiesFilesRepeatedTestPropertySourceTests},
- * but with the order of the properties files reversed.
+ * <p>Same as {@link ReversedExplicitPropertiesFilesRepeatedTestPropertySourceTests}, but with the
+ * order of the properties files reversed.
  *
  * @author Anatoliy Korovin
  * @author Sam Brannen
@@ -33,13 +32,13 @@ import org.springframework.test.context.TestPropertySource;
  */
 @TestPropertySource("first.properties")
 @TestPropertySource("second.properties")
-class ExplicitPropertiesFilesRepeatedTestPropertySourceTests extends AbstractRepeatableTestPropertySourceTests {
+class ExplicitPropertiesFilesRepeatedTestPropertySourceTests
+    extends AbstractRepeatableTestPropertySourceTests {
 
-	@Test
-	void test() {
-		assertEnvironmentValue("alpha", "omega");
-		assertEnvironmentValue("first", "1111");
-		assertEnvironmentValue("second", "2222");
-	}
-
+  @Test
+  void test() {
+    assertEnvironmentValue("alpha", "omega");
+    assertEnvironmentValue("first", "1111");
+    assertEnvironmentValue("second", "2222");
+  }
 }

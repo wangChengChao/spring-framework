@@ -36,127 +36,125 @@ import org.springframework.lang.Nullable;
  */
 final class SimpleMethodMetadataReadingVisitor extends MethodVisitor {
 
-	@Nullable
-	private final ClassLoader classLoader;
+  @Nullable private final ClassLoader classLoader;
 
-	private final String declaringClassName;
+  private final String declaringClassName;
 
-	private final int access;
+  private final int access;
 
-	private final String name;
+  private final String name;
 
-	private final String descriptor;
+  private final String descriptor;
 
-	private final List<MergedAnnotation<?>> annotations = new ArrayList<>(4);
+  private final List<MergedAnnotation<?>> annotations = new ArrayList<>(4);
 
-	private final Consumer<SimpleMethodMetadata> consumer;
+  private final Consumer<SimpleMethodMetadata> consumer;
 
-	@Nullable
-	private Source source;
+  @Nullable private Source source;
 
+  SimpleMethodMetadataReadingVisitor(
+      @Nullable ClassLoader classLoader,
+      String declaringClassName,
+      int access,
+      String name,
+      String descriptor,
+      Consumer<SimpleMethodMetadata> consumer) {
 
-	SimpleMethodMetadataReadingVisitor(@Nullable ClassLoader classLoader, String declaringClassName,
-			int access, String name, String descriptor, Consumer<SimpleMethodMetadata> consumer) {
+    super(SpringAsmInfo.ASM_VERSION);
+    this.classLoader = classLoader;
+    this.declaringClassName = declaringClassName;
+    this.access = access;
+    this.name = name;
+    this.descriptor = descriptor;
+    this.consumer = consumer;
+  }
 
-		super(SpringAsmInfo.ASM_VERSION);
-		this.classLoader = classLoader;
-		this.declaringClassName = declaringClassName;
-		this.access = access;
-		this.name = name;
-		this.descriptor = descriptor;
-		this.consumer = consumer;
-	}
+  @Override
+  @Nullable
+  public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+    return MergedAnnotationReadingVisitor.get(
+        this.classLoader, this::getSource, descriptor, visible, this.annotations::add);
+  }
 
+  @Override
+  public void visitEnd() {
+    if (!this.annotations.isEmpty()) {
+      String returnTypeName = Type.getReturnType(this.descriptor).getClassName();
+      MergedAnnotations annotations = MergedAnnotations.of(this.annotations);
+      SimpleMethodMetadata metadata =
+          new SimpleMethodMetadata(
+              this.name, this.access, this.declaringClassName, returnTypeName, annotations);
+      this.consumer.accept(metadata);
+    }
+  }
 
-	@Override
-	@Nullable
-	public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-		return MergedAnnotationReadingVisitor.get(this.classLoader, this::getSource,
-				descriptor, visible, this.annotations::add);
-	}
+  private Object getSource() {
+    Source source = this.source;
+    if (source == null) {
+      source = new Source(this.declaringClassName, this.name, this.descriptor);
+      this.source = source;
+    }
+    return source;
+  }
 
-	@Override
-	public void visitEnd() {
-		if (!this.annotations.isEmpty()) {
-			String returnTypeName = Type.getReturnType(this.descriptor).getClassName();
-			MergedAnnotations annotations = MergedAnnotations.of(this.annotations);
-			SimpleMethodMetadata metadata = new SimpleMethodMetadata(this.name,
-					this.access, this.declaringClassName, returnTypeName, annotations);
-			this.consumer.accept(metadata);
-		}
-	}
+  /** {@link MergedAnnotation} source. */
+  static final class Source {
 
-	private Object getSource() {
-		Source source = this.source;
-		if (source == null) {
-			source = new Source(this.declaringClassName, this.name, this.descriptor);
-			this.source = source;
-		}
-		return source;
-	}
+    private final String declaringClassName;
 
+    private final String name;
 
-	/**
-	 * {@link MergedAnnotation} source.
-	 */
-	static final class Source {
+    private final String descriptor;
 
-		private final String declaringClassName;
+    @Nullable private String toStringValue;
 
-		private final String name;
+    Source(String declaringClassName, String name, String descriptor) {
+      this.declaringClassName = declaringClassName;
+      this.name = name;
+      this.descriptor = descriptor;
+    }
 
-		private final String descriptor;
+    @Override
+    public int hashCode() {
+      int result = 1;
+      result = 31 * result + this.declaringClassName.hashCode();
+      result = 31 * result + this.name.hashCode();
+      result = 31 * result + this.descriptor.hashCode();
+      return result;
+    }
 
-		@Nullable
-		private String toStringValue;
+    @Override
+    public boolean equals(@Nullable Object other) {
+      if (this == other) {
+        return true;
+      }
+      if (other == null || getClass() != other.getClass()) {
+        return false;
+      }
+      Source otherSource = (Source) other;
+      return (this.declaringClassName.equals(otherSource.declaringClassName)
+          && this.name.equals(otherSource.name)
+          && this.descriptor.equals(otherSource.descriptor));
+    }
 
-		Source(String declaringClassName, String name, String descriptor) {
-			this.declaringClassName = declaringClassName;
-			this.name = name;
-			this.descriptor = descriptor;
-		}
-
-		@Override
-		public int hashCode() {
-			int result = 1;
-			result = 31 * result + this.declaringClassName.hashCode();
-			result = 31 * result + this.name.hashCode();
-			result = 31 * result + this.descriptor.hashCode();
-			return result;
-		}
-
-		@Override
-		public boolean equals(@Nullable Object other) {
-			if (this == other) {
-				return true;
-			}
-			if (other == null || getClass() != other.getClass()) {
-				return false;
-			}
-			Source otherSource = (Source) other;
-			return (this.declaringClassName.equals(otherSource.declaringClassName) &&
-					this.name.equals(otherSource.name) && this.descriptor.equals(otherSource.descriptor));
-		}
-
-		@Override
-		public String toString() {
-			String value = this.toStringValue;
-			if (value == null) {
-				StringBuilder builder = new StringBuilder();
-				builder.append(this.declaringClassName);
-				builder.append(".");
-				builder.append(this.name);
-				Type[] argumentTypes = Type.getArgumentTypes(this.descriptor);
-				builder.append("(");
-				for (Type type : argumentTypes) {
-					builder.append(type.getClassName());
-				}
-				builder.append(")");
-				value = builder.toString();
-				this.toStringValue = value;
-			}
-			return value;
-		}
-	}
-
+    @Override
+    public String toString() {
+      String value = this.toStringValue;
+      if (value == null) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(this.declaringClassName);
+        builder.append(".");
+        builder.append(this.name);
+        Type[] argumentTypes = Type.getArgumentTypes(this.descriptor);
+        builder.append("(");
+        for (Type type : argumentTypes) {
+          builder.append(type.getClassName());
+        }
+        builder.append(")");
+        value = builder.toString();
+        this.toStringValue = value;
+      }
+      return value;
+    }
+  }
 }

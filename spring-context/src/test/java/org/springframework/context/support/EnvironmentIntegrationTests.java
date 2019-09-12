@@ -26,30 +26,28 @@ import org.springframework.core.env.Environment;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
 /**
- * Tests covering the integration of the {@link Environment} into
- * {@link ApplicationContext} hierarchies.
+ * Tests covering the integration of the {@link Environment} into {@link ApplicationContext}
+ * hierarchies.
  *
  * @author Chris Beams
  * @see org.springframework.core.env.EnvironmentSystemIntegrationTests
  */
 public class EnvironmentIntegrationTests {
 
-	@Test
-	public void repro() {
-		ConfigurableApplicationContext parent = new GenericApplicationContext();
-		parent.refresh();
+  @Test
+  public void repro() {
+    ConfigurableApplicationContext parent = new GenericApplicationContext();
+    parent.refresh();
 
-		AnnotationConfigApplicationContext child = new AnnotationConfigApplicationContext();
-		child.setParent(parent);
-		child.refresh();
+    AnnotationConfigApplicationContext child = new AnnotationConfigApplicationContext();
+    child.setParent(parent);
+    child.refresh();
 
-		ConfigurableEnvironment env = child.getBean(ConfigurableEnvironment.class);
-		assertThat(env).isSameAs(child.getEnvironment());
+    ConfigurableEnvironment env = child.getBean(ConfigurableEnvironment.class);
+    assertThat(env).isSameAs(child.getEnvironment());
 
-		child.close();
-		parent.close();
-	}
-
+    child.close();
+    parent.close();
+  }
 }

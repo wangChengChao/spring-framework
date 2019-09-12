@@ -402,7 +402,7 @@ class CoRouterFunctionDsl(private val init: (CoRouterFunctionDsl.() -> Unit)) {
 	 * @see RouterFunctions.route
 	 */
 	operator fun String.invoke(f: suspend (ServerRequest) -> ServerResponse) {
-		builder.add(RouterFunctions.route(RequestPredicates.path(this),  asHandlerFunction(f)))
+		builder.add(RouterFunctions.route(RequestPredicates.path(this), asHandlerFunction(f)))
 	}
 
 	/**
@@ -512,5 +512,5 @@ class CoRouterFunctionDsl(private val init: (CoRouterFunctionDsl.() -> Unit)) {
 /**
  * Equivalent to [RouterFunction.and].
  */
-operator fun <T: ServerResponse> RouterFunction<T>.plus(other: RouterFunction<T>) =
+operator fun <T : ServerResponse> RouterFunction<T>.plus(other: RouterFunction<T>) =
 		this.and(other)

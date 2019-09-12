@@ -33,112 +33,109 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
  */
 class SimpleAsyncTaskExecutorTests {
 
-	@Test
-	void cannotExecuteWhenConcurrencyIsSwitchedOff() throws Exception {
-		SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor();
-		executor.setConcurrencyLimit(ConcurrencyThrottleSupport.NO_CONCURRENCY);
-		assertThat(executor.isThrottleActive()).isTrue();
-		assertThatIllegalStateException().isThrownBy(() ->
-				executor.execute(new NoOpRunnable()));
-	}
+  @Test
+  void cannotExecuteWhenConcurrencyIsSwitchedOff() throws Exception {
+    SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor();
+    executor.setConcurrencyLimit(ConcurrencyThrottleSupport.NO_CONCURRENCY);
+    assertThat(executor.isThrottleActive()).isTrue();
+    assertThatIllegalStateException().isThrownBy(() -> executor.execute(new NoOpRunnable()));
+  }
 
-	@Test
-	void throttleIsNotActiveByDefault() throws Exception {
-		SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor();
-		assertThat(executor.isThrottleActive()).as("Concurrency throttle must not default to being active (on)").isFalse();
-	}
+  @Test
+  void throttleIsNotActiveByDefault() throws Exception {
+    SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor();
+    assertThat(executor.isThrottleActive())
+        .as("Concurrency throttle must not default to being active (on)")
+        .isFalse();
+  }
 
-	@Test
-	void threadNameGetsSetCorrectly() throws Exception {
-		final String customPrefix = "chankPop#";
-		final Object monitor = new Object();
-		SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor(customPrefix);
-		ThreadNameHarvester task = new ThreadNameHarvester(monitor);
-		executeAndWait(executor, task, monitor);
-		assertThat(task.getThreadName()).startsWith(customPrefix);
-	}
+  @Test
+  void threadNameGetsSetCorrectly() throws Exception {
+    final String customPrefix = "chankPop#";
+    final Object monitor = new Object();
+    SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor(customPrefix);
+    ThreadNameHarvester task = new ThreadNameHarvester(monitor);
+    executeAndWait(executor, task, monitor);
+    assertThat(task.getThreadName()).startsWith(customPrefix);
+  }
 
-	@Test
-	void threadFactoryOverridesDefaults() throws Exception {
-		final Object monitor = new Object();
-		SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor(new ThreadFactory() {
-			@Override
-			public Thread newThread(Runnable r) {
-				return new Thread(r, "test");
-			}
-		});
-		ThreadNameHarvester task = new ThreadNameHarvester(monitor);
-		executeAndWait(executor, task, monitor);
-		assertThat(task.getThreadName()).isEqualTo("test");
-	}
+  @Test
+  void threadFactoryOverridesDefaults() throws Exception {
+    final Object monitor = new Object();
+    SimpleAsyncTaskExecutor executor =
+        new SimpleAsyncTaskExecutor(
+            new ThreadFactory() {
+              @Override
+              public Thread newThread(Runnable r) {
+                return new Thread(r, "test");
+              }
+            });
+    ThreadNameHarvester task = new ThreadNameHarvester(monitor);
+    executeAndWait(executor, task, monitor);
+    assertThat(task.getThreadName()).isEqualTo("test");
+  }
 
-	@Test
-	void throwsExceptionWhenSuppliedWithNullRunnable() throws Exception {
-		assertThatIllegalArgumentException().isThrownBy(() ->
-				new SimpleAsyncTaskExecutor().execute(null));
-	}
+  @Test
+  void throwsExceptionWhenSuppliedWithNullRunnable() throws Exception {
+    assertThatIllegalArgumentException()
+        .isThrownBy(() -> new SimpleAsyncTaskExecutor().execute(null));
+  }
 
-	private void executeAndWait(SimpleAsyncTaskExecutor executor, Runnable task, Object monitor) {
-		synchronized (monitor) {
-			executor.execute(task);
-			try {
-				monitor.wait();
-			}
-			catch (InterruptedException ignored) {
-			}
-		}
-	}
+  private void executeAndWait(SimpleAsyncTaskExecutor executor, Runnable task, Object monitor) {
+    synchronized (monitor) {
+      executor.execute(task);
+      try {
+        monitor.wait();
+      } catch (InterruptedException ignored) {
+      }
+    }
+  }
 
+  private static final class NoOpRunnable implements Runnable {
 
-	private static final class NoOpRunnable implements Runnable {
+    @Override
+    public void run() {
+      // no-op
+    }
+  }
 
-		@Override
-		public void run() {
-			// no-op
-		}
-	}
+  private abstract static class AbstractNotifyingRunnable implements Runnable {
 
+    private final Object monitor;
 
-	private static abstract class AbstractNotifyingRunnable implements Runnable {
+    protected AbstractNotifyingRunnable(Object monitor) {
+      this.monitor = monitor;
+    }
 
-		private final Object monitor;
+    @Override
+    public final void run() {
+      synchronized (this.monitor) {
+        try {
+          doRun();
+        } finally {
+          this.monitor.notifyAll();
+        }
+      }
+    }
 
-		protected AbstractNotifyingRunnable(Object monitor) {
-			this.monitor = monitor;
-		}
+    protected abstract void doRun();
+  }
 
-		@Override
-		public final void run() {
-			synchronized (this.monitor) {
-				try {
-					doRun();
-				}
-				finally {
-					this.monitor.notifyAll();
-				}
-			}
-		}
+  private static final class ThreadNameHarvester extends AbstractNotifyingRunnable {
 
-		protected abstract void doRun();
-	}
+    private String threadName;
 
+    protected ThreadNameHarvester(Object monitor) {
+      super(monitor);
+    }
 
-	private static final class ThreadNameHarvester extends AbstractNotifyingRunnable {
+    public String getThreadName() {
+      return this.threadName;
+    }
 
-		private String threadName;
-
-		protected ThreadNameHarvester(Object monitor) {
-			super(monitor);
-		}
-
-		public String getThreadName() {
-			return this.threadName;
-		}
-
-		@Override
-		protected void doRun() {
-			this.threadName = Thread.currentThread().getName();
-		}
-	}
-
+    @Override
+    protected void doRun() {
+      this.threadName = Thread.currentThread().getName();
+    }
+  }
 }

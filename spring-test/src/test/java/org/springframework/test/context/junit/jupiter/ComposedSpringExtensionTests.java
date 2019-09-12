@@ -31,15 +31,15 @@ import org.springframework.test.context.junit.jupiter.comics.Person;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests which demonstrate the composability of annotations from
- * JUnit Jupiter and the Spring TestContext Framework.
+ * Integration tests which demonstrate the composability of annotations from JUnit Jupiter and the
+ * Spring TestContext Framework.
  *
- * <p>Note that {@link SpringJUnitConfig @SpringJUnitConfig} is meta-annotated
- * with JUnit Jupiter's {@link ExtendWith @ExtendWith} <b>and</b> Spring's
- * {@link ContextConfiguration @ContextConfiguration}.
+ * <p>Note that {@link SpringJUnitConfig @SpringJUnitConfig} is meta-annotated with JUnit Jupiter's
+ * {@link ExtendWith @ExtendWith} <b>and</b> Spring's {@link
+ * ContextConfiguration @ContextConfiguration}.
  *
- * <p>To run these tests in an IDE that does not have built-in support for the JUnit
- * Platform, simply run {@link SpringJUnitJupiterTestSuite} as a JUnit 4 test.
+ * <p>To run these tests in an IDE that does not have built-in support for the JUnit Platform,
+ * simply run {@link SpringJUnitJupiterTestSuite} as a JUnit 4 test.
  *
  * @author Sam Brannen
  * @since 5.0
@@ -51,25 +51,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("@SpringJUnitConfig Tests")
 class ComposedSpringExtensionTests {
 
-	@Autowired
-	Person dilbert;
+  @Autowired Person dilbert;
 
-	@Autowired
-	List<Person> people;
+  @Autowired List<Person> people;
 
-	@Test
-	@DisplayName("ApplicationContext injected into method")
-	void applicationContextInjected(ApplicationContext applicationContext) {
-		assertThat(applicationContext).as("ApplicationContext should have been injected into method by Spring").isNotNull();
-		assertThat(applicationContext.getBean("dilbert", Person.class)).isEqualTo(dilbert);
-	}
+  @Test
+  @DisplayName("ApplicationContext injected into method")
+  void applicationContextInjected(ApplicationContext applicationContext) {
+    assertThat(applicationContext)
+        .as("ApplicationContext should have been injected into method by Spring")
+        .isNotNull();
+    assertThat(applicationContext.getBean("dilbert", Person.class)).isEqualTo(dilbert);
+  }
 
-	@Test
-	@DisplayName("Spring @Beans injected into fields")
-	void springBeansInjected() {
-		assertThat(dilbert).as("Person should have been @Autowired by Spring").isNotNull();
-		assertThat(dilbert.getName()).as("Person's name").isEqualTo("Dilbert");
-		assertThat(people).as("Number of Person objects in context").hasSize(2);
-	}
-
+  @Test
+  @DisplayName("Spring @Beans injected into fields")
+  void springBeansInjected() {
+    assertThat(dilbert).as("Person should have been @Autowired by Spring").isNotNull();
+    assertThat(dilbert.getName()).as("Person's name").isEqualTo("Dilbert");
+    assertThat(people).as("Number of Person objects in context").hasSize(2);
+  }
 }

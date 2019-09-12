@@ -7,7 +7,8 @@
 
 	<context:component-scan base-package="example.scannable"
 			use-default-filters="false" scoped-proxy="no">
-		<context:include-filter type="assignable" expression="example.scannable.ScopedProxyTestBean"/>
+		<context:include-filter type="assignable"
+				expression="example.scannable.ScopedProxyTestBean"/>
 	</context:component-scan>
 
 </beans>

@@ -39,140 +39,139 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class ModelAndViewMethodReturnValueHandlerTests {
 
-	private ModelAndViewMethodReturnValueHandler handler;
+  private ModelAndViewMethodReturnValueHandler handler;
 
-	private ModelAndViewContainer mavContainer;
+  private ModelAndViewContainer mavContainer;
 
-	private ServletWebRequest webRequest;
+  private ServletWebRequest webRequest;
 
-	private MethodParameter returnParamModelAndView;
+  private MethodParameter returnParamModelAndView;
 
+  @BeforeEach
+  public void setup() throws Exception {
+    this.handler = new ModelAndViewMethodReturnValueHandler();
+    this.mavContainer = new ModelAndViewContainer();
+    this.webRequest = new ServletWebRequest(new MockHttpServletRequest());
+    this.returnParamModelAndView = getReturnValueParam("modelAndView");
+  }
 
-	@BeforeEach
-	public void setup() throws Exception {
-		this.handler = new ModelAndViewMethodReturnValueHandler();
-		this.mavContainer = new ModelAndViewContainer();
-		this.webRequest = new ServletWebRequest(new MockHttpServletRequest());
-		this.returnParamModelAndView = getReturnValueParam("modelAndView");
-	}
+  @Test
+  public void supportsReturnType() throws Exception {
+    assertThat(handler.supportsReturnType(returnParamModelAndView)).isTrue();
+    assertThat(handler.supportsReturnType(getReturnValueParam("viewName"))).isFalse();
+  }
 
+  @Test
+  public void handleViewReference() throws Exception {
+    ModelAndView mav = new ModelAndView("viewName", "attrName", "attrValue");
+    handler.handleReturnValue(mav, returnParamModelAndView, mavContainer, webRequest);
 
-	@Test
-	public void supportsReturnType() throws Exception {
-		assertThat(handler.supportsReturnType(returnParamModelAndView)).isTrue();
-		assertThat(handler.supportsReturnType(getReturnValueParam("viewName"))).isFalse();
-	}
+    assertThat(mavContainer.getView()).isEqualTo("viewName");
+    assertThat(mavContainer.getModel().get("attrName")).isEqualTo("attrValue");
+  }
 
-	@Test
-	public void handleViewReference() throws Exception {
-		ModelAndView mav = new ModelAndView("viewName", "attrName", "attrValue");
-		handler.handleReturnValue(mav, returnParamModelAndView, mavContainer, webRequest);
+  @Test
+  public void handleViewInstance() throws Exception {
+    ModelAndView mav = new ModelAndView(new RedirectView(), "attrName", "attrValue");
+    handler.handleReturnValue(mav, returnParamModelAndView, mavContainer, webRequest);
 
-		assertThat(mavContainer.getView()).isEqualTo("viewName");
-		assertThat(mavContainer.getModel().get("attrName")).isEqualTo("attrValue");
-	}
+    assertThat(mavContainer.getView().getClass()).isEqualTo(RedirectView.class);
+    assertThat(mavContainer.getModel().get("attrName")).isEqualTo("attrValue");
+  }
 
-	@Test
-	public void handleViewInstance() throws Exception {
-		ModelAndView mav = new ModelAndView(new RedirectView(), "attrName", "attrValue");
-		handler.handleReturnValue(mav, returnParamModelAndView, mavContainer, webRequest);
+  @Test
+  public void handleNull() throws Exception {
+    handler.handleReturnValue(null, returnParamModelAndView, mavContainer, webRequest);
 
-		assertThat(mavContainer.getView().getClass()).isEqualTo(RedirectView.class);
-		assertThat(mavContainer.getModel().get("attrName")).isEqualTo("attrValue");
-	}
+    assertThat(mavContainer.isRequestHandled()).isTrue();
+  }
 
-	@Test
-	public void handleNull() throws Exception {
-		handler.handleReturnValue(null, returnParamModelAndView, mavContainer, webRequest);
+  @Test
+  public void handleRedirectAttributesWithViewReference() throws Exception {
+    RedirectAttributesModelMap redirectAttributes = new RedirectAttributesModelMap();
+    mavContainer.setRedirectModel(redirectAttributes);
 
-		assertThat(mavContainer.isRequestHandled()).isTrue();
-	}
+    ModelAndView mav = new ModelAndView(new RedirectView(), "attrName", "attrValue");
+    handler.handleReturnValue(mav, returnParamModelAndView, mavContainer, webRequest);
 
-	@Test
-	public void handleRedirectAttributesWithViewReference() throws Exception {
-		RedirectAttributesModelMap redirectAttributes  = new RedirectAttributesModelMap();
-		mavContainer.setRedirectModel(redirectAttributes);
+    assertThat(mavContainer.getView().getClass()).isEqualTo(RedirectView.class);
+    assertThat(mavContainer.getModel().get("attrName")).isEqualTo("attrValue");
+    assertThat(mavContainer.getModel())
+        .as("RedirectAttributes should be used if controller redirects")
+        .isSameAs(redirectAttributes);
+  }
 
-		ModelAndView mav = new ModelAndView(new RedirectView(), "attrName", "attrValue");
-		handler.handleReturnValue(mav, returnParamModelAndView, mavContainer, webRequest);
+  @Test
+  public void handleRedirectAttributesWithViewName() throws Exception {
+    RedirectAttributesModelMap redirectAttributes = new RedirectAttributesModelMap();
+    mavContainer.setRedirectModel(redirectAttributes);
 
-		assertThat(mavContainer.getView().getClass()).isEqualTo(RedirectView.class);
-		assertThat(mavContainer.getModel().get("attrName")).isEqualTo("attrValue");
-		assertThat(mavContainer.getModel()).as("RedirectAttributes should be used if controller redirects").isSameAs(redirectAttributes);
-	}
+    ModelAndView mav = new ModelAndView("redirect:viewName", "attrName", "attrValue");
+    handler.handleReturnValue(mav, returnParamModelAndView, mavContainer, webRequest);
 
-	@Test
-	public void handleRedirectAttributesWithViewName() throws Exception {
-		RedirectAttributesModelMap redirectAttributes  = new RedirectAttributesModelMap();
-		mavContainer.setRedirectModel(redirectAttributes);
+    ModelMap model = mavContainer.getModel();
+    assertThat(mavContainer.getViewName()).isEqualTo("redirect:viewName");
+    assertThat(model.get("attrName")).isEqualTo("attrValue");
+    assertThat(model).isSameAs(redirectAttributes);
+  }
 
-		ModelAndView mav = new ModelAndView("redirect:viewName", "attrName", "attrValue");
-		handler.handleReturnValue(mav, returnParamModelAndView, mavContainer, webRequest);
+  @Test
+  public void handleRedirectAttributesWithCustomPrefix() throws Exception {
+    RedirectAttributesModelMap redirectAttributes = new RedirectAttributesModelMap();
+    mavContainer.setRedirectModel(redirectAttributes);
 
-		ModelMap model = mavContainer.getModel();
-		assertThat(mavContainer.getViewName()).isEqualTo("redirect:viewName");
-		assertThat(model.get("attrName")).isEqualTo("attrValue");
-		assertThat(model).isSameAs(redirectAttributes);
-	}
+    ModelAndView mav = new ModelAndView("myRedirect:viewName", "attrName", "attrValue");
+    handler.setRedirectPatterns("myRedirect:*");
+    handler.handleReturnValue(mav, returnParamModelAndView, mavContainer, webRequest);
 
-	@Test
-	public void handleRedirectAttributesWithCustomPrefix() throws Exception {
-		RedirectAttributesModelMap redirectAttributes  = new RedirectAttributesModelMap();
-		mavContainer.setRedirectModel(redirectAttributes);
+    ModelMap model = mavContainer.getModel();
+    assertThat(mavContainer.getViewName()).isEqualTo("myRedirect:viewName");
+    assertThat(model.get("attrName")).isEqualTo("attrValue");
+    assertThat(model).isSameAs(redirectAttributes);
+  }
 
-		ModelAndView mav = new ModelAndView("myRedirect:viewName", "attrName", "attrValue");
-		handler.setRedirectPatterns("myRedirect:*");
-		handler.handleReturnValue(mav, returnParamModelAndView, mavContainer, webRequest);
+  @Test
+  public void handleRedirectAttributesWithoutRedirect() throws Exception {
+    RedirectAttributesModelMap redirectAttributes = new RedirectAttributesModelMap();
+    mavContainer.setRedirectModel(redirectAttributes);
 
-		ModelMap model = mavContainer.getModel();
-		assertThat(mavContainer.getViewName()).isEqualTo("myRedirect:viewName");
-		assertThat(model.get("attrName")).isEqualTo("attrValue");
-		assertThat(model).isSameAs(redirectAttributes);
-	}
+    ModelAndView mav = new ModelAndView();
+    handler.handleReturnValue(mav, returnParamModelAndView, mavContainer, webRequest);
 
-	@Test
-	public void handleRedirectAttributesWithoutRedirect() throws Exception {
-		RedirectAttributesModelMap redirectAttributes  = new RedirectAttributesModelMap();
-		mavContainer.setRedirectModel(redirectAttributes);
+    ModelMap model = mavContainer.getModel();
+    assertThat(mavContainer.getView()).isEqualTo(null);
+    assertThat(mavContainer.getModel().isEmpty()).isTrue();
+    assertThat(model)
+        .as("RedirectAttributes should not be used if controller doesn't redirect")
+        .isNotSameAs(redirectAttributes);
+  }
 
-		ModelAndView mav = new ModelAndView();
-		handler.handleReturnValue(mav, returnParamModelAndView, mavContainer, webRequest);
+  @Test // SPR-14045
+  public void handleRedirectWithIgnoreDefaultModel() throws Exception {
+    mavContainer.setIgnoreDefaultModelOnRedirect(true);
 
-		ModelMap model = mavContainer.getModel();
-		assertThat(mavContainer.getView()).isEqualTo(null);
-		assertThat(mavContainer.getModel().isEmpty()).isTrue();
-		assertThat(model).as("RedirectAttributes should not be used if controller doesn't redirect").isNotSameAs(redirectAttributes);
-	}
+    RedirectView redirectView = new RedirectView();
+    ModelAndView mav = new ModelAndView(redirectView, "name", "value");
+    handler.handleReturnValue(mav, returnParamModelAndView, mavContainer, webRequest);
 
-	@Test  // SPR-14045
-	public void handleRedirectWithIgnoreDefaultModel() throws Exception {
-		mavContainer.setIgnoreDefaultModelOnRedirect(true);
+    ModelMap model = mavContainer.getModel();
+    assertThat(mavContainer.getView()).isSameAs(redirectView);
+    assertThat(model.size()).isEqualTo(1);
+    assertThat(model.get("name")).isEqualTo("value");
+  }
 
-		RedirectView redirectView = new RedirectView();
-		ModelAndView mav = new ModelAndView(redirectView, "name", "value");
-		handler.handleReturnValue(mav, returnParamModelAndView, mavContainer, webRequest);
+  private MethodParameter getReturnValueParam(String methodName) throws Exception {
+    Method method = getClass().getDeclaredMethod(methodName);
+    return new MethodParameter(method, -1);
+  }
 
-		ModelMap model = mavContainer.getModel();
-		assertThat(mavContainer.getView()).isSameAs(redirectView);
-		assertThat(model.size()).isEqualTo(1);
-		assertThat(model.get("name")).isEqualTo("value");
-	}
+  @SuppressWarnings("unused")
+  ModelAndView modelAndView() {
+    return null;
+  }
 
-
-	private MethodParameter getReturnValueParam(String methodName) throws Exception {
-		Method method = getClass().getDeclaredMethod(methodName);
-		return new MethodParameter(method, -1);
-	}
-
-
-	@SuppressWarnings("unused")
-	ModelAndView modelAndView() {
-		return null;
-	}
-
-	@SuppressWarnings("unused")
-	String viewName() {
-		return null;
-	}
-
+  @SuppressWarnings("unused")
+  String viewName() {
+    return null;
+  }
 }

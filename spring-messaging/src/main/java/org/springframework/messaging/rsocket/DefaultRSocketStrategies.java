@@ -50,178 +50,178 @@ import org.springframework.util.SimpleRouteMatcher;
  */
 final class DefaultRSocketStrategies implements RSocketStrategies {
 
-	private final List<Encoder<?>> encoders;
+  private final List<Encoder<?>> encoders;
 
-	private final List<Decoder<?>> decoders;
+  private final List<Decoder<?>> decoders;
 
-	private final RouteMatcher routeMatcher;
+  private final RouteMatcher routeMatcher;
 
-	private final ReactiveAdapterRegistry adapterRegistry;
+  private final ReactiveAdapterRegistry adapterRegistry;
 
-	private final DataBufferFactory bufferFactory;
+  private final DataBufferFactory bufferFactory;
 
-	private final MetadataExtractor metadataExtractor;
+  private final MetadataExtractor metadataExtractor;
 
+  private DefaultRSocketStrategies(
+      List<Encoder<?>> encoders,
+      List<Decoder<?>> decoders,
+      RouteMatcher routeMatcher,
+      ReactiveAdapterRegistry adapterRegistry,
+      DataBufferFactory bufferFactory,
+      MetadataExtractor metadataExtractor) {
 
-	private DefaultRSocketStrategies(List<Encoder<?>> encoders, List<Decoder<?>> decoders,
-			RouteMatcher routeMatcher, ReactiveAdapterRegistry adapterRegistry,
-			DataBufferFactory bufferFactory, MetadataExtractor metadataExtractor) {
+    this.encoders = Collections.unmodifiableList(encoders);
+    this.decoders = Collections.unmodifiableList(decoders);
+    this.routeMatcher = routeMatcher;
+    this.adapterRegistry = adapterRegistry;
+    this.bufferFactory = bufferFactory;
+    this.metadataExtractor = metadataExtractor;
+  }
 
-		this.encoders = Collections.unmodifiableList(encoders);
-		this.decoders = Collections.unmodifiableList(decoders);
-		this.routeMatcher = routeMatcher;
-		this.adapterRegistry = adapterRegistry;
-		this.bufferFactory = bufferFactory;
-		this.metadataExtractor = metadataExtractor;
-	}
+  @Override
+  public List<Encoder<?>> encoders() {
+    return this.encoders;
+  }
 
+  @Override
+  public List<Decoder<?>> decoders() {
+    return this.decoders;
+  }
 
-	@Override
-	public List<Encoder<?>> encoders() {
-		return this.encoders;
-	}
+  @Override
+  public RouteMatcher routeMatcher() {
+    return this.routeMatcher;
+  }
 
-	@Override
-	public List<Decoder<?>> decoders() {
-		return this.decoders;
-	}
+  @Override
+  public ReactiveAdapterRegistry reactiveAdapterRegistry() {
+    return this.adapterRegistry;
+  }
 
-	@Override
-	public RouteMatcher routeMatcher() {
-		return this.routeMatcher;
-	}
+  @Override
+  public DataBufferFactory dataBufferFactory() {
+    return this.bufferFactory;
+  }
 
-	@Override
-	public ReactiveAdapterRegistry reactiveAdapterRegistry() {
-		return this.adapterRegistry;
-	}
+  @Override
+  public MetadataExtractor metadataExtractor() {
+    return this.metadataExtractor;
+  }
 
-	@Override
-	public DataBufferFactory dataBufferFactory() {
-		return this.bufferFactory;
-	}
+  /** Default implementation of {@link RSocketStrategies.Builder}. */
+  static class DefaultRSocketStrategiesBuilder implements RSocketStrategies.Builder {
 
-	@Override
-	public MetadataExtractor metadataExtractor() {
-		return this.metadataExtractor;
-	}
+    private final List<Encoder<?>> encoders = new ArrayList<>();
 
+    private final List<Decoder<?>> decoders = new ArrayList<>();
 
-	/**
-	 * Default implementation of {@link RSocketStrategies.Builder}.
-	 */
-	static class DefaultRSocketStrategiesBuilder implements RSocketStrategies.Builder {
+    @Nullable private RouteMatcher routeMatcher;
 
-		private final List<Encoder<?>> encoders = new ArrayList<>();
+    @Nullable
+    private ReactiveAdapterRegistry adapterRegistry = ReactiveAdapterRegistry.getSharedInstance();
 
-		private final List<Decoder<?>> decoders = new ArrayList<>();
+    @Nullable private DataBufferFactory bufferFactory;
 
-		@Nullable
-		private RouteMatcher routeMatcher;
+    @Nullable private MetadataExtractor metadataExtractor;
 
-		@Nullable
-		private ReactiveAdapterRegistry adapterRegistry = ReactiveAdapterRegistry.getSharedInstance();
+    DefaultRSocketStrategiesBuilder() {
+      this.encoders.add(CharSequenceEncoder.allMimeTypes());
+      this.encoders.add(new ByteBufferEncoder());
+      this.encoders.add(new ByteArrayEncoder());
+      this.encoders.add(new DataBufferEncoder());
 
-		@Nullable
-		private DataBufferFactory bufferFactory;
+      // Order of decoders may be significant for default data MimeType
+      // selection in RSocketRequester.Builder
+      this.decoders.add(StringDecoder.allMimeTypes());
+      this.decoders.add(new ByteBufferDecoder());
+      this.decoders.add(new ByteArrayDecoder());
+      this.decoders.add(new DataBufferDecoder());
+    }
 
-		@Nullable
-		private MetadataExtractor metadataExtractor;
+    DefaultRSocketStrategiesBuilder(RSocketStrategies other) {
+      this.encoders.addAll(other.encoders());
+      this.decoders.addAll(other.decoders());
+      this.routeMatcher = other.routeMatcher();
+      this.adapterRegistry = other.reactiveAdapterRegistry();
+      this.bufferFactory = other.dataBufferFactory();
+      this.metadataExtractor = other.metadataExtractor();
+    }
 
-		DefaultRSocketStrategiesBuilder() {
-			this.encoders.add(CharSequenceEncoder.allMimeTypes());
-			this.encoders.add(new ByteBufferEncoder());
-			this.encoders.add(new ByteArrayEncoder());
-			this.encoders.add(new DataBufferEncoder());
+    @Override
+    public Builder encoder(Encoder<?>... encoders) {
+      this.encoders.addAll(Arrays.asList(encoders));
+      return this;
+    }
 
-			// Order of decoders may be significant for default data MimeType
-			// selection in RSocketRequester.Builder
-			this.decoders.add(StringDecoder.allMimeTypes());
-			this.decoders.add(new ByteBufferDecoder());
-			this.decoders.add(new ByteArrayDecoder());
-			this.decoders.add(new DataBufferDecoder());
-		}
+    @Override
+    public Builder decoder(Decoder<?>... decoder) {
+      this.decoders.addAll(Arrays.asList(decoder));
+      return this;
+    }
 
-		DefaultRSocketStrategiesBuilder(RSocketStrategies other) {
-			this.encoders.addAll(other.encoders());
-			this.decoders.addAll(other.decoders());
-			this.routeMatcher = other.routeMatcher();
-			this.adapterRegistry = other.reactiveAdapterRegistry();
-			this.bufferFactory = other.dataBufferFactory();
-			this.metadataExtractor = other.metadataExtractor();
-		}
+    @Override
+    public Builder encoders(Consumer<List<Encoder<?>>> consumer) {
+      consumer.accept(this.encoders);
+      return this;
+    }
 
+    @Override
+    public Builder decoders(Consumer<List<Decoder<?>>> consumer) {
+      consumer.accept(this.decoders);
+      return this;
+    }
 
-		@Override
-		public Builder encoder(Encoder<?>... encoders) {
-			this.encoders.addAll(Arrays.asList(encoders));
-			return this;
-		}
+    @Override
+    public Builder routeMatcher(@Nullable RouteMatcher routeMatcher) {
+      this.routeMatcher = routeMatcher;
+      return this;
+    }
 
-		@Override
-		public Builder decoder(Decoder<?>... decoder) {
-			this.decoders.addAll(Arrays.asList(decoder));
-			return this;
-		}
+    @Override
+    public Builder reactiveAdapterStrategy(@Nullable ReactiveAdapterRegistry registry) {
+      this.adapterRegistry = registry;
+      return this;
+    }
 
-		@Override
-		public Builder encoders(Consumer<List<Encoder<?>>> consumer) {
-			consumer.accept(this.encoders);
-			return this;
-		}
+    @Override
+    public Builder dataBufferFactory(@Nullable DataBufferFactory bufferFactory) {
+      this.bufferFactory = bufferFactory;
+      return this;
+    }
 
-		@Override
-		public Builder decoders(Consumer<List<Decoder<?>>> consumer) {
-			consumer.accept(this.decoders);
-			return this;
-		}
+    @Override
+    public Builder metadataExtractor(@Nullable MetadataExtractor metadataExtractor) {
+      this.metadataExtractor = metadataExtractor;
+      return this;
+    }
 
-		@Override
-		public Builder routeMatcher(@Nullable RouteMatcher routeMatcher) {
-			this.routeMatcher = routeMatcher;
-			return this;
-		}
+    @Override
+    public RSocketStrategies build() {
+      RouteMatcher matcher = (this.routeMatcher != null ? this.routeMatcher : initRouteMatcher());
 
-		@Override
-		public Builder reactiveAdapterStrategy(@Nullable ReactiveAdapterRegistry registry) {
-			this.adapterRegistry = registry;
-			return this;
-		}
+      ReactiveAdapterRegistry registry =
+          (this.adapterRegistry != null
+              ? this.adapterRegistry
+              : ReactiveAdapterRegistry.getSharedInstance());
 
-		@Override
-		public Builder dataBufferFactory(@Nullable DataBufferFactory bufferFactory) {
-			this.bufferFactory = bufferFactory;
-			return this;
-		}
+      DataBufferFactory factory =
+          (this.bufferFactory != null
+              ? this.bufferFactory
+              : new NettyDataBufferFactory(PooledByteBufAllocator.DEFAULT));
 
-		@Override
-		public Builder metadataExtractor(@Nullable MetadataExtractor metadataExtractor) {
-			this.metadataExtractor = metadataExtractor;
-			return this;
-		}
+      MetadataExtractor extractor =
+          (this.metadataExtractor != null
+              ? this.metadataExtractor
+              : new DefaultMetadataExtractor(this.decoders));
 
-		@Override
-		public RSocketStrategies build() {
-			RouteMatcher matcher = (this.routeMatcher != null ? this.routeMatcher : initRouteMatcher());
+      return new DefaultRSocketStrategies(
+          this.encoders, this.decoders, matcher, registry, factory, extractor);
+    }
 
-			ReactiveAdapterRegistry registry = (this.adapterRegistry != null ?
-					this.adapterRegistry : ReactiveAdapterRegistry.getSharedInstance());
-
-			DataBufferFactory factory = (this.bufferFactory != null ?
-					this.bufferFactory : new NettyDataBufferFactory(PooledByteBufAllocator.DEFAULT));
-
-			MetadataExtractor extractor = (this.metadataExtractor != null ?
-					this.metadataExtractor : new DefaultMetadataExtractor(this.decoders));
-
-			return new DefaultRSocketStrategies(
-					this.encoders, this.decoders, matcher, registry, factory, extractor);
-		}
-
-		private RouteMatcher initRouteMatcher() {
-			AntPathMatcher pathMatcher = new AntPathMatcher();
-			pathMatcher.setPathSeparator(".");
-			return new SimpleRouteMatcher(pathMatcher);
-		}
-	}
-
+    private RouteMatcher initRouteMatcher() {
+      AntPathMatcher pathMatcher = new AntPathMatcher();
+      pathMatcher.setPathSeparator(".");
+      return new SimpleRouteMatcher(pathMatcher);
+    }
+  }
 }

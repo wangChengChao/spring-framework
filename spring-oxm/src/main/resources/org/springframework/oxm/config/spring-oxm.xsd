@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<xsd:schema xmlns="http://www.springframework.org/schema/oxm" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+<xsd:schema xmlns="http://www.springframework.org/schema/oxm"
+		xmlns:xsd="http://www.w3.org/2001/XMLSchema"
 		xmlns:beans="http://www.springframework.org/schema/beans"
 		xmlns:tool="http://www.springframework.org/schema/tool"
 		targetNamespace="http://www.springframework.org/schema/oxm"
 		elementFormDefault="qualified"
 		attributeFormDefault="unqualified">
 
-	<xsd:import namespace="http://www.springframework.org/schema/beans" schemaLocation="https://www.springframework.org/schema/beans/spring-beans.xsd"/>
-	<xsd:import namespace="http://www.springframework.org/schema/tool" schemaLocation="https://www.springframework.org/schema/tool/spring-tool.xsd"/>
+	<xsd:import namespace="http://www.springframework.org/schema/beans"
+			schemaLocation="https://www.springframework.org/schema/beans/spring-beans.xsd"/>
+	<xsd:import namespace="http://www.springframework.org/schema/tool"
+			schemaLocation="https://www.springframework.org/schema/tool/spring-tool.xsd"/>
 
 	<xsd:annotation>
 		<xsd:documentation>
@@ -62,17 +65,20 @@
 				<xsd:extension base="beans:identifiedType">
 					<xsd:attribute name="target-class" type="classType">
 						<xsd:annotation>
-							<xsd:documentation>The target class to be bound with JiBX.</xsd:documentation>
+							<xsd:documentation>The target class to be bound with JiBX.
+							</xsd:documentation>
 						</xsd:annotation>
 					</xsd:attribute>
 					<xsd:attribute name="target-package" type="xsd:string">
 						<xsd:annotation>
-							<xsd:documentation>The target package for the JiBX binding.</xsd:documentation>
+							<xsd:documentation>The target package for the JiBX binding.
+							</xsd:documentation>
 						</xsd:annotation>
 					</xsd:attribute>
 					<xsd:attribute name="binding-name" type="xsd:string">
 						<xsd:annotation>
-							<xsd:documentation>The binding name used by this marshaller.</xsd:documentation>
+							<xsd:documentation>The binding name used by this marshaller.
+							</xsd:documentation>
 						</xsd:annotation>
 					</xsd:attribute>
 				</xsd:extension>
@@ -82,7 +88,8 @@
 
 	<xsd:simpleType name="classType">
 		<xsd:annotation>
-			<xsd:documentation source="java:java.lang.Class">A class supported by a marshaller.</xsd:documentation>
+			<xsd:documentation source="java:java.lang.Class">A class supported by a marshaller.
+			</xsd:documentation>
 			<xsd:appinfo>
 				<tool:annotation kind="direct">
 					<tool:expected-type type="java.lang.Class"/>

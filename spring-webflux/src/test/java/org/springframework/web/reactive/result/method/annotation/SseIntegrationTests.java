@@ -62,246 +62,255 @@ import static org.springframework.http.MediaType.TEXT_EVENT_STREAM;
  */
 class SseIntegrationTests extends AbstractHttpHandlerIntegrationTests {
 
-	@Retention(RetentionPolicy.RUNTIME)
-	@Target(ElementType.METHOD)
-	@ParameterizedTest(name = "[{index}] server [{0}], webClient [{1}]")
-	@MethodSource("arguments")
-	protected @interface ParameterizedSseTest {
-	}
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.METHOD)
+  @ParameterizedTest(name = "[{index}] server [{0}], webClient [{1}]")
+  @MethodSource("arguments")
+  protected @interface ParameterizedSseTest {}
 
-	static Object[][] arguments() {
-		return new Object[][] {
-			{new JettyHttpServer(), new ReactorClientHttpConnector()},
-			{new JettyHttpServer(), new JettyClientHttpConnector()},
-			{new ReactorHttpServer(), new ReactorClientHttpConnector()},
-			{new ReactorHttpServer(), new JettyClientHttpConnector()},
-			{new TomcatHttpServer(), new ReactorClientHttpConnector()},
-			{new TomcatHttpServer(), new JettyClientHttpConnector()},
-			{new UndertowHttpServer(), new ReactorClientHttpConnector()},
-			{new UndertowHttpServer(), new JettyClientHttpConnector()}
-		};
-	}
+  static Object[][] arguments() {
+    return new Object[][] {
+      {new JettyHttpServer(), new ReactorClientHttpConnector()},
+      {new JettyHttpServer(), new JettyClientHttpConnector()},
+      {new ReactorHttpServer(), new ReactorClientHttpConnector()},
+      {new ReactorHttpServer(), new JettyClientHttpConnector()},
+      {new TomcatHttpServer(), new ReactorClientHttpConnector()},
+      {new TomcatHttpServer(), new JettyClientHttpConnector()},
+      {new UndertowHttpServer(), new ReactorClientHttpConnector()},
+      {new UndertowHttpServer(), new JettyClientHttpConnector()}
+    };
+  }
 
+  private AnnotationConfigApplicationContext wac;
 
-	private AnnotationConfigApplicationContext wac;
+  private WebClient webClient;
 
-	private WebClient webClient;
+  private void startServer(HttpServer httpServer, ClientHttpConnector connector) throws Exception {
+    super.startServer(httpServer);
 
+    this.webClient =
+        WebClient.builder()
+            .clientConnector(connector)
+            .baseUrl("http://localhost:" + this.port + "/sse")
+            .build();
+  }
 
-	private void startServer(HttpServer httpServer, ClientHttpConnector connector) throws Exception {
-		super.startServer(httpServer);
+  @Override
+  protected HttpHandler createHttpHandler() {
+    this.wac = new AnnotationConfigApplicationContext(TestConfiguration.class);
 
-		this.webClient = WebClient
-				.builder()
-				.clientConnector(connector)
-				.baseUrl("http://localhost:" + this.port + "/sse")
-				.build();
-	}
+    return WebHttpHandlerBuilder.webHandler(new DispatcherHandler(this.wac)).build();
+  }
 
-	@Override
-	protected HttpHandler createHttpHandler() {
-		this.wac = new AnnotationConfigApplicationContext(TestConfiguration.class);
+  @ParameterizedSseTest
+  void sseAsString(HttpServer httpServer, ClientHttpConnector connector) throws Exception {
+    startServer(httpServer, connector);
 
-		return WebHttpHandlerBuilder.webHandler(new DispatcherHandler(this.wac)).build();
-	}
+    Flux<String> result =
+        this.webClient
+            .get()
+            .uri("/string")
+            .accept(TEXT_EVENT_STREAM)
+            .retrieve()
+            .bodyToFlux(String.class);
 
-	@ParameterizedSseTest
-	void sseAsString(HttpServer httpServer, ClientHttpConnector connector) throws Exception {
-		startServer(httpServer, connector);
+    StepVerifier.create(result)
+        .expectNext("foo 0")
+        .expectNext("foo 1")
+        .thenCancel()
+        .verify(Duration.ofSeconds(5L));
+  }
 
-		Flux<String> result = this.webClient.get()
-				.uri("/string")
-				.accept(TEXT_EVENT_STREAM)
-				.retrieve()
-				.bodyToFlux(String.class);
+  @ParameterizedSseTest
+  void sseAsPerson(HttpServer httpServer, ClientHttpConnector connector) throws Exception {
+    startServer(httpServer, connector);
 
-		StepVerifier.create(result)
-				.expectNext("foo 0")
-				.expectNext("foo 1")
-				.thenCancel()
-				.verify(Duration.ofSeconds(5L));
-	}
+    Flux<Person> result =
+        this.webClient
+            .get()
+            .uri("/person")
+            .accept(TEXT_EVENT_STREAM)
+            .retrieve()
+            .bodyToFlux(Person.class);
 
-	@ParameterizedSseTest
-	void sseAsPerson(HttpServer httpServer, ClientHttpConnector connector) throws Exception {
-		startServer(httpServer, connector);
+    StepVerifier.create(result)
+        .expectNext(new Person("foo 0"))
+        .expectNext(new Person("foo 1"))
+        .thenCancel()
+        .verify(Duration.ofSeconds(5L));
+  }
 
-		Flux<Person> result = this.webClient.get()
-				.uri("/person")
-				.accept(TEXT_EVENT_STREAM)
-				.retrieve()
-				.bodyToFlux(Person.class);
+  @ParameterizedSseTest
+  void sseAsEvent(HttpServer httpServer, ClientHttpConnector connector) throws Exception {
+    assumeTrue(httpServer instanceof JettyHttpServer);
 
-		StepVerifier.create(result)
-				.expectNext(new Person("foo 0"))
-				.expectNext(new Person("foo 1"))
-				.thenCancel()
-				.verify(Duration.ofSeconds(5L));
-	}
+    startServer(httpServer, connector);
 
-	@ParameterizedSseTest
-	void sseAsEvent(HttpServer httpServer, ClientHttpConnector connector) throws Exception {
-		assumeTrue(httpServer instanceof JettyHttpServer);
+    Flux<ServerSentEvent<Person>> result =
+        this.webClient
+            .get()
+            .uri("/event")
+            .accept(TEXT_EVENT_STREAM)
+            .retrieve()
+            .bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<Person>>() {});
 
-		startServer(httpServer, connector);
+    verifyPersonEvents(result);
+  }
 
-		Flux<ServerSentEvent<Person>> result = this.webClient.get()
-				.uri("/event")
-				.accept(TEXT_EVENT_STREAM)
-				.retrieve()
-				.bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<Person>>() {});
+  @ParameterizedSseTest
+  void sseAsEventWithoutAcceptHeader(HttpServer httpServer, ClientHttpConnector connector)
+      throws Exception {
+    startServer(httpServer, connector);
 
-		verifyPersonEvents(result);
-	}
+    Flux<ServerSentEvent<Person>> result =
+        this.webClient
+            .get()
+            .uri("/event")
+            .accept(TEXT_EVENT_STREAM)
+            .retrieve()
+            .bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<Person>>() {});
 
-	@ParameterizedSseTest
-	void sseAsEventWithoutAcceptHeader(HttpServer httpServer, ClientHttpConnector connector) throws Exception {
-		startServer(httpServer, connector);
+    verifyPersonEvents(result);
+  }
 
-		Flux<ServerSentEvent<Person>> result = this.webClient.get()
-				.uri("/event")
-				.accept(TEXT_EVENT_STREAM)
-				.retrieve()
-				.bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<Person>>() {});
+  private void verifyPersonEvents(Flux<ServerSentEvent<Person>> result) {
+    StepVerifier.create(result)
+        .consumeNextWith(
+            event -> {
+              assertThat(event.id()).isEqualTo("0");
+              assertThat(event.data()).isEqualTo(new Person("foo 0"));
+              assertThat(event.comment()).isEqualTo("bar 0");
+              assertThat(event.event()).isNull();
+              assertThat(event.retry()).isNull();
+            })
+        .consumeNextWith(
+            event -> {
+              assertThat(event.id()).isEqualTo("1");
+              assertThat(event.data()).isEqualTo(new Person("foo 1"));
+              assertThat(event.comment()).isEqualTo("bar 1");
+              assertThat(event.event()).isNull();
+              assertThat(event.retry()).isNull();
+            })
+        .thenCancel()
+        .verify(Duration.ofSeconds(5L));
+  }
 
-		verifyPersonEvents(result);
-	}
+  @ParameterizedSseTest // SPR-16494
+  @Disabled // https://github.com/reactor/reactor-netty/issues/283
+  void serverDetectsClientDisconnect(HttpServer httpServer, ClientHttpConnector connector)
+      throws Exception {
+    assumeTrue(httpServer instanceof ReactorHttpServer);
 
-	private void verifyPersonEvents(Flux<ServerSentEvent<Person>> result) {
-		StepVerifier.create(result)
-				.consumeNextWith( event -> {
-					assertThat(event.id()).isEqualTo("0");
-					assertThat(event.data()).isEqualTo(new Person("foo 0"));
-					assertThat(event.comment()).isEqualTo("bar 0");
-					assertThat(event.event()).isNull();
-					assertThat(event.retry()).isNull();
-				})
-				.consumeNextWith( event -> {
-					assertThat(event.id()).isEqualTo("1");
-					assertThat(event.data()).isEqualTo(new Person("foo 1"));
-					assertThat(event.comment()).isEqualTo("bar 1");
-					assertThat(event.event()).isNull();
-					assertThat(event.retry()).isNull();
-				})
-				.thenCancel()
-				.verify(Duration.ofSeconds(5L));
-	}
+    startServer(httpServer, connector);
 
-	@ParameterizedSseTest // SPR-16494
-	@Disabled // https://github.com/reactor/reactor-netty/issues/283
-	void serverDetectsClientDisconnect(HttpServer httpServer, ClientHttpConnector connector) throws Exception {
-		assumeTrue(httpServer instanceof ReactorHttpServer);
+    Flux<String> result =
+        this.webClient
+            .get()
+            .uri("/infinite")
+            .accept(TEXT_EVENT_STREAM)
+            .retrieve()
+            .bodyToFlux(String.class);
 
-		startServer(httpServer, connector);
+    StepVerifier.create(result)
+        .expectNext("foo 0")
+        .expectNext("foo 1")
+        .thenCancel()
+        .verify(Duration.ofSeconds(5L));
 
-		Flux<String> result = this.webClient.get()
-				.uri("/infinite")
-				.accept(TEXT_EVENT_STREAM)
-				.retrieve()
-				.bodyToFlux(String.class);
+    SseController controller = this.wac.getBean(SseController.class);
+    controller.cancellation.block(Duration.ofSeconds(5));
+  }
 
-		StepVerifier.create(result)
-				.expectNext("foo 0")
-				.expectNext("foo 1")
-				.thenCancel()
-				.verify(Duration.ofSeconds(5L));
+  @RestController
+  @SuppressWarnings("unused")
+  @RequestMapping("/sse")
+  static class SseController {
 
-		SseController controller = this.wac.getBean(SseController.class);
-		controller.cancellation.block(Duration.ofSeconds(5));
-	}
+    private static final Flux<Long> INTERVAL = testInterval(Duration.ofMillis(100), 50);
 
+    private MonoProcessor<Void> cancellation = MonoProcessor.create();
 
-	@RestController
-	@SuppressWarnings("unused")
-	@RequestMapping("/sse")
-	static class SseController {
+    @GetMapping("/string")
+    Flux<String> string() {
+      return INTERVAL.map(l -> "foo " + l);
+    }
 
-		private static final Flux<Long> INTERVAL = testInterval(Duration.ofMillis(100), 50);
+    @GetMapping("/person")
+    Flux<Person> person() {
+      return INTERVAL.map(l -> new Person("foo " + l));
+    }
 
-		private MonoProcessor<Void> cancellation = MonoProcessor.create();
+    @GetMapping("/event")
+    Flux<ServerSentEvent<Person>> sse() {
+      return INTERVAL
+          .take(2)
+          .map(
+              l ->
+                  ServerSentEvent.builder(new Person("foo " + l))
+                      .id(Long.toString(l))
+                      .comment("bar " + l)
+                      .build());
+    }
 
+    @GetMapping("/infinite")
+    Flux<String> infinite() {
+      return Flux.just(0, 1)
+          .map(l -> "foo " + l)
+          .mergeWith(Flux.never())
+          .doOnCancel(() -> cancellation.onComplete());
+    }
+  }
 
-		@GetMapping("/string")
-		Flux<String> string() {
-			return INTERVAL.map(l -> "foo " + l);
-		}
+  @Configuration
+  @EnableWebFlux
+  @SuppressWarnings("unused")
+  static class TestConfiguration {
 
-		@GetMapping("/person")
-		Flux<Person> person() {
-			return INTERVAL.map(l -> new Person("foo " + l));
-		}
+    @Bean
+    public SseController sseController() {
+      return new SseController();
+    }
+  }
 
-		@GetMapping("/event")
-		Flux<ServerSentEvent<Person>> sse() {
-			return INTERVAL.take(2).map(l ->
-					ServerSentEvent.builder(new Person("foo " + l))
-							.id(Long.toString(l))
-							.comment("bar " + l)
-							.build());
-		}
+  @SuppressWarnings("unused")
+  private static class Person {
 
-		@GetMapping("/infinite")
-		Flux<String> infinite() {
-			return Flux.just(0, 1).map(l -> "foo " + l)
-					.mergeWith(Flux.never())
-					.doOnCancel(() -> cancellation.onComplete());
-		}
-	}
+    private String name;
 
+    public Person() {}
 
-	@Configuration
-	@EnableWebFlux
-	@SuppressWarnings("unused")
-	static class TestConfiguration {
+    public Person(String name) {
+      this.name = name;
+    }
 
-		@Bean
-		public SseController sseController() {
-			return new SseController();
-		}
-	}
+    public String getName() {
+      return name;
+    }
 
+    public void setName(String name) {
+      this.name = name;
+    }
 
-	@SuppressWarnings("unused")
-	private static class Person {
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      Person person = (Person) o;
+      return !(this.name != null ? !this.name.equals(person.name) : person.name != null);
+    }
 
-		private String name;
+    @Override
+    public int hashCode() {
+      return this.name != null ? this.name.hashCode() : 0;
+    }
 
-		public Person() {
-		}
-
-		public Person(String name) {
-			this.name = name;
-		}
-
-		public String getName() {
-			return name;
-		}
-
-		public void setName(String name) {
-			this.name = name;
-		}
-
-		@Override
-		public boolean equals(Object o) {
-			if (this == o) {
-				return true;
-			}
-			if (o == null || getClass() != o.getClass()) {
-				return false;
-			}
-			Person person = (Person) o;
-			return !(this.name != null ? !this.name.equals(person.name) : person.name != null);
-		}
-
-		@Override
-		public int hashCode() {
-			return this.name != null ? this.name.hashCode() : 0;
-		}
-
-		@Override
-		public String toString() {
-			return "Person{name='" + this.name + '\'' + '}';
-		}
-	}
-
+    @Override
+    public String toString() {
+      return "Person{name='" + this.name + '\'' + '}';
+    }
+  }
 }

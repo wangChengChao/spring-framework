@@ -10,10 +10,12 @@
 			destination-resolver="testDestinationResolver" message-converter="testMessageConverter"
 			transaction-manager="testTransactionManager" error-handler="testErrorHandler"
 			destination-type="durableTopic" response-destination-type="queue"
-			cache="connection" concurrency="3-5" prefetch="50" receive-timeout="100" back-off="testBackOff" phase="99">
-		<jms:listener id="listener1" destination="testDestination" ref="testBean1" method="setName"/>
+			cache="connection" concurrency="3-5" prefetch="50" receive-timeout="100"
+			back-off="testBackOff" phase="99">
+		<jms:listener id="listener1" destination="testDestination" ref="testBean1"
+				method="setName"/>
 		<jms:listener id="listener2" destination="testDestination" ref="testBean2" method="setName"
-					  concurrency="5-10" response-destination="responseDestination"/>
+				concurrency="5-10" response-destination="responseDestination"/>
 	</jms:listener-container>
 
 	<!-- TODO: remove the task-executor reference once issue with blocking on stop is resolved -->
@@ -30,12 +32,15 @@
 	</bean>
 
 	<jms:jca-listener-container factory-id="testJcaFactory"
-			resource-adapter="testResourceAdapter" activation-spec-factory="testActivationSpecFactory"
-			message-converter="testMessageConverter" destination-type="topic" response-destination-type="queue"
-								concurrency="5" prefetch="50" phase="77">
-		<jms:listener id="listener3" destination="testDestination" ref="testBean1" method="setName"/>
+			resource-adapter="testResourceAdapter"
+			activation-spec-factory="testActivationSpecFactory"
+			message-converter="testMessageConverter" destination-type="topic"
+			response-destination-type="queue"
+			concurrency="5" prefetch="50" phase="77">
+		<jms:listener id="listener3" destination="testDestination" ref="testBean1"
+				method="setName"/>
 		<jms:listener id="listener4" destination="testDestination" ref="testBean2" method="setName"
-					  concurrency="7" response-destination="responseDestination"/>
+				concurrency="7" response-destination="responseDestination"/>
 	</jms:jca-listener-container>
 
 	<jms:jca-listener-container activation-spec-factory="testActivationSpecFactory">
@@ -44,11 +49,11 @@
 
 	<!-- Only export the factory -->
 	<jms:listener-container factory-id="onlyJmsFactory"
-							connection-factory="testConnectionFactory" task-executor="testTaskExecutor"
-							destination-resolver="testDestinationResolver" message-converter="testMessageConverter"
-							transaction-manager="testTransactionManager" error-handler="testErrorHandler"
-							concurrency="3-5" prefetch="50" receive-timeout="100"
-							recovery-interval="1000" back-off="testBackOff"/>
+			connection-factory="testConnectionFactory" task-executor="testTaskExecutor"
+			destination-resolver="testDestinationResolver" message-converter="testMessageConverter"
+			transaction-manager="testTransactionManager" error-handler="testErrorHandler"
+			concurrency="3-5" prefetch="50" receive-timeout="100"
+			recovery-interval="1000" back-off="testBackOff"/>
 
 	<!-- the default ConnectionFactory -->
 	<bean id="connectionFactory" class="org.springframework.jms.StubConnectionFactory"/>
@@ -62,15 +67,20 @@
 
 	<bean id="testTaskExecutor" class="org.springframework.core.task.StubTaskExecutor"/>
 
-	<bean id="testActivationSpecFactory" class="org.springframework.jms.listener.endpoint.StubJmsActivationSpecFactory"/>
+	<bean id="testActivationSpecFactory"
+			class="org.springframework.jms.listener.endpoint.StubJmsActivationSpecFactory"/>
 
-	<bean id="testDestinationResolver" class="org.springframework.jms.support.destination.DynamicDestinationResolver"/>
+	<bean id="testDestinationResolver"
+			class="org.springframework.jms.support.destination.DynamicDestinationResolver"/>
 
-	<bean id="testMessageConverter" class="org.springframework.jms.support.converter.SimpleMessageConverter"/>
+	<bean id="testMessageConverter"
+			class="org.springframework.jms.support.converter.SimpleMessageConverter"/>
 
-	<bean id="testTransactionManager" class="org.springframework.tests.transaction.CallCountingTransactionManager"/>
+	<bean id="testTransactionManager"
+			class="org.springframework.tests.transaction.CallCountingTransactionManager"/>
 
-	<bean id="testErrorHandler" class="org.springframework.jms.config.JmsNamespaceHandlerTests$TestErrorHandler"/>
+	<bean id="testErrorHandler"
+			class="org.springframework.jms.config.JmsNamespaceHandlerTests$TestErrorHandler"/>
 
 	<bean id="testBackOff" class="org.springframework.util.backoff.FixedBackOff">
 		<property name="interval" value="1000"/>
@@ -80,10 +90,12 @@
 
 	<bean id="testBean2" class="org.springframework.tests.sample.beans.TestBean"/>
 
-	<bean id="testBean3" class="org.springframework.jms.config.JmsNamespaceHandlerTests$TestMessageListener"/>
+	<bean id="testBean3"
+			class="org.springframework.jms.config.JmsNamespaceHandlerTests$TestMessageListener"/>
 
 	<!-- TODO: remove this once issue with blocking on stop is resolved -->
-	<bean id="lifecycleProcessor" class="org.springframework.context.support.DefaultLifecycleProcessor">
+	<bean id="lifecycleProcessor"
+			class="org.springframework.context.support.DefaultLifecycleProcessor">
 		<property name="timeoutPerShutdownPhase" value="0"/>
 	</bean>
 

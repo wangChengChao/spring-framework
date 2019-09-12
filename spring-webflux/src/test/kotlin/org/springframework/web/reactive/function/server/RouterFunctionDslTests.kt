@@ -119,7 +119,7 @@ class RouterFunctionDslTests {
 	fun rendering() {
 		val request = builder().uri(URI("/rendering")).build()
 		StepVerifier.create(sampleRouter().route(request).flatMap { it.handle(request) })
-				.expectNextMatches { it is RenderingResponse}
+				.expectNextMatches { it is RenderingResponse }
 				.verifyComplete()
 	}
 
@@ -135,7 +135,7 @@ class RouterFunctionDslTests {
 		(GET("/foo/") or GET("/foos/")) { req -> handle(req) }
 		"/api".nest {
 			POST("/foo/", ::handleFromClass)
-			PUT("/foo/", :: handleFromClass)
+			PUT("/foo/", ::handleFromClass)
 			PATCH("/foo/") {
 				ok().build()
 			}
@@ -155,8 +155,7 @@ class RouterFunctionDslTests {
 		resources {
 			if (it.path() == "/response.txt") {
 				Mono.just(ClassPathResource("/org/springframework/web/reactive/function/response.txt"))
-			}
-			else {
+			} else {
 				Mono.empty()
 			}
 		}

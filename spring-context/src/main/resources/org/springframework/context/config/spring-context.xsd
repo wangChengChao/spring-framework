@@ -8,8 +8,10 @@
 		elementFormDefault="qualified"
 		attributeFormDefault="unqualified">
 
-	<xsd:import namespace="http://www.springframework.org/schema/beans" schemaLocation="https://www.springframework.org/schema/beans/spring-beans.xsd"/>
-	<xsd:import namespace="http://www.springframework.org/schema/tool" schemaLocation="https://www.springframework.org/schema/tool/spring-tool.xsd"/>
+	<xsd:import namespace="http://www.springframework.org/schema/beans"
+			schemaLocation="https://www.springframework.org/schema/beans/spring-beans.xsd"/>
+	<xsd:import namespace="http://www.springframework.org/schema/tool"
+			schemaLocation="https://www.springframework.org/schema/tool/spring-tool.xsd"/>
 
 	<xsd:annotation>
 		<xsd:documentation><![CDATA[
@@ -106,7 +108,8 @@
 			]]></xsd:documentation>
 			<xsd:appinfo>
 				<tool:annotation>
-					<tool:exports type="org.springframework.context.support.PropertySourcesPlaceholderConfigurer"/>
+					<tool:exports
+							type="org.springframework.context.support.PropertySourcesPlaceholderConfigurer"/>
 				</tool:annotation>
 			</xsd:appinfo>
 		</xsd:annotation>
@@ -181,7 +184,8 @@
 			]]></xsd:documentation>
 			<xsd:appinfo>
 				<tool:annotation>
-					<tool:exports type="org.springframework.beans.factory.config.PropertyOverrideConfigurer"/>
+					<tool:exports
+							type="org.springframework.beans.factory.config.PropertyOverrideConfigurer"/>
 				</tool:annotation>
 			</xsd:appinfo>
 		</xsd:annotation>
@@ -239,7 +243,7 @@
 		<xsd:complexType>
 			<xsd:sequence>
 				<xsd:element name="include-filter" type="filterType"
-					minOccurs="0" maxOccurs="unbounded">
+						minOccurs="0" maxOccurs="unbounded">
 					<xsd:annotation>
 						<xsd:documentation><![CDATA[
 	Controls which eligible types to include for component scanning.
@@ -250,7 +254,7 @@
 					</xsd:annotation>
 				</xsd:element>
 				<xsd:element name="exclude-filter" type="filterType"
-					minOccurs="0" maxOccurs="unbounded">
+						minOccurs="0" maxOccurs="unbounded">
 					<xsd:annotation>
 						<xsd:documentation><![CDATA[
 	Controls which eligible types to exclude for component scanning.
@@ -259,7 +263,7 @@
 				</xsd:element>
 			</xsd:sequence>
 			<xsd:attribute name="base-package" type="xsd:string"
-				use="required">
+					use="required">
 				<xsd:annotation>
 					<xsd:documentation><![CDATA[
 	The comma/semicolon/space/tab/linefeed-separated list of packages to scan for annotated components.
@@ -275,7 +279,7 @@
 				</xsd:annotation>
 			</xsd:attribute>
 			<xsd:attribute name="use-default-filters" type="xsd:boolean"
-				default="true">
+					default="true">
 				<xsd:annotation>
 					<xsd:documentation><![CDATA[
 	Indicates whether automatic detection of classes annotated with @Component, @Repository, @Service,
@@ -284,7 +288,7 @@
 				</xsd:annotation>
 			</xsd:attribute>
 			<xsd:attribute name="annotation-config" type="xsd:boolean"
-				default="true">
+					default="true">
 				<xsd:annotation>
 					<xsd:documentation><![CDATA[
 	Indicates whether the implicit annotation post-processors should be enabled. Default is "true".
@@ -299,7 +303,8 @@
 					<xsd:appinfo>
 						<tool:annotation>
 							<tool:expected-type type="java.lang.Class"/>
-							<tool:assignable-to type="org.springframework.beans.factory.support.BeanNameGenerator"/>
+							<tool:assignable-to
+									type="org.springframework.beans.factory.support.BeanNameGenerator"/>
 						</tool:annotation>
 					</xsd:appinfo>
 				</xsd:annotation>
@@ -313,7 +318,8 @@
 					<xsd:appinfo>
 						<tool:annotation>
 							<tool:expected-type type="java.lang.Class"/>
-							<tool:assignable-to type="org.springframework.context.annotation.ScopeMetadataResolver"/>
+							<tool:assignable-to
+									type="org.springframework.context.annotation.ScopeMetadataResolver"/>
 						</tool:annotation>
 					</xsd:appinfo>
 				</xsd:annotation>
@@ -363,7 +369,8 @@
 			]]></xsd:documentation>
 			<xsd:appinfo>
 				<tool:annotation>
-					<tool:exports type="org.springframework.instrument.classloading.LoadTimeWeaver"/>
+					<tool:exports
+							type="org.springframework.instrument.classloading.LoadTimeWeaver"/>
 				</tool:annotation>
 			</xsd:appinfo>
 		</xsd:annotation>
@@ -376,7 +383,8 @@
 					<xsd:appinfo>
 						<tool:annotation>
 							<tool:expected-type type="java.lang.Class"/>
-							<tool:assignable-to type="org.springframework.instrument.classloading.LoadTimeWeaver"/>
+							<tool:assignable-to
+									type="org.springframework.instrument.classloading.LoadTimeWeaver"/>
 						</tool:annotation>
 					</xsd:appinfo>
 				</xsd:annotation>
@@ -415,7 +423,9 @@
 
 	<xsd:element name="spring-configured">
 		<xsd:annotation>
-			<xsd:documentation source="java:org.springframework.beans.factory.aspectj.AnnotationBeanConfigurerAspect"><![CDATA[
+			<xsd:documentation
+					source="java:org.springframework.beans.factory.aspectj.AnnotationBeanConfigurerAspect">
+				<![CDATA[
 	Signals the current application context to apply dependency injection
 	to non-managed classes that are instantiated outside of the Spring bean
 	factory (typically classes annotated with the @Configurable annotation).
@@ -428,7 +438,9 @@
 
 	<xsd:element name="mbean-export">
 		<xsd:annotation>
-			<xsd:documentation source="java:org.springframework.jmx.export.annotation.AnnotationMBeanExporter"><![CDATA[
+			<xsd:documentation
+					source="java:org.springframework.jmx.export.annotation.AnnotationMBeanExporter">
+				<![CDATA[
 	Activates default exporting of MBeans by detecting standard MBeans in the Spring
 	context as well as @ManagedResource annotations on Spring-defined beans.
 
@@ -437,7 +449,8 @@
 			]]></xsd:documentation>
 			<xsd:appinfo>
 				<tool:annotation>
-					<tool:exports type="org.springframework.jmx.export.annotation.AnnotationMBeanExporter"/>
+					<tool:exports
+							type="org.springframework.jmx.export.annotation.AnnotationMBeanExporter"/>
 				</tool:annotation>
 			</xsd:appinfo>
 		</xsd:annotation>
@@ -481,7 +494,8 @@
 
 	<xsd:element name="mbean-server">
 		<xsd:annotation>
-			<xsd:documentation source="java:org.springframework.jmx.support.MBeanServerFactoryBean"><![CDATA[
+			<xsd:documentation source="java:org.springframework.jmx.support.MBeanServerFactoryBean">
+				<![CDATA[
 	Exposes a default MBeanServer for the current platform.
 	Autodetects WebLogic, WebSphere and the JVM's platform MBeanServer.
 

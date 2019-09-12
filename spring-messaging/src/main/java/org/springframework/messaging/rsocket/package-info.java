@@ -1,6 +1,4 @@
-/**
- * Support for the RSocket protocol.
- */
+/** Support for the RSocket protocol. */
 @NonNullApi
 @NonNullFields
 package org.springframework.messaging.rsocket;

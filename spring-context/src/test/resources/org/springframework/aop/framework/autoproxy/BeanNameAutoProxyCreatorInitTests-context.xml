@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "https://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN"
+		"https://www.springframework.org/dtd/spring-beans-2.0.dtd">
 
 <beans>
 
@@ -18,7 +19,7 @@
 				<property name="sourceList">
 					<list>
 						<value>.*\.set[a-zA-Z]*(.*)</value>
-				 </list>
+					</list>
 				</property>
 			</bean>
 		</property>

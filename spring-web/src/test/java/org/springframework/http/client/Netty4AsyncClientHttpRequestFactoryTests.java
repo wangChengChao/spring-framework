@@ -24,35 +24,31 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.http.HttpMethod;
 
-/**
- * @author Arjen Poutsma
- */
+/** @author Arjen Poutsma */
 public class Netty4AsyncClientHttpRequestFactoryTests extends AbstractAsyncHttpRequestFactoryTests {
 
-	private static EventLoopGroup eventLoopGroup;
+  private static EventLoopGroup eventLoopGroup;
 
+  @BeforeAll
+  public static void createEventLoopGroup() {
+    eventLoopGroup = new NioEventLoopGroup();
+  }
 
-	@BeforeAll
-	public static void createEventLoopGroup() {
-		eventLoopGroup = new NioEventLoopGroup();
-	}
+  @AfterAll
+  public static void shutdownEventLoopGroup() throws InterruptedException {
+    eventLoopGroup.shutdownGracefully().sync();
+  }
 
-	@AfterAll
-	public static void shutdownEventLoopGroup() throws InterruptedException {
-		eventLoopGroup.shutdownGracefully().sync();
-	}
+  @SuppressWarnings("deprecation")
+  @Override
+  protected AsyncClientHttpRequestFactory createRequestFactory() {
+    return new Netty4ClientHttpRequestFactory(eventLoopGroup);
+  }
 
-	@SuppressWarnings("deprecation")
-	@Override
-	protected AsyncClientHttpRequestFactory createRequestFactory() {
-		return new Netty4ClientHttpRequestFactory(eventLoopGroup);
-	}
-
-	@Override
-	@Test
-	public void httpMethods() throws Exception {
-		super.httpMethods();
-		assertHttpMethod("patch", HttpMethod.PATCH);
-	}
-
+  @Override
+  @Test
+  public void httpMethods() throws Exception {
+    super.httpMethods();
+    assertHttpMethod("patch", HttpMethod.PATCH);
+  }
 }

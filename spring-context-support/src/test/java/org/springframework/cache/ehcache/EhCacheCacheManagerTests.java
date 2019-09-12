@@ -24,62 +24,60 @@ import org.junit.jupiter.api.BeforeEach;
 
 import org.springframework.cache.transaction.AbstractTransactionSupportingCacheManagerTests;
 
-/**
- * @author Stephane Nicoll
- */
-public class EhCacheCacheManagerTests extends AbstractTransactionSupportingCacheManagerTests<EhCacheCacheManager> {
+/** @author Stephane Nicoll */
+public class EhCacheCacheManagerTests
+    extends AbstractTransactionSupportingCacheManagerTests<EhCacheCacheManager> {
 
-	private CacheManager nativeCacheManager;
+  private CacheManager nativeCacheManager;
 
-	private EhCacheCacheManager cacheManager;
+  private EhCacheCacheManager cacheManager;
 
-	private EhCacheCacheManager transactionalCacheManager;
+  private EhCacheCacheManager transactionalCacheManager;
 
+  @BeforeEach
+  public void setup() {
+    nativeCacheManager =
+        new CacheManager(
+            new Configuration()
+                .name("EhCacheCacheManagerTests")
+                .defaultCache(new CacheConfiguration("default", 100)));
+    addNativeCache(CACHE_NAME);
 
-	@BeforeEach
-	public void setup() {
-		nativeCacheManager = new CacheManager(new Configuration().name("EhCacheCacheManagerTests")
-				.defaultCache(new CacheConfiguration("default", 100)));
-		addNativeCache(CACHE_NAME);
+    cacheManager = new EhCacheCacheManager(nativeCacheManager);
+    cacheManager.setTransactionAware(false);
+    cacheManager.afterPropertiesSet();
 
-		cacheManager = new EhCacheCacheManager(nativeCacheManager);
-		cacheManager.setTransactionAware(false);
-		cacheManager.afterPropertiesSet();
+    transactionalCacheManager = new EhCacheCacheManager(nativeCacheManager);
+    transactionalCacheManager.setTransactionAware(true);
+    transactionalCacheManager.afterPropertiesSet();
+  }
 
-		transactionalCacheManager = new EhCacheCacheManager(nativeCacheManager);
-		transactionalCacheManager.setTransactionAware(true);
-		transactionalCacheManager.afterPropertiesSet();
-	}
+  @AfterEach
+  public void shutdown() {
+    nativeCacheManager.shutdown();
+  }
 
-	@AfterEach
-	public void shutdown() {
-		nativeCacheManager.shutdown();
-	}
+  @Override
+  protected EhCacheCacheManager getCacheManager(boolean transactionAware) {
+    if (transactionAware) {
+      return transactionalCacheManager;
+    } else {
+      return cacheManager;
+    }
+  }
 
+  @Override
+  protected Class<? extends org.springframework.cache.Cache> getCacheType() {
+    return EhCacheCache.class;
+  }
 
-	@Override
-	protected EhCacheCacheManager getCacheManager(boolean transactionAware) {
-		if (transactionAware) {
-			return transactionalCacheManager;
-		}
-		else {
-			return cacheManager;
-		}
-	}
+  @Override
+  protected void addNativeCache(String cacheName) {
+    nativeCacheManager.addCache(cacheName);
+  }
 
-	@Override
-	protected Class<? extends org.springframework.cache.Cache> getCacheType() {
-		return EhCacheCache.class;
-	}
-
-	@Override
-	protected void addNativeCache(String cacheName) {
-		nativeCacheManager.addCache(cacheName);
-	}
-
-	@Override
-	protected void removeNativeCache(String cacheName) {
-		nativeCacheManager.removeCache(cacheName);
-	}
-
+  @Override
+  protected void removeNativeCache(String cacheName) {
+    nativeCacheManager.removeCache(cacheName);
+  }
 }

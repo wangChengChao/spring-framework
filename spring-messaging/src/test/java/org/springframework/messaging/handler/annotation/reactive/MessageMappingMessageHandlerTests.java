@@ -55,166 +55,177 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit tests for {@link MessageMappingMessageHandler}.
+ *
  * @author Rossen Stoyanchev
  */
 @SuppressWarnings("ALL")
 public class MessageMappingMessageHandlerTests {
 
-	private static final DataBufferFactory bufferFactory = new DefaultDataBufferFactory();
+  private static final DataBufferFactory bufferFactory = new DefaultDataBufferFactory();
 
+  private TestEncoderMethodReturnValueHandler returnValueHandler;
 
-	private TestEncoderMethodReturnValueHandler returnValueHandler;
+  @Test
+  public void handleString() {
+    MessageMappingMessageHandler messsageHandler = initMesssageHandler();
+    messsageHandler.handleMessage(message("string", "abcdef")).block(Duration.ofSeconds(5));
+    verifyOutputContent(Collections.singletonList("abcdef::response"));
+  }
 
+  @Test
+  public void handleMonoString() {
+    MessageMappingMessageHandler messsageHandler = initMesssageHandler();
+    messsageHandler.handleMessage(message("monoString", "abcdef")).block(Duration.ofSeconds(5));
+    verifyOutputContent(Collections.singletonList("abcdef::response"));
+  }
 
-	@Test
-	public void handleString() {
-		MessageMappingMessageHandler messsageHandler = initMesssageHandler();
-		messsageHandler.handleMessage(message("string", "abcdef")).block(Duration.ofSeconds(5));
-		verifyOutputContent(Collections.singletonList("abcdef::response"));
-	}
+  @Test
+  public void handleFluxString() {
+    MessageMappingMessageHandler messsageHandler = initMesssageHandler();
+    messsageHandler
+        .handleMessage(message("fluxString", "abc", "def", "ghi"))
+        .block(Duration.ofSeconds(5));
+    verifyOutputContent(Arrays.asList("abc::response", "def::response", "ghi::response"));
+  }
 
-	@Test
-	public void handleMonoString() {
-		MessageMappingMessageHandler messsageHandler = initMesssageHandler();
-		messsageHandler.handleMessage(message("monoString", "abcdef")).block(Duration.ofSeconds(5));
-		verifyOutputContent(Collections.singletonList("abcdef::response"));
-	}
+  @Test
+  public void handleWithPlaceholderInMapping() {
+    MessageMappingMessageHandler messsageHandler = initMesssageHandler();
+    messsageHandler.handleMessage(message("path123", "abcdef")).block(Duration.ofSeconds(5));
+    verifyOutputContent(Collections.singletonList("abcdef::response"));
+  }
 
-	@Test
-	public void handleFluxString() {
-		MessageMappingMessageHandler messsageHandler = initMesssageHandler();
-		messsageHandler.handleMessage(message("fluxString", "abc", "def", "ghi")).block(Duration.ofSeconds(5));
-		verifyOutputContent(Arrays.asList("abc::response", "def::response", "ghi::response"));
-	}
+  @Test
+  public void handleWithDestinationVariable() {
+    MessageMappingMessageHandler messsageHandler = initMesssageHandler();
+    messsageHandler
+        .handleMessage(message("destination.test", "abcdef"))
+        .block(Duration.ofSeconds(5));
+    verifyOutputContent(Collections.singletonList("test::abcdef::response"));
+  }
 
-	@Test
-	public void handleWithPlaceholderInMapping() {
-		MessageMappingMessageHandler messsageHandler = initMesssageHandler();
-		messsageHandler.handleMessage(message("path123", "abcdef")).block(Duration.ofSeconds(5));
-		verifyOutputContent(Collections.singletonList("abcdef::response"));
-	}
+  @Test
+  public void handleException() {
+    MessageMappingMessageHandler messsageHandler = initMesssageHandler();
+    messsageHandler.handleMessage(message("exception", "abc")).block(Duration.ofSeconds(5));
+    verifyOutputContent(Collections.singletonList("rejected::handled"));
+  }
 
-	@Test
-	public void handleWithDestinationVariable() {
-		MessageMappingMessageHandler messsageHandler = initMesssageHandler();
-		messsageHandler.handleMessage(message("destination.test", "abcdef")).block(Duration.ofSeconds(5));
-		verifyOutputContent(Collections.singletonList("test::abcdef::response"));
-	}
+  @Test
+  public void handleErrorSignal() {
+    MessageMappingMessageHandler messsageHandler = initMesssageHandler();
+    messsageHandler.handleMessage(message("errorSignal", "abc")).block(Duration.ofSeconds(5));
+    verifyOutputContent(Collections.singletonList("rejected::handled"));
+  }
 
-	@Test
-	public void handleException() {
-		MessageMappingMessageHandler messsageHandler = initMesssageHandler();
-		messsageHandler.handleMessage(message("exception", "abc")).block(Duration.ofSeconds(5));
-		verifyOutputContent(Collections.singletonList("rejected::handled"));
-	}
+  @Test
+  public void unhandledExceptionShouldFlowThrough() {
 
-	@Test
-	public void handleErrorSignal() {
-		MessageMappingMessageHandler messsageHandler = initMesssageHandler();
-		messsageHandler.handleMessage(message("errorSignal", "abc")).block(Duration.ofSeconds(5));
-		verifyOutputContent(Collections.singletonList("rejected::handled"));
-	}
+    GenericMessage<?> message =
+        new GenericMessage<>(
+            new Object(),
+            Collections.singletonMap(
+                DestinationPatternsMessageCondition.LOOKUP_DESTINATION_HEADER,
+                new SimpleRouteMatcher(new AntPathMatcher()).parseRoute("string")));
 
-	@Test
-	public void unhandledExceptionShouldFlowThrough() {
+    StepVerifier.create(initMesssageHandler().handleMessage(message))
+        .expectErrorSatisfies(
+            ex ->
+                assertThat(
+                        ex.getMessage().startsWith("Could not resolve method parameter at index 0"))
+                    .as("Actual: " + ex.getMessage())
+                    .isTrue())
+        .verify(Duration.ofSeconds(5));
+  }
 
-		GenericMessage<?> message = new GenericMessage<>(new Object(),
-				Collections.singletonMap(DestinationPatternsMessageCondition.LOOKUP_DESTINATION_HEADER,
-						new SimpleRouteMatcher(new AntPathMatcher()).parseRoute("string")));
+  private MessageMappingMessageHandler initMesssageHandler() {
 
-		StepVerifier.create(initMesssageHandler().handleMessage(message))
-				.expectErrorSatisfies(ex -> assertThat(ex.getMessage().startsWith("Could not resolve method parameter at index 0")).as("Actual: " + ex.getMessage()).isTrue())
-				.verify(Duration.ofSeconds(5));
-	}
+    List<Decoder<?>> decoders = Collections.singletonList(StringDecoder.allMimeTypes());
+    List<Encoder<?>> encoders = Collections.singletonList(CharSequenceEncoder.allMimeTypes());
 
+    ReactiveAdapterRegistry registry = ReactiveAdapterRegistry.getSharedInstance();
+    this.returnValueHandler = new TestEncoderMethodReturnValueHandler(encoders, registry);
 
-	private MessageMappingMessageHandler initMesssageHandler() {
+    PropertySource<?> source =
+        new MapPropertySource("test", Collections.singletonMap("path", "path123"));
 
-		List<Decoder<?>> decoders = Collections.singletonList(StringDecoder.allMimeTypes());
-		List<Encoder<?>> encoders = Collections.singletonList(CharSequenceEncoder.allMimeTypes());
+    StaticApplicationContext context = new StaticApplicationContext();
+    context.getEnvironment().getPropertySources().addFirst(source);
+    context.registerSingleton("testController", TestController.class);
+    context.refresh();
 
-		ReactiveAdapterRegistry registry = ReactiveAdapterRegistry.getSharedInstance();
-		this.returnValueHandler = new TestEncoderMethodReturnValueHandler(encoders, registry);
+    MessageMappingMessageHandler messageHandler = new MessageMappingMessageHandler();
+    messageHandler.getReturnValueHandlerConfigurer().addCustomHandler(this.returnValueHandler);
+    messageHandler.setApplicationContext(context);
+    messageHandler.setEmbeddedValueResolver(new EmbeddedValueResolver(context.getBeanFactory()));
+    messageHandler.setDecoders(decoders);
+    messageHandler.afterPropertiesSet();
 
-		PropertySource<?> source = new MapPropertySource("test", Collections.singletonMap("path", "path123"));
+    return messageHandler;
+  }
 
-		StaticApplicationContext context = new StaticApplicationContext();
-		context.getEnvironment().getPropertySources().addFirst(source);
-		context.registerSingleton("testController", TestController.class);
-		context.refresh();
+  private Message<?> message(String destination, String... content) {
+    Flux<DataBuffer> payload =
+        Flux.fromIterable(Arrays.asList(content)).map(parts -> toDataBuffer(parts));
+    MessageHeaderAccessor headers = new MessageHeaderAccessor();
+    headers.setLeaveMutable(true);
+    headers.setHeader(
+        DestinationPatternsMessageCondition.LOOKUP_DESTINATION_HEADER,
+        new SimpleRouteMatcher(new AntPathMatcher()).parseRoute(destination));
+    return MessageBuilder.createMessage(payload, headers.getMessageHeaders());
+  }
 
-		MessageMappingMessageHandler messageHandler = new MessageMappingMessageHandler();
-		messageHandler.getReturnValueHandlerConfigurer().addCustomHandler(this.returnValueHandler);
-		messageHandler.setApplicationContext(context);
-		messageHandler.setEmbeddedValueResolver(new EmbeddedValueResolver(context.getBeanFactory()));
-		messageHandler.setDecoders(decoders);
-		messageHandler.afterPropertiesSet();
+  private DataBuffer toDataBuffer(String payload) {
+    return bufferFactory.wrap(payload.getBytes(UTF_8));
+  }
 
-		return messageHandler;
-	}
+  private void verifyOutputContent(List<String> expected) {
+    Flux<String> result = this.returnValueHandler.getContentAsStrings();
+    StepVerifier.create(result.collectList()).expectNext(expected).verifyComplete();
+  }
 
-	private Message<?> message(String destination, String... content) {
-		Flux<DataBuffer> payload = Flux.fromIterable(Arrays.asList(content)).map(parts -> toDataBuffer(parts));
-		MessageHeaderAccessor headers = new MessageHeaderAccessor();
-		headers.setLeaveMutable(true);
-		headers.setHeader(DestinationPatternsMessageCondition.LOOKUP_DESTINATION_HEADER,
-				new SimpleRouteMatcher(new AntPathMatcher()).parseRoute(destination));
-		return MessageBuilder.createMessage(payload, headers.getMessageHeaders());
-	}
+  @Controller
+  static class TestController {
 
-	private DataBuffer toDataBuffer(String payload) {
-		return bufferFactory.wrap(payload.getBytes(UTF_8));
-	}
+    @MessageMapping("string")
+    String handleString(String payload) {
+      return payload + "::response";
+    }
 
-	private void verifyOutputContent(List<String> expected) {
-		Flux<String> result = this.returnValueHandler.getContentAsStrings();
-		StepVerifier.create(result.collectList()).expectNext(expected).verifyComplete();
-	}
+    @MessageMapping("monoString")
+    Mono<String> handleMonoString(Mono<String> payload) {
+      return payload.map(s -> s + "::response").delayElement(Duration.ofMillis(10));
+    }
 
+    @MessageMapping("fluxString")
+    Flux<String> handleFluxString(Flux<String> payload) {
+      return payload.map(s -> s + "::response").delayElements(Duration.ofMillis(10));
+    }
 
-	@Controller
-	static class TestController {
+    @MessageMapping("${path}")
+    String handleWithPlaceholder(String payload) {
+      return payload + "::response";
+    }
 
-		@MessageMapping("string")
-		String handleString(String payload) {
-			return payload + "::response";
-		}
+    @MessageMapping("destination.{variable}")
+    String handleWithDestinationVariable(@DestinationVariable String variable, String payload) {
+      return variable + "::" + payload + "::response";
+    }
 
-		@MessageMapping("monoString")
-		Mono<String> handleMonoString(Mono<String> payload) {
-			return payload.map(s -> s + "::response").delayElement(Duration.ofMillis(10));
-		}
+    @MessageMapping("exception")
+    String handleAndThrow() {
+      throw new IllegalArgumentException("rejected");
+    }
 
-		@MessageMapping("fluxString")
-		Flux<String> handleFluxString(Flux<String> payload) {
-			return payload.map(s -> s + "::response").delayElements(Duration.ofMillis(10));
-		}
+    @MessageMapping("errorSignal")
+    Mono<String> handleAndSignalError() {
+      return Mono.delay(Duration.ofMillis(10))
+          .flatMap(aLong -> Mono.error(new IllegalArgumentException("rejected")));
+    }
 
-		@MessageMapping("${path}")
-		String handleWithPlaceholder(String payload) {
-			return payload + "::response";
-		}
-
-		@MessageMapping("destination.{variable}")
-		String handleWithDestinationVariable(@DestinationVariable String variable, String payload) {
-			return variable + "::" + payload + "::response";
-		}
-
-		@MessageMapping("exception")
-		String handleAndThrow() {
-			throw new IllegalArgumentException("rejected");
-		}
-
-		@MessageMapping("errorSignal")
-		Mono<String> handleAndSignalError() {
-			return Mono.delay(Duration.ofMillis(10))
-					.flatMap(aLong -> Mono.error(new IllegalArgumentException("rejected")));
-		}
-
-		@MessageExceptionHandler
-		Mono<String> handleException(IllegalArgumentException ex) {
-			return Mono.delay(Duration.ofMillis(10)).map(aLong -> ex.getMessage() + "::handled");
-		}
-	}
-
+    @MessageExceptionHandler
+    Mono<String> handleException(IllegalArgumentException ex) {
+      return Mono.delay(Duration.ofMillis(10)).map(aLong -> ex.getMessage() + "::handled");
+    }
+  }
 }

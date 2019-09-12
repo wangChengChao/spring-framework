@@ -21,8 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.context.TestPropertySource;
 
 /**
- * Integration tests for {@link TestPropertySource @TestPropertySource} as a
- * repeatable annotation.
+ * Integration tests for {@link TestPropertySource @TestPropertySource} as a repeatable annotation.
  *
  * @author Anatoliy Korovin
  * @author Sam Brannen
@@ -31,12 +30,11 @@ import org.springframework.test.context.TestPropertySource;
 @TestPropertySource
 @TestPropertySource("local.properties")
 class DefaultPropertiesFileDetectionRepeatedTestPropertySourceTests
-		extends AbstractRepeatableTestPropertySourceTests {
+    extends AbstractRepeatableTestPropertySourceTests {
 
-	@Test
-	void test() {
-		assertEnvironmentValue("default.value", "default file");
-		assertEnvironmentValue("key1", "local file");
-	}
-
+  @Test
+  void test() {
+    assertEnvironmentValue("default.value", "default file");
+    assertEnvironmentValue("key1", "local file");
+  }
 }

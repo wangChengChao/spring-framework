@@ -27,8 +27,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.env.repeatable.LocalInlinedPropertyOverridesInheritedAndMetaInlinedPropertiesTests.Key1InlinedTestProperty;
 
 /**
- * Integration tests for {@link TestPropertySource @TestPropertySource} as a
- * repeatable annotation.
+ * Integration tests for {@link TestPropertySource @TestPropertySource} as a repeatable annotation.
  *
  * @author Anatoliy Korovin
  * @author Sam Brannen
@@ -36,17 +35,16 @@ import org.springframework.test.context.env.repeatable.LocalInlinedPropertyOverr
  */
 @TestPropertySource(properties = "key1 = local")
 @Key1InlinedTestProperty
-class LocalInlinedPropertyOverridesInheritedAndMetaInlinedPropertiesTests extends AbstractClassWithTestProperty {
+class LocalInlinedPropertyOverridesInheritedAndMetaInlinedPropertiesTests
+    extends AbstractClassWithTestProperty {
 
-	@Test
-	void test() {
-		assertEnvironmentValue("key1", "local");
-	}
+  @Test
+  void test() {
+    assertEnvironmentValue("key1", "local");
+  }
 
-	@Target(ElementType.TYPE)
-	@Retention(RetentionPolicy.RUNTIME)
-	@TestPropertySource(properties = "key1 = meta")
-	@interface Key1InlinedTestProperty {
-	}
-
+  @Target(ElementType.TYPE)
+  @Retention(RetentionPolicy.RUNTIME)
+  @TestPropertySource(properties = "key1 = meta")
+  @interface Key1InlinedTestProperty {}
 }

@@ -30,8 +30,8 @@ import org.springframework.tests.sample.beans.Employee;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests that verify support for configuration classes in
- * the Spring TestContext Framework.
+ * Integration tests that verify support for configuration classes in the Spring TestContext
+ * Framework.
  *
  * <p>Configuration will be loaded from {@link DefaultConfigClassesBaseTests.ContextConfiguration}.
  *
@@ -43,28 +43,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ContextConfiguration(loader = AnnotationConfigContextLoader.class)
 public class DefaultConfigClassesBaseTests {
 
-	@Configuration
-	static class ContextConfiguration {
+  @Configuration
+  static class ContextConfiguration {
 
-		@Bean
-		public Employee employee() {
-			Employee employee = new Employee();
-			employee.setName("John Smith");
-			employee.setAge(42);
-			employee.setCompany("Acme Widgets, Inc.");
-			return employee;
-		}
-	}
+    @Bean
+    public Employee employee() {
+      Employee employee = new Employee();
+      employee.setName("John Smith");
+      employee.setAge(42);
+      employee.setCompany("Acme Widgets, Inc.");
+      return employee;
+    }
+  }
 
+  @Autowired protected Employee employee;
 
-	@Autowired
-	protected Employee employee;
-
-
-	@Test
-	public void verifyEmployeeSetFromBaseContextConfig() {
-		assertThat(this.employee).as("The employee field should have been autowired.").isNotNull();
-		assertThat(this.employee.getName()).isEqualTo("John Smith");
-	}
-
+  @Test
+  public void verifyEmployeeSetFromBaseContextConfig() {
+    assertThat(this.employee).as("The employee field should have been autowired.").isNotNull();
+    assertThat(this.employee.getName()).isEqualTo("John Smith");
+  }
 }

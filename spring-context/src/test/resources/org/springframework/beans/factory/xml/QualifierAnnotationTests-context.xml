@@ -15,48 +15,84 @@
 		</property>
 	</bean>
 
-	<bean id="larryBean" class="org.springframework.beans.factory.xml.QualifierAnnotationTests$Person">
-		<property name="name" value="LarryBean"/>
+	<bean
+			id="larryBean"
+			class="org.springframework.beans.factory.xml.QualifierAnnotationTests$Person">
+		<property
+				name="name"
+				value="LarryBean"/>
 	</bean>
 
-	<alias name="${myProp}Bean" alias="someAlias"/>
+	<alias
+			name="${myProp}Bean"
+			alias="someAlias"/>
 
-	<alias name="someAlias" alias="stooge"/>
+	<alias
+			name="someAlias"
+			alias="stooge"/>
 
 	<bean class="org.springframework.beans.factory.xml.QualifierAnnotationTests$Person">
-		<property name="name" value="Larry"/>
+		<property
+				name="name"
+				value="Larry"/>
 		<qualifier value="larry"/>
 	</bean>
 
 	<bean class="org.springframework.beans.factory.xml.QualifierAnnotationTests$SpecialPerson">
-		<property name="name" value="LarrySpecial"/>
+		<property
+				name="name"
+				value="LarrySpecial"/>
 	</bean>
 
 	<bean class="org.springframework.beans.factory.xml.QualifierAnnotationTests$Person">
-		<property name="name" value="Curly"/>
-		<qualifier type="QualifierAnnotationTests.SimpleValueQualifier" value="curly"/>
+		<property
+				name="name"
+				value="Curly"/>
+		<qualifier
+				type="QualifierAnnotationTests.SimpleValueQualifier"
+				value="curly"/>
 	</bean>
 
 	<bean class="org.springframework.beans.factory.xml.QualifierAnnotationTests$Person">
-		<meta key="name" value="moe"/>
-		<meta key="age" value="42"/>
-		<property name="name" value="Moe Sr."/>
+		<meta
+				key="name"
+				value="moe"/>
+		<meta
+				key="age"
+				value="42"/>
+		<property
+				name="name"
+				value="Moe Sr."/>
 	</bean>
 
 	<bean class="org.springframework.beans.factory.xml.QualifierAnnotationTests$Person">
-		<property name="name" value="Moe Jr."/>
+		<property
+				name="name"
+				value="Moe Jr."/>
 		<qualifier type="QualifierAnnotationTests.MultipleAttributeQualifier">
-			<attribute key="name" value="moe"/>
-			<attribute key="age" value="15"/>
+			<attribute
+					key="name"
+					value="moe"/>
+			<attribute
+					key="age"
+					value="15"/>
 		</qualifier>
 	</bean>
 
-	<bean id="testProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean"/>
+	<bean
+			id="testProperties"
+			class="org.springframework.beans.factory.config.PropertiesFactoryBean"/>
 
-	<bean id="thetaClient" class="org.springframework.beans.factory.xml.QualifierAnnotationTests$MultiQualifierClient"/>
+	<bean
+			id="thetaClient"
+			class="org.springframework.beans.factory.xml.QualifierAnnotationTests$MultiQualifierClient"/>
 
-    <bean id="thetaFactory" class="org.springframework.beans.factory.xml.QualifierAnnotationTests$QualifiedFactoryBean"/>
+	<bean
+			id="thetaFactory"
+			class="org.springframework.beans.factory.xml.QualifierAnnotationTests$QualifiedFactoryBean"/>
 
-    <bean id="thetaImpl" class="org.springframework.beans.factory.xml.QualifierAnnotationTests$ThetaImpl"/>
+	<bean
+			id="thetaImpl"
+			class="org.springframework.beans.factory.xml.QualifierAnnotationTests$ThetaImpl"/>
 
 </beans>

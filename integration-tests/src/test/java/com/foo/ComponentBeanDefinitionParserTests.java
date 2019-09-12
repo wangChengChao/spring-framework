@@ -16,7 +16,6 @@
 
 package com.foo;
 
-
 import java.util.List;
 
 import org.junit.jupiter.api.AfterAll;
@@ -29,50 +28,48 @@ import org.springframework.core.io.ClassPathResource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
-/**
- * @author Costin Leau
- */
+/** @author Costin Leau */
 public class ComponentBeanDefinitionParserTests {
 
-	private static DefaultListableBeanFactory bf;
+  private static DefaultListableBeanFactory bf;
 
-	@BeforeAll
-	public static void setUpBeforeClass() throws Exception {
-		bf = new DefaultListableBeanFactory();
-		new XmlBeanDefinitionReader(bf).loadBeanDefinitions(new ClassPathResource("com/foo/component-config.xml"));
-	}
+  @BeforeAll
+  public static void setUpBeforeClass() throws Exception {
+    bf = new DefaultListableBeanFactory();
+    new XmlBeanDefinitionReader(bf)
+        .loadBeanDefinitions(new ClassPathResource("com/foo/component-config.xml"));
+  }
 
-	@AfterAll
-	public static void tearDownAfterClass() throws Exception {
-		bf.destroySingletons();
-	}
+  @AfterAll
+  public static void tearDownAfterClass() throws Exception {
+    bf.destroySingletons();
+  }
 
-	private Component getBionicFamily() {
-		return bf.getBean("bionic-family", Component.class);
-	}
+  private Component getBionicFamily() {
+    return bf.getBean("bionic-family", Component.class);
+  }
 
-	@Test
-	public void testBionicBasic() throws Exception {
-		Component cp = getBionicFamily();
-		assertThat("Bionic-1").isEqualTo(cp.getName());
-	}
+  @Test
+  public void testBionicBasic() throws Exception {
+    Component cp = getBionicFamily();
+    assertThat("Bionic-1").isEqualTo(cp.getName());
+  }
 
-	@Test
-	public void testBionicFirstLevelChildren() throws Exception {
-		Component cp = getBionicFamily();
-		List<Component> components = cp.getComponents();
-		assertThat(2).isEqualTo(components.size());
-		assertThat("Mother-1").isEqualTo(components.get(0).getName());
-		assertThat("Rock-1").isEqualTo(components.get(1).getName());
-	}
+  @Test
+  public void testBionicFirstLevelChildren() throws Exception {
+    Component cp = getBionicFamily();
+    List<Component> components = cp.getComponents();
+    assertThat(2).isEqualTo(components.size());
+    assertThat("Mother-1").isEqualTo(components.get(0).getName());
+    assertThat("Rock-1").isEqualTo(components.get(1).getName());
+  }
 
-	@Test
-	public void testBionicSecondLevelChildren() throws Exception {
-		Component cp = getBionicFamily();
-		List<Component> components = cp.getComponents().get(0).getComponents();
-		assertThat(2).isEqualTo(components.size());
-		assertThat("Karate-1").isEqualTo(components.get(0).getName());
-		assertThat("Sport-1").isEqualTo(components.get(1).getName());
-	}
+  @Test
+  public void testBionicSecondLevelChildren() throws Exception {
+    Component cp = getBionicFamily();
+    List<Component> components = cp.getComponents().get(0).getComponents();
+    assertThat(2).isEqualTo(components.size());
+    assertThat("Karate-1").isEqualTo(components.get(0).getName());
+    assertThat("Sport-1").isEqualTo(components.get(1).getName());
+  }
 }

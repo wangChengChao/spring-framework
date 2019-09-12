@@ -36,56 +36,55 @@ import static org.springframework.tests.TestResourceUtils.qualifiedResource;
  */
 public class CustomProblemReporterTests {
 
-	private CollatingProblemReporter problemReporter;
+  private CollatingProblemReporter problemReporter;
 
-	private DefaultListableBeanFactory beanFactory;
+  private DefaultListableBeanFactory beanFactory;
 
-	private XmlBeanDefinitionReader reader;
+  private XmlBeanDefinitionReader reader;
 
+  @BeforeEach
+  public void setup() {
+    this.problemReporter = new CollatingProblemReporter();
+    this.beanFactory = new DefaultListableBeanFactory();
+    this.reader = new XmlBeanDefinitionReader(this.beanFactory);
+    this.reader.setProblemReporter(this.problemReporter);
+  }
 
-	@BeforeEach
-	public void setup() {
-		this.problemReporter = new CollatingProblemReporter();
-		this.beanFactory = new DefaultListableBeanFactory();
-		this.reader = new XmlBeanDefinitionReader(this.beanFactory);
-		this.reader.setProblemReporter(this.problemReporter);
-	}
+  @Test
+  public void testErrorsAreCollated() {
+    this.reader.loadBeanDefinitions(
+        qualifiedResource(CustomProblemReporterTests.class, "context.xml"));
+    assertThat(this.problemReporter.getErrors().length)
+        .as("Incorrect number of errors collated")
+        .isEqualTo(4);
 
+    TestBean bean = (TestBean) this.beanFactory.getBean("validBean");
+    assertThat(bean).isNotNull();
+  }
 
-	@Test
-	public void testErrorsAreCollated() {
-		this.reader.loadBeanDefinitions(qualifiedResource(CustomProblemReporterTests.class, "context.xml"));
-		assertThat(this.problemReporter.getErrors().length).as("Incorrect number of errors collated").isEqualTo(4);
+  private static class CollatingProblemReporter implements ProblemReporter {
 
-		TestBean bean = (TestBean) this.beanFactory.getBean("validBean");
-		assertThat(bean).isNotNull();
-	}
+    private final List<Problem> errors = new ArrayList<>();
 
+    private final List<Problem> warnings = new ArrayList<>();
 
-	private static class CollatingProblemReporter implements ProblemReporter {
+    @Override
+    public void fatal(Problem problem) {
+      throw new BeanDefinitionParsingException(problem);
+    }
 
-		private final List<Problem> errors = new ArrayList<>();
+    @Override
+    public void error(Problem problem) {
+      this.errors.add(problem);
+    }
 
-		private final List<Problem> warnings = new ArrayList<>();
+    public Problem[] getErrors() {
+      return this.errors.toArray(new Problem[this.errors.size()]);
+    }
 
-		@Override
-		public void fatal(Problem problem) {
-			throw new BeanDefinitionParsingException(problem);
-		}
-
-		@Override
-		public void error(Problem problem) {
-			this.errors.add(problem);
-		}
-
-		public Problem[] getErrors() {
-			return this.errors.toArray(new Problem[this.errors.size()]);
-		}
-
-		@Override
-		public void warning(Problem problem) {
-			this.warnings.add(problem);
-		}
-	}
-
+    @Override
+    public void warning(Problem problem) {
+      this.warnings.add(problem);
+    }
+  }
 }

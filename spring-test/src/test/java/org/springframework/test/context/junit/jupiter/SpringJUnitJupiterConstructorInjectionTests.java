@@ -30,12 +30,12 @@ import org.springframework.test.context.junit.jupiter.comics.Person;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests which demonstrate support for autowiring individual
- * parameters in test class constructors using {@link Autowired @Autowired}
- * and {@link Value @Value} with the Spring TestContext Framework and JUnit Jupiter.
+ * Integration tests which demonstrate support for autowiring individual parameters in test class
+ * constructors using {@link Autowired @Autowired} and {@link Value @Value} with the Spring
+ * TestContext Framework and JUnit Jupiter.
  *
- * <p>To run these tests in an IDE that does not have built-in support for the JUnit
- * Platform, simply run {@link SpringJUnitJupiterTestSuite} as a JUnit 4 test.
+ * <p>To run these tests in an IDE that does not have built-in support for the JUnit Platform,
+ * simply run {@link SpringJUnitJupiterTestSuite} as a JUnit 4 test.
  *
  * @author Sam Brannen
  * @since 5.0
@@ -46,46 +46,51 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(properties = "enigma = 42")
 class SpringJUnitJupiterConstructorInjectionTests {
 
-	final ApplicationContext applicationContext;
-	final Person dilbert;
-	final Dog dog;
-	final Integer enigma;
-	final TestInfo testInfo;
+  final ApplicationContext applicationContext;
+  final Person dilbert;
+  final Dog dog;
+  final Integer enigma;
+  final TestInfo testInfo;
 
-	SpringJUnitJupiterConstructorInjectionTests(ApplicationContext applicationContext, @Autowired Person dilbert,
-			@Autowired Dog dog, @Value("${enigma}") Integer enigma, TestInfo testInfo) {
+  SpringJUnitJupiterConstructorInjectionTests(
+      ApplicationContext applicationContext,
+      @Autowired Person dilbert,
+      @Autowired Dog dog,
+      @Value("${enigma}") Integer enigma,
+      TestInfo testInfo) {
 
-		this.applicationContext = applicationContext;
-		this.dilbert = dilbert;
-		this.dog = dog;
-		this.enigma = enigma;
-		this.testInfo = testInfo;
-	}
+    this.applicationContext = applicationContext;
+    this.dilbert = dilbert;
+    this.dog = dog;
+    this.enigma = enigma;
+    this.testInfo = testInfo;
+  }
 
-	@Test
-	void applicationContextInjected() {
-		assertThat(applicationContext).as("ApplicationContext should have been injected by Spring").isNotNull();
-		assertThat(applicationContext.getBean("dilbert", Person.class)).isEqualTo(this.dilbert);
-	}
+  @Test
+  void applicationContextInjected() {
+    assertThat(applicationContext)
+        .as("ApplicationContext should have been injected by Spring")
+        .isNotNull();
+    assertThat(applicationContext.getBean("dilbert", Person.class)).isEqualTo(this.dilbert);
+  }
 
-	@Test
-	void beansInjected() {
-		assertThat(this.dilbert).as("Dilbert should have been @Autowired by Spring").isNotNull();
-		assertThat(this.dilbert.getName()).as("Person's name").isEqualTo("Dilbert");
+  @Test
+  void beansInjected() {
+    assertThat(this.dilbert).as("Dilbert should have been @Autowired by Spring").isNotNull();
+    assertThat(this.dilbert.getName()).as("Person's name").isEqualTo("Dilbert");
 
-		assertThat(this.dog).as("Dogbert should have been @Autowired by Spring").isNotNull();
-		assertThat(this.dog.getName()).as("Dog's name").isEqualTo("Dogbert");
-	}
+    assertThat(this.dog).as("Dogbert should have been @Autowired by Spring").isNotNull();
+    assertThat(this.dog.getName()).as("Dog's name").isEqualTo("Dogbert");
+  }
 
-	@Test
-	void propertyPlaceholderInjected() {
-		assertThat(this.enigma).as("Enigma should have been injected via @Value by Spring").isNotNull();
-		assertThat(this.enigma).as("enigma").isEqualTo(42);
-	}
+  @Test
+  void propertyPlaceholderInjected() {
+    assertThat(this.enigma).as("Enigma should have been injected via @Value by Spring").isNotNull();
+    assertThat(this.enigma).as("enigma").isEqualTo(42);
+  }
 
-	@Test
-	void testInfoInjected() {
-		assertThat(this.testInfo).as("TestInfo should have been injected by JUnit").isNotNull();
-	}
-
+  @Test
+  void testInfoInjected() {
+    assertThat(this.testInfo).as("TestInfo should have been injected by JUnit").isNotNull();
+  }
 }

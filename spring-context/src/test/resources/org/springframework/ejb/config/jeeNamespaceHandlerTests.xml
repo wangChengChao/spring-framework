@@ -33,7 +33,8 @@
 		<jee:environment>foo=bar</jee:environment>
 	</jee:jndi-lookup>
 
-	<jee:jndi-lookup id="withReferencedEnvironment" jndi-name="jdbc/MyDataSource" environment-ref="myEnvironment"/>
+	<jee:jndi-lookup id="withReferencedEnvironment" jndi-name="jdbc/MyDataSource"
+			environment-ref="myEnvironment"/>
 
 	<util:properties id="myEnvironment">
 		<prop key="foo">bar</prop>
@@ -64,15 +65,15 @@
 			resource-ref="true"
 			home-interface="org.springframework.tests.sample.beans.ITestBean"
 			refresh-home-on-connect-failure="true"
-      cache-session-bean="true">
+			cache-session-bean="true">
 		<jee:environment>foo=bar</jee:environment>
 	</jee:remote-slsb>
 
 	<!-- Lazy beans Tests-->
-	<jee:jndi-lookup id="lazyDataSource" jndi-name="jdbc/MyDataSource" lazy-init="true" />
+	<jee:jndi-lookup id="lazyDataSource" jndi-name="jdbc/MyDataSource" lazy-init="true"/>
 	<jee:local-slsb id="lazyLocalBean" jndi-name="ejb/MyLocalBean"
-		business-interface="org.springframework.tests.sample.beans.ITestBean" lazy-init="true" />
+			business-interface="org.springframework.tests.sample.beans.ITestBean" lazy-init="true"/>
 	<jee:remote-slsb id="lazyRemoteBean" jndi-name="ejb/MyRemoteBean"
-		business-interface="org.springframework.tests.sample.beans.ITestBean" lazy-init="true" />
+			business-interface="org.springframework.tests.sample.beans.ITestBean" lazy-init="true"/>
 
 </beans>

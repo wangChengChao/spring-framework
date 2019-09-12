@@ -53,253 +53,252 @@ import static org.mockito.Mockito.mock;
  */
 public class ModelFactoryTests {
 
-	private NativeWebRequest webRequest;
+  private NativeWebRequest webRequest;
 
-	private SessionAttributesHandler attributeHandler;
+  private SessionAttributesHandler attributeHandler;
 
-	private SessionAttributeStore attributeStore;
+  private SessionAttributeStore attributeStore;
 
-	private TestController controller = new TestController();
+  private TestController controller = new TestController();
 
-	private ModelAndViewContainer mavContainer;
+  private ModelAndViewContainer mavContainer;
 
+  @BeforeEach
+  public void setUp() throws Exception {
+    this.webRequest = new ServletWebRequest(new MockHttpServletRequest());
+    this.attributeStore = new DefaultSessionAttributeStore();
+    this.attributeHandler = new SessionAttributesHandler(TestController.class, this.attributeStore);
+    this.controller = new TestController();
+    this.mavContainer = new ModelAndViewContainer();
+  }
 
-	@BeforeEach
-	public void setUp() throws Exception {
-		this.webRequest = new ServletWebRequest(new MockHttpServletRequest());
-		this.attributeStore = new DefaultSessionAttributeStore();
-		this.attributeHandler = new SessionAttributesHandler(TestController.class, this.attributeStore);
-		this.controller = new TestController();
-		this.mavContainer = new ModelAndViewContainer();
-	}
+  @Test
+  public void modelAttributeMethod() throws Exception {
+    ModelFactory modelFactory = createModelFactory("modelAttr", Model.class);
+    HandlerMethod handlerMethod = createHandlerMethod("handle");
+    modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod);
 
+    assertThat(this.mavContainer.getModel().get("modelAttr")).isEqualTo(Boolean.TRUE);
+  }
 
-	@Test
-	public void modelAttributeMethod() throws Exception {
-		ModelFactory modelFactory = createModelFactory("modelAttr", Model.class);
-		HandlerMethod handlerMethod = createHandlerMethod("handle");
-		modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod);
+  @Test
+  public void modelAttributeMethodWithExplicitName() throws Exception {
+    ModelFactory modelFactory = createModelFactory("modelAttrWithName");
+    HandlerMethod handlerMethod = createHandlerMethod("handle");
+    modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod);
 
-		assertThat(this.mavContainer.getModel().get("modelAttr")).isEqualTo(Boolean.TRUE);
-	}
+    assertThat(this.mavContainer.getModel().get("name")).isEqualTo(Boolean.TRUE);
+  }
 
-	@Test
-	public void modelAttributeMethodWithExplicitName() throws Exception {
-		ModelFactory modelFactory = createModelFactory("modelAttrWithName");
-		HandlerMethod handlerMethod = createHandlerMethod("handle");
-		modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod);
+  @Test
+  public void modelAttributeMethodWithNameByConvention() throws Exception {
+    ModelFactory modelFactory = createModelFactory("modelAttrConvention");
+    HandlerMethod handlerMethod = createHandlerMethod("handle");
+    modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod);
 
-		assertThat(this.mavContainer.getModel().get("name")).isEqualTo(Boolean.TRUE);
-	}
+    assertThat(this.mavContainer.getModel().get("boolean")).isEqualTo(Boolean.TRUE);
+  }
 
-	@Test
-	public void modelAttributeMethodWithNameByConvention() throws Exception {
-		ModelFactory modelFactory = createModelFactory("modelAttrConvention");
-		HandlerMethod handlerMethod = createHandlerMethod("handle");
-		modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod);
+  @Test
+  public void modelAttributeMethodWithNullReturnValue() throws Exception {
+    ModelFactory modelFactory = createModelFactory("nullModelAttr");
+    HandlerMethod handlerMethod = createHandlerMethod("handle");
+    modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod);
 
-		assertThat(this.mavContainer.getModel().get("boolean")).isEqualTo(Boolean.TRUE);
-	}
+    assertThat(this.mavContainer.containsAttribute("name")).isTrue();
+    assertThat(this.mavContainer.getModel().get("name")).isNull();
+  }
 
-	@Test
-	public void modelAttributeMethodWithNullReturnValue() throws Exception {
-		ModelFactory modelFactory = createModelFactory("nullModelAttr");
-		HandlerMethod handlerMethod = createHandlerMethod("handle");
-		modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod);
+  @Test
+  public void modelAttributeWithBindingDisabled() throws Exception {
+    ModelFactory modelFactory = createModelFactory("modelAttrWithBindingDisabled");
+    HandlerMethod handlerMethod = createHandlerMethod("handle");
+    modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod);
 
-		assertThat(this.mavContainer.containsAttribute("name")).isTrue();
-		assertThat(this.mavContainer.getModel().get("name")).isNull();
-	}
+    assertThat(this.mavContainer.containsAttribute("foo")).isTrue();
+    assertThat(this.mavContainer.isBindingDisabled("foo")).isTrue();
+  }
 
-	@Test
-	public void modelAttributeWithBindingDisabled() throws Exception {
-		ModelFactory modelFactory = createModelFactory("modelAttrWithBindingDisabled");
-		HandlerMethod handlerMethod = createHandlerMethod("handle");
-		modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod);
+  @Test
+  public void modelAttributeFromSessionWithBindingDisabled() throws Exception {
+    Foo foo = new Foo();
+    this.attributeStore.storeAttribute(this.webRequest, "foo", foo);
 
-		assertThat(this.mavContainer.containsAttribute("foo")).isTrue();
-		assertThat(this.mavContainer.isBindingDisabled("foo")).isTrue();
-	}
+    ModelFactory modelFactory = createModelFactory("modelAttrWithBindingDisabled");
+    HandlerMethod handlerMethod = createHandlerMethod("handle");
+    modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod);
 
-	@Test
-	public void modelAttributeFromSessionWithBindingDisabled() throws Exception {
-		Foo foo = new Foo();
-		this.attributeStore.storeAttribute(this.webRequest, "foo", foo);
+    assertThat(this.mavContainer.containsAttribute("foo")).isTrue();
+    assertThat(this.mavContainer.getModel().get("foo")).isSameAs(foo);
+    assertThat(this.mavContainer.isBindingDisabled("foo")).isTrue();
+  }
 
-		ModelFactory modelFactory = createModelFactory("modelAttrWithBindingDisabled");
-		HandlerMethod handlerMethod = createHandlerMethod("handle");
-		modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod);
+  @Test
+  public void sessionAttribute() throws Exception {
+    this.attributeStore.storeAttribute(this.webRequest, "sessionAttr", "sessionAttrValue");
 
-		assertThat(this.mavContainer.containsAttribute("foo")).isTrue();
-		assertThat(this.mavContainer.getModel().get("foo")).isSameAs(foo);
-		assertThat(this.mavContainer.isBindingDisabled("foo")).isTrue();
-	}
+    ModelFactory modelFactory = createModelFactory("modelAttr", Model.class);
+    HandlerMethod handlerMethod = createHandlerMethod("handle");
+    modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod);
 
-	@Test
-	public void sessionAttribute() throws Exception {
-		this.attributeStore.storeAttribute(this.webRequest, "sessionAttr", "sessionAttrValue");
+    assertThat(this.mavContainer.getModel().get("sessionAttr")).isEqualTo("sessionAttrValue");
+  }
 
-		ModelFactory modelFactory = createModelFactory("modelAttr", Model.class);
-		HandlerMethod handlerMethod = createHandlerMethod("handle");
-		modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod);
+  @Test
+  public void sessionAttributeNotPresent() throws Exception {
+    ModelFactory modelFactory = new ModelFactory(null, null, this.attributeHandler);
+    HandlerMethod handlerMethod = createHandlerMethod("handleSessionAttr", String.class);
+    assertThatExceptionOfType(HttpSessionRequiredException.class)
+        .isThrownBy(
+            () -> modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod));
 
-		assertThat(this.mavContainer.getModel().get("sessionAttr")).isEqualTo("sessionAttrValue");
-	}
+    // Now add attribute and try again
+    this.attributeStore.storeAttribute(this.webRequest, "sessionAttr", "sessionAttrValue");
 
-	@Test
-	public void sessionAttributeNotPresent() throws Exception {
-		ModelFactory modelFactory = new ModelFactory(null, null, this.attributeHandler);
-		HandlerMethod handlerMethod = createHandlerMethod("handleSessionAttr", String.class);
-		assertThatExceptionOfType(HttpSessionRequiredException.class).isThrownBy(() ->
-				modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod));
+    modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod);
+    assertThat(this.mavContainer.getModel().get("sessionAttr")).isEqualTo("sessionAttrValue");
+  }
 
-		// Now add attribute and try again
-		this.attributeStore.storeAttribute(this.webRequest, "sessionAttr", "sessionAttrValue");
+  @Test
+  public void updateModelBindingResult() throws Exception {
+    String commandName = "attr1";
+    Object command = new Object();
+    ModelAndViewContainer container = new ModelAndViewContainer();
+    container.addAttribute(commandName, command);
 
-		modelFactory.initModel(this.webRequest, this.mavContainer, handlerMethod);
-		assertThat(this.mavContainer.getModel().get("sessionAttr")).isEqualTo("sessionAttrValue");
-	}
+    WebDataBinder dataBinder = new WebDataBinder(command, commandName);
+    WebDataBinderFactory binderFactory = mock(WebDataBinderFactory.class);
+    given(binderFactory.createBinder(this.webRequest, command, commandName)).willReturn(dataBinder);
 
-	@Test
-	public void updateModelBindingResult() throws Exception {
-		String commandName = "attr1";
-		Object command = new Object();
-		ModelAndViewContainer container = new ModelAndViewContainer();
-		container.addAttribute(commandName, command);
+    ModelFactory modelFactory = new ModelFactory(null, binderFactory, this.attributeHandler);
+    modelFactory.updateModel(this.webRequest, container);
 
-		WebDataBinder dataBinder = new WebDataBinder(command, commandName);
-		WebDataBinderFactory binderFactory = mock(WebDataBinderFactory.class);
-		given(binderFactory.createBinder(this.webRequest, command, commandName)).willReturn(dataBinder);
+    assertThat(container.getModel().get(commandName)).isEqualTo(command);
+    String bindingResultKey = BindingResult.MODEL_KEY_PREFIX + commandName;
+    assertThat(container.getModel().get(bindingResultKey)).isSameAs(dataBinder.getBindingResult());
+    assertThat(container.getModel().size()).isEqualTo(2);
+  }
 
-		ModelFactory modelFactory = new ModelFactory(null, binderFactory, this.attributeHandler);
-		modelFactory.updateModel(this.webRequest, container);
+  @Test
+  public void updateModelSessionAttributesSaved() throws Exception {
+    String attributeName = "sessionAttr";
+    String attribute = "value";
+    ModelAndViewContainer container = new ModelAndViewContainer();
+    container.addAttribute(attributeName, attribute);
 
-		assertThat(container.getModel().get(commandName)).isEqualTo(command);
-		String bindingResultKey = BindingResult.MODEL_KEY_PREFIX + commandName;
-		assertThat(container.getModel().get(bindingResultKey)).isSameAs(dataBinder.getBindingResult());
-		assertThat(container.getModel().size()).isEqualTo(2);
-	}
+    WebDataBinder dataBinder = new WebDataBinder(attribute, attributeName);
+    WebDataBinderFactory binderFactory = mock(WebDataBinderFactory.class);
+    given(binderFactory.createBinder(this.webRequest, attribute, attributeName))
+        .willReturn(dataBinder);
 
-	@Test
-	public void updateModelSessionAttributesSaved() throws Exception {
-		String attributeName = "sessionAttr";
-		String attribute = "value";
-		ModelAndViewContainer container = new ModelAndViewContainer();
-		container.addAttribute(attributeName, attribute);
+    ModelFactory modelFactory = new ModelFactory(null, binderFactory, this.attributeHandler);
+    modelFactory.updateModel(this.webRequest, container);
 
-		WebDataBinder dataBinder = new WebDataBinder(attribute, attributeName);
-		WebDataBinderFactory binderFactory = mock(WebDataBinderFactory.class);
-		given(binderFactory.createBinder(this.webRequest, attribute, attributeName)).willReturn(dataBinder);
+    assertThat(container.getModel().get(attributeName)).isEqualTo(attribute);
+    assertThat(this.attributeStore.retrieveAttribute(this.webRequest, attributeName))
+        .isEqualTo(attribute);
+  }
 
-		ModelFactory modelFactory = new ModelFactory(null, binderFactory, this.attributeHandler);
-		modelFactory.updateModel(this.webRequest, container);
+  @Test
+  public void updateModelSessionAttributesRemoved() throws Exception {
+    String attributeName = "sessionAttr";
+    String attribute = "value";
+    ModelAndViewContainer container = new ModelAndViewContainer();
+    container.addAttribute(attributeName, attribute);
 
-		assertThat(container.getModel().get(attributeName)).isEqualTo(attribute);
-		assertThat(this.attributeStore.retrieveAttribute(this.webRequest, attributeName)).isEqualTo(attribute);
-	}
+    this.attributeStore.storeAttribute(this.webRequest, attributeName, attribute);
 
-	@Test
-	public void updateModelSessionAttributesRemoved() throws Exception {
-		String attributeName = "sessionAttr";
-		String attribute = "value";
-		ModelAndViewContainer container = new ModelAndViewContainer();
-		container.addAttribute(attributeName, attribute);
+    WebDataBinder dataBinder = new WebDataBinder(attribute, attributeName);
+    WebDataBinderFactory binderFactory = mock(WebDataBinderFactory.class);
+    given(binderFactory.createBinder(this.webRequest, attribute, attributeName))
+        .willReturn(dataBinder);
 
-		this.attributeStore.storeAttribute(this.webRequest, attributeName, attribute);
+    container.getSessionStatus().setComplete();
 
-		WebDataBinder dataBinder = new WebDataBinder(attribute, attributeName);
-		WebDataBinderFactory binderFactory = mock(WebDataBinderFactory.class);
-		given(binderFactory.createBinder(this.webRequest, attribute, attributeName)).willReturn(dataBinder);
+    ModelFactory modelFactory = new ModelFactory(null, binderFactory, this.attributeHandler);
+    modelFactory.updateModel(this.webRequest, container);
 
-		container.getSessionStatus().setComplete();
+    assertThat(container.getModel().get(attributeName)).isEqualTo(attribute);
+    assertThat(this.attributeStore.retrieveAttribute(this.webRequest, attributeName)).isNull();
+  }
 
-		ModelFactory modelFactory = new ModelFactory(null, binderFactory, this.attributeHandler);
-		modelFactory.updateModel(this.webRequest, container);
+  @Test // SPR-12542
+  public void updateModelWhenRedirecting() throws Exception {
+    String attributeName = "sessionAttr";
+    String attribute = "value";
+    ModelAndViewContainer container = new ModelAndViewContainer();
+    container.addAttribute(attributeName, attribute);
 
-		assertThat(container.getModel().get(attributeName)).isEqualTo(attribute);
-		assertThat(this.attributeStore.retrieveAttribute(this.webRequest, attributeName)).isNull();
-	}
+    String queryParam = "123";
+    String queryParamName = "q";
+    container.setRedirectModel(new ModelMap(queryParamName, queryParam));
+    container.setRedirectModelScenario(true);
 
-	@Test  // SPR-12542
-	public void updateModelWhenRedirecting() throws Exception {
-		String attributeName = "sessionAttr";
-		String attribute = "value";
-		ModelAndViewContainer container = new ModelAndViewContainer();
-		container.addAttribute(attributeName, attribute);
+    WebDataBinder dataBinder = new WebDataBinder(attribute, attributeName);
+    WebDataBinderFactory binderFactory = mock(WebDataBinderFactory.class);
+    given(binderFactory.createBinder(this.webRequest, attribute, attributeName))
+        .willReturn(dataBinder);
 
-		String queryParam = "123";
-		String queryParamName = "q";
-		container.setRedirectModel(new ModelMap(queryParamName, queryParam));
-		container.setRedirectModelScenario(true);
+    ModelFactory modelFactory = new ModelFactory(null, binderFactory, this.attributeHandler);
+    modelFactory.updateModel(this.webRequest, container);
 
-		WebDataBinder dataBinder = new WebDataBinder(attribute, attributeName);
-		WebDataBinderFactory binderFactory = mock(WebDataBinderFactory.class);
-		given(binderFactory.createBinder(this.webRequest, attribute, attributeName)).willReturn(dataBinder);
+    assertThat(container.getModel().get(queryParamName)).isEqualTo(queryParam);
+    assertThat(container.getModel().size()).isEqualTo(1);
+    assertThat(this.attributeStore.retrieveAttribute(this.webRequest, attributeName))
+        .isEqualTo(attribute);
+  }
 
-		ModelFactory modelFactory = new ModelFactory(null, binderFactory, this.attributeHandler);
-		modelFactory.updateModel(this.webRequest, container);
+  private ModelFactory createModelFactory(String methodName, Class<?>... parameterTypes)
+      throws Exception {
+    HandlerMethodArgumentResolverComposite resolvers = new HandlerMethodArgumentResolverComposite();
+    resolvers.addResolver(new ModelMethodProcessor());
 
-		assertThat(container.getModel().get(queryParamName)).isEqualTo(queryParam);
-		assertThat(container.getModel().size()).isEqualTo(1);
-		assertThat(this.attributeStore.retrieveAttribute(this.webRequest, attributeName)).isEqualTo(attribute);
-	}
+    InvocableHandlerMethod modelMethod = createHandlerMethod(methodName, parameterTypes);
+    modelMethod.setHandlerMethodArgumentResolvers(resolvers);
+    modelMethod.setDataBinderFactory(null);
+    modelMethod.setParameterNameDiscoverer(new LocalVariableTableParameterNameDiscoverer());
 
+    return new ModelFactory(Collections.singletonList(modelMethod), null, this.attributeHandler);
+  }
 
-	private ModelFactory createModelFactory(String methodName, Class<?>... parameterTypes) throws Exception {
-		HandlerMethodArgumentResolverComposite resolvers = new HandlerMethodArgumentResolverComposite();
-		resolvers.addResolver(new ModelMethodProcessor());
+  private InvocableHandlerMethod createHandlerMethod(String methodName, Class<?>... paramTypes)
+      throws Exception {
+    Method method = this.controller.getClass().getMethod(methodName, paramTypes);
+    return new InvocableHandlerMethod(this.controller, method);
+  }
 
-		InvocableHandlerMethod modelMethod = createHandlerMethod(methodName, parameterTypes);
-		modelMethod.setHandlerMethodArgumentResolvers(resolvers);
-		modelMethod.setDataBinderFactory(null);
-		modelMethod.setParameterNameDiscoverer(new LocalVariableTableParameterNameDiscoverer());
+  @SessionAttributes({"sessionAttr", "foo"})
+  static class TestController {
 
-		return new ModelFactory(Collections.singletonList(modelMethod), null, this.attributeHandler);
-	}
+    @ModelAttribute
+    public void modelAttr(Model model) {
+      model.addAttribute("modelAttr", Boolean.TRUE);
+    }
 
-	private InvocableHandlerMethod createHandlerMethod(String methodName, Class<?>... paramTypes) throws Exception {
-		Method method = this.controller.getClass().getMethod(methodName, paramTypes);
-		return new InvocableHandlerMethod(this.controller, method);
-	}
+    @ModelAttribute("name")
+    public Boolean modelAttrWithName() {
+      return Boolean.TRUE;
+    }
 
+    @ModelAttribute
+    public Boolean modelAttrConvention() {
+      return Boolean.TRUE;
+    }
 
-	@SessionAttributes({"sessionAttr", "foo"})
-	static class TestController {
+    @ModelAttribute("name")
+    public Boolean nullModelAttr() {
+      return null;
+    }
 
-		@ModelAttribute
-		public void modelAttr(Model model) {
-			model.addAttribute("modelAttr", Boolean.TRUE);
-		}
+    @ModelAttribute(name = "foo", binding = false)
+    public Foo modelAttrWithBindingDisabled() {
+      return new Foo();
+    }
 
-		@ModelAttribute("name")
-		public Boolean modelAttrWithName() {
-			return Boolean.TRUE;
-		}
+    public void handle() {}
 
-		@ModelAttribute
-		public Boolean modelAttrConvention() {
-			return Boolean.TRUE;
-		}
+    public void handleSessionAttr(@ModelAttribute("sessionAttr") String sessionAttr) {}
+  }
 
-		@ModelAttribute("name")
-		public Boolean nullModelAttr() {
-			return null;
-		}
-
-		@ModelAttribute(name="foo", binding=false)
-		public Foo modelAttrWithBindingDisabled() {
-			return new Foo();
-		}
-
-		public void handle() {
-		}
-
-		public void handleSessionAttr(@ModelAttribute("sessionAttr") String sessionAttr) {
-		}
-	}
-
-
-	private static class Foo {
-	}
-
+  private static class Foo {}
 }

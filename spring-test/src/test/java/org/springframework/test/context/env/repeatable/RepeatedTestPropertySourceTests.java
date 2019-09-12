@@ -21,8 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.context.TestPropertySource;
 
 /**
- * Integration tests for {@link TestPropertySource @TestPropertySource} as a
- * repeatable annotation.
+ * Integration tests for {@link TestPropertySource @TestPropertySource} as a repeatable annotation.
  *
  * <p>Tests multiple local {@link TestPropertySource} declarations.
  *
@@ -34,10 +33,9 @@ import org.springframework.test.context.TestPropertySource;
 @TestPropertySource(properties = "first = repeated override")
 class RepeatedTestPropertySourceTests extends AbstractRepeatableTestPropertySourceTests {
 
-	@Test
-	void test() {
-		assertEnvironmentValue("first", "repeated override");
-		assertEnvironmentValue("second", "repeated");
-	}
-
+  @Test
+  void test() {
+    assertEnvironmentValue("first", "repeated override");
+    assertEnvironmentValue("second", "repeated");
+  }
 }

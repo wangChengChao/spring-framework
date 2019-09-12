@@ -33,8 +33,8 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests that verify the behavior requested in
- * <a href="https://jira.spring.io/browse/SPR-9604">SPR-9604</a>.
+ * Integration tests that verify the behavior requested in <a
+ * href="https://jira.spring.io/browse/SPR-9604">SPR-9604</a>.
  *
  * @author Sam Brannen
  * @since 3.2
@@ -44,60 +44,59 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Transactional
 public class LookUpTxMgrViaTransactionManagementConfigurerTests {
 
-	private static final CallCountingTransactionManager txManager1 = new CallCountingTransactionManager();
-	private static final CallCountingTransactionManager txManager2 = new CallCountingTransactionManager();
+  private static final CallCountingTransactionManager txManager1 =
+      new CallCountingTransactionManager();
+  private static final CallCountingTransactionManager txManager2 =
+      new CallCountingTransactionManager();
 
+  @Configuration
+  static class Config implements TransactionManagementConfigurer {
 
-	@Configuration
-	static class Config implements TransactionManagementConfigurer {
+    @Override
+    public PlatformTransactionManager annotationDrivenTransactionManager() {
+      return txManager1();
+    }
 
-		@Override
-		public PlatformTransactionManager annotationDrivenTransactionManager() {
-			return txManager1();
-		}
+    @Bean
+    public PlatformTransactionManager txManager1() {
+      return txManager1;
+    }
 
-		@Bean
-		public PlatformTransactionManager txManager1() {
-			return txManager1;
-		}
+    @Bean
+    public PlatformTransactionManager txManager2() {
+      return txManager2;
+    }
+  }
 
-		@Bean
-		public PlatformTransactionManager txManager2() {
-			return txManager2;
-		}
-	}
+  @BeforeTransaction
+  public void beforeTransaction() {
+    txManager1.clear();
+    txManager2.clear();
+  }
 
+  @Test
+  public void transactionalTest() {
+    assertThat(txManager1.begun).isEqualTo(1);
+    assertThat(txManager1.inflight).isEqualTo(1);
+    assertThat(txManager1.commits).isEqualTo(0);
+    assertThat(txManager1.rollbacks).isEqualTo(0);
 
-	@BeforeTransaction
-	public void beforeTransaction() {
-		txManager1.clear();
-		txManager2.clear();
-	}
+    assertThat(txManager2.begun).isEqualTo(0);
+    assertThat(txManager2.inflight).isEqualTo(0);
+    assertThat(txManager2.commits).isEqualTo(0);
+    assertThat(txManager2.rollbacks).isEqualTo(0);
+  }
 
-	@Test
-	public void transactionalTest() {
-		assertThat(txManager1.begun).isEqualTo(1);
-		assertThat(txManager1.inflight).isEqualTo(1);
-		assertThat(txManager1.commits).isEqualTo(0);
-		assertThat(txManager1.rollbacks).isEqualTo(0);
+  @AfterTransaction
+  public void afterTransaction() {
+    assertThat(txManager1.begun).isEqualTo(1);
+    assertThat(txManager1.inflight).isEqualTo(0);
+    assertThat(txManager1.commits).isEqualTo(0);
+    assertThat(txManager1.rollbacks).isEqualTo(1);
 
-		assertThat(txManager2.begun).isEqualTo(0);
-		assertThat(txManager2.inflight).isEqualTo(0);
-		assertThat(txManager2.commits).isEqualTo(0);
-		assertThat(txManager2.rollbacks).isEqualTo(0);
-	}
-
-	@AfterTransaction
-	public void afterTransaction() {
-		assertThat(txManager1.begun).isEqualTo(1);
-		assertThat(txManager1.inflight).isEqualTo(0);
-		assertThat(txManager1.commits).isEqualTo(0);
-		assertThat(txManager1.rollbacks).isEqualTo(1);
-
-		assertThat(txManager2.begun).isEqualTo(0);
-		assertThat(txManager2.inflight).isEqualTo(0);
-		assertThat(txManager2.commits).isEqualTo(0);
-		assertThat(txManager2.rollbacks).isEqualTo(0);
-	}
-
+    assertThat(txManager2.begun).isEqualTo(0);
+    assertThat(txManager2.inflight).isEqualTo(0);
+    assertThat(txManager2.commits).isEqualTo(0);
+    assertThat(txManager2.rollbacks).isEqualTo(0);
+  }
 }

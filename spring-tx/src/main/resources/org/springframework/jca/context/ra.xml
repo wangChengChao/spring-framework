@@ -7,7 +7,8 @@
 	<eis-type>Spring Connector</eis-type>
 	<resourceadapter-version>1.0</resourceadapter-version>
 	<resourceadapter>
-		<resourceadapter-class>org.springframework.jca.context.SpringContextResourceAdapter</resourceadapter-class>
+		<resourceadapter-class>org.springframework.jca.context.SpringContextResourceAdapter
+		</resourceadapter-class>
 		<config-property>
 			<config-property-name>ContextConfigLocation</config-property-name>
 			<config-property-type>java.lang.String</config-property-type>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "https://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN"
+		"https://www.springframework.org/dtd/spring-beans-2.0.dtd">
 
 <beans>
 
@@ -19,12 +20,14 @@
 		<property name="name" value="foo"/>
 	</bean>
 
-	<bean id="testBean2" class="org.springframework.jmx.export.ExceptionOnInitBean" lazy-init="true">
+	<bean id="testBean2" class="org.springframework.jmx.export.ExceptionOnInitBean"
+			lazy-init="true">
 		<property name="exceptOnInit" value="false"/>
 		<property name="name" value="foo"/>
 	</bean>
 
-	<bean id="testBean3" class="org.springframework.jmx.export.ExceptionOnInitBea" lazy-init="true"/>
+	<bean id="testBean3" class="org.springframework.jmx.export.ExceptionOnInitBea"
+			lazy-init="true"/>
 
 	<bean id="server" class="org.springframework.jmx.support.MBeanServerFactoryBean"/>
 

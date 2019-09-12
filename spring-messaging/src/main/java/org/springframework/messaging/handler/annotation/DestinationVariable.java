@@ -23,9 +23,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation that indicates a method parameter should be bound to a template variable
- * in a destination template string. Supported on message handling methods such as
- * {@link MessageMapping @MessageMapping}.
+ * Annotation that indicates a method parameter should be bound to a template variable in a
+ * destination template string. Supported on message handling methods such as {@link
+ * MessageMapping @MessageMapping}.
  *
  * <p>A {@code @DestinationVariable} template variable is always required.
  *
@@ -40,9 +40,6 @@ import java.lang.annotation.Target;
 @Documented
 public @interface DestinationVariable {
 
-	/**
-	 * The name of the destination template variable to bind to.
-	 */
-	String value() default "";
-
+  /** The name of the destination template variable to bind to. */
+  String value() default "";
 }

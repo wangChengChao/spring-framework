@@ -1,6 +1,6 @@
 /**
- * Common infrastructure for invoking message handler methods with non-blocking,
- * and reactive contracts.
+ * Common infrastructure for invoking message handler methods with non-blocking, and reactive
+ * contracts.
  */
 @NonNullApi
 @NonNullFields

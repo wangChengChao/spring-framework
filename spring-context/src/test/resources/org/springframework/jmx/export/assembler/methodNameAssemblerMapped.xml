@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "https://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN"
+		"https://www.springframework.org/dtd/spring-beans-2.0.dtd">
 
 <beans>
 
@@ -16,7 +17,8 @@
 				<property name="methodMappings">
 					<props>
 						<prop key="bean:name=testBean4">
-							getNickName,setNickName,add,myOperation,getName,setName,getAge</prop>
+							getNickName,setNickName,add,myOperation,getName,setName,getAge
+						</prop>
 					</props>
 				</property>
 				<property name="notificationInfoMappings">
@@ -44,4 +46,4 @@
 	</bean>
 
 </beans
-		>
+>

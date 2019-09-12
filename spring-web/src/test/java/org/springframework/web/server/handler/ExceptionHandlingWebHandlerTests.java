@@ -34,103 +34,104 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit tests for {@link ExceptionHandlingWebHandler}.
+ *
  * @author Rossen Stoyanchev
  */
 public class ExceptionHandlingWebHandlerTests {
 
-	private final WebHandler targetHandler = new StubWebHandler(new IllegalStateException("boo"));
+  private final WebHandler targetHandler = new StubWebHandler(new IllegalStateException("boo"));
 
-	private final ServerWebExchange exchange =
-			MockServerWebExchange.from(MockServerHttpRequest.get("http://localhost:8080"));
+  private final ServerWebExchange exchange =
+      MockServerWebExchange.from(MockServerHttpRequest.get("http://localhost:8080"));
 
+  @Test
+  public void handleErrorSignal() throws Exception {
+    createWebHandler(new BadRequestExceptionHandler()).handle(this.exchange).block();
+    assertThat(this.exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+  }
 
-	@Test
-	public void handleErrorSignal() throws Exception {
-		createWebHandler(new BadRequestExceptionHandler()).handle(this.exchange).block();
-		assertThat(this.exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-	}
+  @Test
+  public void handleErrorSignalWithMultipleHttpErrorHandlers() throws Exception {
+    createWebHandler(
+            new UnresolvedExceptionHandler(),
+            new UnresolvedExceptionHandler(),
+            new BadRequestExceptionHandler(),
+            new UnresolvedExceptionHandler())
+        .handle(this.exchange)
+        .block();
 
-	@Test
-	public void handleErrorSignalWithMultipleHttpErrorHandlers() throws Exception {
-		createWebHandler(
-				new UnresolvedExceptionHandler(),
-				new UnresolvedExceptionHandler(),
-				new BadRequestExceptionHandler(),
-				new UnresolvedExceptionHandler()).handle(this.exchange).block();
+    assertThat(this.exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+  }
 
-		assertThat(this.exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-	}
+  @Test
+  public void unresolvedException() throws Exception {
+    Mono<Void> mono = createWebHandler(new UnresolvedExceptionHandler()).handle(this.exchange);
+    StepVerifier.create(mono).expectErrorMessage("boo").verify();
+    assertThat(this.exchange.getResponse().getStatusCode()).isNull();
+  }
 
-	@Test
-	public void unresolvedException() throws Exception {
-		Mono<Void> mono = createWebHandler(new UnresolvedExceptionHandler()).handle(this.exchange);
-		StepVerifier.create(mono).expectErrorMessage("boo").verify();
-		assertThat(this.exchange.getResponse().getStatusCode()).isNull();
-	}
+  @Test
+  public void unresolvedExceptionWithWebHttpHandlerAdapter() throws Exception {
 
-	@Test
-	public void unresolvedExceptionWithWebHttpHandlerAdapter() throws Exception {
+    // HttpWebHandlerAdapter handles unresolved errors
 
-		// HttpWebHandlerAdapter handles unresolved errors
+    new HttpWebHandlerAdapter(createWebHandler(new UnresolvedExceptionHandler()))
+        .handle(this.exchange.getRequest(), this.exchange.getResponse())
+        .block();
 
-		new HttpWebHandlerAdapter(createWebHandler(new UnresolvedExceptionHandler()))
-				.handle(this.exchange.getRequest(), this.exchange.getResponse()).block();
+    assertThat(this.exchange.getResponse().getStatusCode())
+        .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+  }
 
-		assertThat(this.exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-	}
+  @Test
+  public void thrownExceptionBecomesErrorSignal() throws Exception {
+    createWebHandler(new BadRequestExceptionHandler()).handle(this.exchange).block();
+    assertThat(this.exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+  }
 
-	@Test
-	public void thrownExceptionBecomesErrorSignal() throws Exception {
-		createWebHandler(new BadRequestExceptionHandler()).handle(this.exchange).block();
-		assertThat(this.exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-	}
+  private WebHandler createWebHandler(WebExceptionHandler... handlers) {
+    return new ExceptionHandlingWebHandler(this.targetHandler, Arrays.asList(handlers));
+  }
 
-	private WebHandler createWebHandler(WebExceptionHandler... handlers) {
-		return new ExceptionHandlingWebHandler(this.targetHandler, Arrays.asList(handlers));
-	}
+  private static class StubWebHandler implements WebHandler {
 
+    private final RuntimeException exception;
 
-	private static class StubWebHandler implements WebHandler {
+    private final boolean raise;
 
-		private final RuntimeException exception;
+    StubWebHandler(RuntimeException exception) {
+      this(exception, false);
+    }
 
-		private final boolean raise;
+    StubWebHandler(RuntimeException exception, boolean raise) {
+      this.exception = exception;
+      this.raise = raise;
+    }
 
+    @Override
+    public Mono<Void> handle(ServerWebExchange exchange) {
+      if (this.raise) {
+        throw this.exception;
+      }
+      return Mono.error(this.exception);
+    }
+  }
 
-		StubWebHandler(RuntimeException exception) {
-			this(exception, false);
-		}
+  private static class BadRequestExceptionHandler implements WebExceptionHandler {
 
-		StubWebHandler(RuntimeException exception, boolean raise) {
-			this.exception = exception;
-			this.raise = raise;
-		}
+    @Override
+    public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
+      exchange.getResponse().setStatusCode(HttpStatus.BAD_REQUEST);
+      return Mono.empty();
+    }
+  }
 
-		@Override
-		public Mono<Void> handle(ServerWebExchange exchange) {
-			if (this.raise) {
-				throw this.exception;
-			}
-			return Mono.error(this.exception);
-		}
-	}
+  /** Leave the exception unresolved. */
+  private static class UnresolvedExceptionHandler implements WebExceptionHandler {
 
-	private static class BadRequestExceptionHandler implements WebExceptionHandler {
-
-		@Override
-		public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
-			exchange.getResponse().setStatusCode(HttpStatus.BAD_REQUEST);
-			return Mono.empty();
-		}
-	}
-
-	/** Leave the exception unresolved. */
-	private static class UnresolvedExceptionHandler implements WebExceptionHandler {
-
-		@Override
-		public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
-			return Mono.error(ex);
-		}
-	}
-
+    @Override
+    public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
+      return Mono.error(ex);
+    }
+  }
 }

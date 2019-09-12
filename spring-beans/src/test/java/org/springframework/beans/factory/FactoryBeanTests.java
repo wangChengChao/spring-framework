@@ -40,296 +40,283 @@ import static org.springframework.tests.TestResourceUtils.qualifiedResource;
  */
 public class FactoryBeanTests {
 
-	private static final Class<?> CLASS = FactoryBeanTests.class;
-	private static final Resource RETURNS_NULL_CONTEXT = qualifiedResource(CLASS, "returnsNull.xml");
-	private static final Resource WITH_AUTOWIRING_CONTEXT = qualifiedResource(CLASS, "withAutowiring.xml");
-	private static final Resource ABSTRACT_CONTEXT = qualifiedResource(CLASS, "abstract.xml");
-	private static final Resource CIRCULAR_CONTEXT = qualifiedResource(CLASS, "circular.xml");
-
-
-	@Test
-	public void testFactoryBeanReturnsNull() throws Exception {
-		DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
-		new XmlBeanDefinitionReader(factory).loadBeanDefinitions(RETURNS_NULL_CONTEXT);
-
-		assertThat(factory.getBean("factoryBean").toString()).isEqualTo("null");
-	}
-
-	@Test
-	public void testFactoryBeansWithAutowiring() throws Exception {
-		DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
-		new XmlBeanDefinitionReader(factory).loadBeanDefinitions(WITH_AUTOWIRING_CONTEXT);
-
-		BeanFactoryPostProcessor ppc = (BeanFactoryPostProcessor) factory.getBean("propertyPlaceholderConfigurer");
-		ppc.postProcessBeanFactory(factory);
-
-		assertThat(factory.getType("betaFactory")).isNull();
-
-		Alpha alpha = (Alpha) factory.getBean("alpha");
-		Beta beta = (Beta) factory.getBean("beta");
-		Gamma gamma = (Gamma) factory.getBean("gamma");
-		Gamma gamma2 = (Gamma) factory.getBean("gammaFactory");
-
-		assertThat(alpha.getBeta()).isSameAs(beta);
-		assertThat(beta.getGamma()).isSameAs(gamma);
-		assertThat(beta.getGamma()).isSameAs(gamma2);
-		assertThat(beta.getName()).isEqualTo("yourName");
-	}
+  private static final Class<?> CLASS = FactoryBeanTests.class;
+  private static final Resource RETURNS_NULL_CONTEXT = qualifiedResource(CLASS, "returnsNull.xml");
+  private static final Resource WITH_AUTOWIRING_CONTEXT =
+      qualifiedResource(CLASS, "withAutowiring.xml");
+  private static final Resource ABSTRACT_CONTEXT = qualifiedResource(CLASS, "abstract.xml");
+  private static final Resource CIRCULAR_CONTEXT = qualifiedResource(CLASS, "circular.xml");
+
+  @Test
+  public void testFactoryBeanReturnsNull() throws Exception {
+    DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
+    new XmlBeanDefinitionReader(factory).loadBeanDefinitions(RETURNS_NULL_CONTEXT);
+
+    assertThat(factory.getBean("factoryBean").toString()).isEqualTo("null");
+  }
+
+  @Test
+  public void testFactoryBeansWithAutowiring() throws Exception {
+    DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
+    new XmlBeanDefinitionReader(factory).loadBeanDefinitions(WITH_AUTOWIRING_CONTEXT);
+
+    BeanFactoryPostProcessor ppc =
+        (BeanFactoryPostProcessor) factory.getBean("propertyPlaceholderConfigurer");
+    ppc.postProcessBeanFactory(factory);
+
+    assertThat(factory.getType("betaFactory")).isNull();
+
+    Alpha alpha = (Alpha) factory.getBean("alpha");
+    Beta beta = (Beta) factory.getBean("beta");
+    Gamma gamma = (Gamma) factory.getBean("gamma");
+    Gamma gamma2 = (Gamma) factory.getBean("gammaFactory");
+
+    assertThat(alpha.getBeta()).isSameAs(beta);
+    assertThat(beta.getGamma()).isSameAs(gamma);
+    assertThat(beta.getGamma()).isSameAs(gamma2);
+    assertThat(beta.getName()).isEqualTo("yourName");
+  }
+
+  @Test
+  public void testFactoryBeansWithIntermediateFactoryBeanAutowiringFailure() throws Exception {
+    DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
+    new XmlBeanDefinitionReader(factory).loadBeanDefinitions(WITH_AUTOWIRING_CONTEXT);
+
+    BeanFactoryPostProcessor ppc =
+        (BeanFactoryPostProcessor) factory.getBean("propertyPlaceholderConfigurer");
+    ppc.postProcessBeanFactory(factory);
+
+    Beta beta = (Beta) factory.getBean("beta");
+    Alpha alpha = (Alpha) factory.getBean("alpha");
+    Gamma gamma = (Gamma) factory.getBean("gamma");
+    assertThat(alpha.getBeta()).isSameAs(beta);
+    assertThat(beta.getGamma()).isSameAs(gamma);
+  }
+
+  @Test
+  public void testAbstractFactoryBeanViaAnnotation() throws Exception {
+    DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
+    new XmlBeanDefinitionReader(factory).loadBeanDefinitions(ABSTRACT_CONTEXT);
+    factory.getBeansWithAnnotation(Component.class);
+  }
+
+  @Test
+  public void testAbstractFactoryBeanViaType() throws Exception {
+    DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
+    new XmlBeanDefinitionReader(factory).loadBeanDefinitions(ABSTRACT_CONTEXT);
+    factory.getBeansOfType(AbstractFactoryBean.class);
+  }
+
+  @Test
+  public void testCircularReferenceWithPostProcessor() {
+    DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
+    new XmlBeanDefinitionReader(factory).loadBeanDefinitions(CIRCULAR_CONTEXT);
+
+    CountingPostProcessor counter = new CountingPostProcessor();
+    factory.addBeanPostProcessor(counter);
+
+    BeanImpl1 impl1 = factory.getBean(BeanImpl1.class);
+    assertThat(impl1).isNotNull();
+    assertThat(impl1.getImpl2()).isNotNull();
+    assertThat(impl1.getImpl2()).isNotNull();
+    assertThat(impl1.getImpl2().getImpl1()).isSameAs(impl1);
+    assertThat(counter.getCount("bean1")).isEqualTo(1);
+    assertThat(counter.getCount("bean2")).isEqualTo(1);
+  }
+
+  public static class NullReturningFactoryBean implements FactoryBean<Object> {
+
+    @Override
+    public Object getObject() {
+      return null;
+    }
+
+    @Override
+    public Class<?> getObjectType() {
+      return null;
+    }
+
+    @Override
+    public boolean isSingleton() {
+      return true;
+    }
+  }
 
-	@Test
-	public void testFactoryBeansWithIntermediateFactoryBeanAutowiringFailure() throws Exception {
-		DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
-		new XmlBeanDefinitionReader(factory).loadBeanDefinitions(WITH_AUTOWIRING_CONTEXT);
+  public static class Alpha implements InitializingBean {
 
-		BeanFactoryPostProcessor ppc = (BeanFactoryPostProcessor) factory.getBean("propertyPlaceholderConfigurer");
-		ppc.postProcessBeanFactory(factory);
+    private Beta beta;
 
-		Beta beta = (Beta) factory.getBean("beta");
-		Alpha alpha = (Alpha) factory.getBean("alpha");
-		Gamma gamma = (Gamma) factory.getBean("gamma");
-		assertThat(alpha.getBeta()).isSameAs(beta);
-		assertThat(beta.getGamma()).isSameAs(gamma);
-	}
+    public void setBeta(Beta beta) {
+      this.beta = beta;
+    }
 
-	@Test
-	public void testAbstractFactoryBeanViaAnnotation() throws Exception {
-		DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
-		new XmlBeanDefinitionReader(factory).loadBeanDefinitions(ABSTRACT_CONTEXT);
-		factory.getBeansWithAnnotation(Component.class);
-	}
+    public Beta getBeta() {
+      return beta;
+    }
 
-	@Test
-	public void testAbstractFactoryBeanViaType() throws Exception {
-		DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
-		new XmlBeanDefinitionReader(factory).loadBeanDefinitions(ABSTRACT_CONTEXT);
-		factory.getBeansOfType(AbstractFactoryBean.class);
-	}
+    @Override
+    public void afterPropertiesSet() {
+      Assert.notNull(beta, "'beta' property is required");
+    }
+  }
 
-	@Test
-	public void testCircularReferenceWithPostProcessor() {
-		DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
-		new XmlBeanDefinitionReader(factory).loadBeanDefinitions(CIRCULAR_CONTEXT);
+  public static class Beta implements InitializingBean {
 
-		CountingPostProcessor counter = new CountingPostProcessor();
-		factory.addBeanPostProcessor(counter);
+    private Gamma gamma;
 
-		BeanImpl1 impl1 = factory.getBean(BeanImpl1.class);
-		assertThat(impl1).isNotNull();
-		assertThat(impl1.getImpl2()).isNotNull();
-		assertThat(impl1.getImpl2()).isNotNull();
-		assertThat(impl1.getImpl2().getImpl1()).isSameAs(impl1);
-		assertThat(counter.getCount("bean1")).isEqualTo(1);
-		assertThat(counter.getCount("bean2")).isEqualTo(1);
-	}
+    private String name;
 
+    public void setGamma(Gamma gamma) {
+      this.gamma = gamma;
+    }
 
-	public static class NullReturningFactoryBean implements FactoryBean<Object> {
+    public Gamma getGamma() {
+      return gamma;
+    }
 
-		@Override
-		public Object getObject() {
-			return null;
-		}
+    public void setName(String name) {
+      this.name = name;
+    }
 
-		@Override
-		public Class<?> getObjectType() {
-			return null;
-		}
+    public String getName() {
+      return name;
+    }
 
-		@Override
-		public boolean isSingleton() {
-			return true;
-		}
-	}
+    @Override
+    public void afterPropertiesSet() {
+      Assert.notNull(gamma, "'gamma' property is required");
+    }
+  }
 
+  public static class Gamma {}
 
-	public static class Alpha implements InitializingBean {
+  @Component
+  public static class BetaFactoryBean implements FactoryBean<Object> {
 
-		private Beta beta;
+    public BetaFactoryBean(Alpha alpha) {}
 
-		public void setBeta(Beta beta) {
-			this.beta = beta;
-		}
+    private Beta beta;
 
-		public Beta getBeta() {
-			return beta;
-		}
+    public void setBeta(Beta beta) {
+      this.beta = beta;
+    }
 
-		@Override
-		public void afterPropertiesSet() {
-			Assert.notNull(beta, "'beta' property is required");
-		}
-	}
+    @Override
+    public Object getObject() {
+      return this.beta;
+    }
 
+    @Override
+    public Class<?> getObjectType() {
+      return null;
+    }
 
-	public static class Beta implements InitializingBean {
+    @Override
+    public boolean isSingleton() {
+      return true;
+    }
+  }
 
-		private Gamma gamma;
+  public abstract static class AbstractFactoryBean implements FactoryBean<Object> {}
 
-		private String name;
+  public static class PassThroughFactoryBean<T> implements FactoryBean<T>, BeanFactoryAware {
 
-		public void setGamma(Gamma gamma) {
-			this.gamma = gamma;
-		}
+    private Class<T> type;
 
-		public Gamma getGamma() {
-			return gamma;
-		}
+    private String instanceName;
 
-		public void setName(String name) {
-			this.name = name;
-		}
+    private BeanFactory beanFactory;
 
-		public String getName() {
-			return name;
-		}
+    private T instance;
 
-		@Override
-		public void afterPropertiesSet() {
-			Assert.notNull(gamma, "'gamma' property is required");
-		}
-	}
+    public PassThroughFactoryBean(Class<T> type) {
+      this.type = type;
+    }
 
+    public void setInstanceName(String instanceName) {
+      this.instanceName = instanceName;
+    }
 
-	public static class Gamma {
-	}
+    @Override
+    public void setBeanFactory(BeanFactory beanFactory) {
+      this.beanFactory = beanFactory;
+    }
 
+    @Override
+    public T getObject() {
+      if (instance == null) {
+        instance = beanFactory.getBean(instanceName, type);
+      }
+      return instance;
+    }
 
-	@Component
-	public static class BetaFactoryBean implements FactoryBean<Object> {
+    @Override
+    public Class<?> getObjectType() {
+      return type;
+    }
 
-		public BetaFactoryBean(Alpha alpha) {
-		}
+    @Override
+    public boolean isSingleton() {
+      return true;
+    }
+  }
 
-		private Beta beta;
+  public static class CountingPostProcessor implements BeanPostProcessor {
 
-		public void setBeta(Beta beta) {
-			this.beta = beta;
-		}
+    private final Map<String, AtomicInteger> count = new HashMap<>();
 
-		@Override
-		public Object getObject() {
-			return this.beta;
-		}
+    @Override
+    public Object postProcessBeforeInitialization(Object bean, String beanName) {
+      return bean;
+    }
 
-		@Override
-		public Class<?> getObjectType() {
-			return null;
-		}
+    @Override
+    public Object postProcessAfterInitialization(Object bean, String beanName) {
+      if (bean instanceof FactoryBean) {
+        return bean;
+      }
+      AtomicInteger c = count.get(beanName);
+      if (c == null) {
+        c = new AtomicInteger(0);
+        count.put(beanName, c);
+      }
+      c.incrementAndGet();
+      return bean;
+    }
 
-		@Override
-		public boolean isSingleton() {
-			return true;
-		}
-	}
+    public int getCount(String beanName) {
+      AtomicInteger c = count.get(beanName);
+      if (c != null) {
+        return c.intValue();
+      } else {
+        return 0;
+      }
+    }
+  }
 
+  public static class BeanImpl1 {
 
-	public abstract static class AbstractFactoryBean implements FactoryBean<Object> {
-	}
+    private BeanImpl2 impl2;
 
+    public BeanImpl2 getImpl2() {
+      return impl2;
+    }
 
-	public static class PassThroughFactoryBean<T> implements FactoryBean<T>, BeanFactoryAware {
+    public void setImpl2(BeanImpl2 impl2) {
+      this.impl2 = impl2;
+    }
+  }
 
-		private Class<T> type;
+  public static class BeanImpl2 {
 
-		private String instanceName;
+    private BeanImpl1 impl1;
 
-		private BeanFactory beanFactory;
+    public BeanImpl1 getImpl1() {
+      return impl1;
+    }
 
-		private T instance;
-
-		public PassThroughFactoryBean(Class<T> type) {
-			this.type = type;
-		}
-
-		public void setInstanceName(String instanceName) {
-			this.instanceName = instanceName;
-		}
-
-		@Override
-		public void setBeanFactory(BeanFactory beanFactory) {
-			this.beanFactory = beanFactory;
-		}
-
-		@Override
-		public T getObject() {
-			if (instance == null) {
-				instance = beanFactory.getBean(instanceName, type);
-			}
-			return instance;
-		}
-
-		@Override
-		public Class<?> getObjectType() {
-			return type;
-		}
-
-		@Override
-		public boolean isSingleton() {
-			return true;
-		}
-	}
-
-
-	public static class CountingPostProcessor implements BeanPostProcessor {
-
-		private final Map<String, AtomicInteger> count = new HashMap<>();
-
-		@Override
-		public Object postProcessBeforeInitialization(Object bean, String beanName) {
-			return bean;
-		}
-
-		@Override
-		public Object postProcessAfterInitialization(Object bean, String beanName) {
-			if (bean instanceof FactoryBean) {
-				return bean;
-			}
-			AtomicInteger c = count.get(beanName);
-			if (c == null) {
-				c = new AtomicInteger(0);
-				count.put(beanName, c);
-			}
-			c.incrementAndGet();
-			return bean;
-		}
-
-		public int getCount(String beanName) {
-			AtomicInteger c = count.get(beanName);
-			if (c != null) {
-				return c.intValue();
-			}
-			else {
-				return 0;
-			}
-		}
-	}
-
-
-	public static class BeanImpl1 {
-
-		private BeanImpl2 impl2;
-
-		public BeanImpl2 getImpl2() {
-			return impl2;
-		}
-
-		public void setImpl2(BeanImpl2 impl2) {
-			this.impl2 = impl2;
-		}
-	}
-
-
-	public static class BeanImpl2 {
-
-		private BeanImpl1 impl1;
-
-		public BeanImpl1 getImpl1() {
-			return impl1;
-		}
-
-		public void setImpl1(BeanImpl1 impl1) {
-			this.impl1 = impl1;
-		}
-	}
-
+    public void setImpl1(BeanImpl1 impl1) {
+      this.impl1 = impl1;
+    }
+  }
 }

@@ -35,57 +35,63 @@ import org.springframework.util.MimeTypeUtils;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * @author Arjen Poutsma
- */
+/** @author Arjen Poutsma */
 class ResourceEncoderTests extends AbstractEncoderTestCase<ResourceEncoder> {
 
-	private final byte[] bytes = "foo".getBytes(UTF_8);
+  private final byte[] bytes = "foo".getBytes(UTF_8);
 
+  ResourceEncoderTests() {
+    super(new ResourceEncoder());
+  }
 
-	ResourceEncoderTests() {
-		super(new ResourceEncoder());
-	}
+  @Override
+  @Test
+  public void canEncode() {
+    assertThat(
+            this.encoder.canEncode(
+                ResolvableType.forClass(InputStreamResource.class), MimeTypeUtils.TEXT_PLAIN))
+        .isTrue();
+    assertThat(
+            this.encoder.canEncode(
+                ResolvableType.forClass(ByteArrayResource.class), MimeTypeUtils.TEXT_PLAIN))
+        .isTrue();
+    assertThat(
+            this.encoder.canEncode(
+                ResolvableType.forClass(Resource.class), MimeTypeUtils.TEXT_PLAIN))
+        .isTrue();
+    assertThat(
+            this.encoder.canEncode(
+                ResolvableType.forClass(InputStreamResource.class), MimeTypeUtils.APPLICATION_JSON))
+        .isTrue();
 
-	@Override
-	@Test
-	public void canEncode() {
-		assertThat(this.encoder.canEncode(ResolvableType.forClass(InputStreamResource.class),
-				MimeTypeUtils.TEXT_PLAIN)).isTrue();
-		assertThat(this.encoder.canEncode(ResolvableType.forClass(ByteArrayResource.class),
-				MimeTypeUtils.TEXT_PLAIN)).isTrue();
-		assertThat(this.encoder.canEncode(ResolvableType.forClass(Resource.class),
-				MimeTypeUtils.TEXT_PLAIN)).isTrue();
-		assertThat(this.encoder.canEncode(ResolvableType.forClass(InputStreamResource.class),
-				MimeTypeUtils.APPLICATION_JSON)).isTrue();
+    // SPR-15464
+    assertThat(this.encoder.canEncode(ResolvableType.NONE, null)).isFalse();
+  }
 
-		// SPR-15464
-		assertThat(this.encoder.canEncode(ResolvableType.NONE, null)).isFalse();
-	}
+  @Override
+  @Test
+  public void encode() {
+    Flux<Resource> input = Flux.just(new ByteArrayResource(this.bytes));
 
-	@Override
-	@Test
-	public void encode() {
-		Flux<Resource> input = Flux.just(new ByteArrayResource(this.bytes));
+    testEncodeAll(
+        input,
+        Resource.class,
+        step -> step.consumeNextWith(expectBytes(this.bytes)).verifyComplete());
+  }
 
-		testEncodeAll(input, Resource.class, step -> step
-				.consumeNextWith(expectBytes(this.bytes))
-				.verifyComplete());
-	}
+  @Override
+  protected void testEncodeError(
+      Publisher<?> input,
+      ResolvableType outputType,
+      @Nullable MimeType mimeType,
+      @Nullable Map<String, Object> hints) {
 
-	@Override
-	protected void testEncodeError(Publisher<?> input, ResolvableType outputType,
-			@Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
+    Flux<Resource> i = Flux.error(new InputException());
 
-		Flux<Resource> i = Flux.error(new InputException());
+    Flux<DataBuffer> result =
+        ((Encoder<Resource>) this.encoder)
+            .encode(i, this.bufferFactory, outputType, mimeType, hints);
 
-		Flux<DataBuffer> result = ((Encoder<Resource>) this.encoder).encode(i,
-				this.bufferFactory, outputType,
-				mimeType, hints);
-
-		StepVerifier.create(result)
-				.expectError(InputException.class)
-				.verify();
-	}
-
+    StepVerifier.create(result).expectError(InputException.class).verify();
+  }
 }

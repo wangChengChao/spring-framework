@@ -500,5 +500,5 @@ class RouterFunctionDsl(private val init: (RouterFunctionDsl.() -> Unit)) {
 /**
  * Equivalent to [RouterFunction.and].
  */
-operator fun <T: ServerResponse> RouterFunction<T>.plus(other: RouterFunction<T>) =
+operator fun <T : ServerResponse> RouterFunction<T>.plus(other: RouterFunction<T>) =
 		this.and(other)

@@ -24,8 +24,8 @@ import java.lang.annotation.Target;
 import org.springframework.test.context.TestPropertySource;
 
 /**
- * Composed annotation that declares a {@code meta} inlined property via
- * {@link TestPropertySource @TestPropertySource}.
+ * Composed annotation that declares a {@code meta} inlined property via {@link
+ * TestPropertySource @TestPropertySource}.
  *
  * @author Anatoliy Korovin
  * @since 5.2
@@ -33,5 +33,4 @@ import org.springframework.test.context.TestPropertySource;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @TestPropertySource(properties = "enigma = meta")
-@interface MetaInlinedTestProperty {
-}
+@interface MetaInlinedTestProperty {}

@@ -30,6 +30,4 @@ import org.springframework.test.context.jdbc.SqlMergeMode;
  */
 @ContextConfiguration(classes = EmptyDatabaseConfig.class)
 @DirtiesContext
-abstract class AbstractSqlMergeModeTests extends AbstractTransactionalTests {
-
-}
+abstract class AbstractSqlMergeModeTests extends AbstractTransactionalTests {}

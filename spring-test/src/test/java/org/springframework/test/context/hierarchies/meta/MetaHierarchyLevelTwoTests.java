@@ -36,34 +36,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("prod")
 class MetaHierarchyLevelTwoTests extends MetaHierarchyLevelOneTests {
 
-	@Configuration
-	@Profile("prod")
-	static class Config {
+  @Configuration
+  @Profile("prod")
+  static class Config {
 
-		@Bean
-		String bar() {
-			return "Prod Bar";
-		}
-	}
+    @Bean
+    String bar() {
+      return "Prod Bar";
+    }
+  }
 
+  @Autowired protected ApplicationContext context;
 
-	@Autowired
-	protected ApplicationContext context;
+  @Autowired private String bar;
 
-	@Autowired
-	private String bar;
+  @Test
+  void bar() {
+    assertThat(bar).isEqualTo("Prod Bar");
+  }
 
-
-	@Test
-	void bar() {
-		assertThat(bar).isEqualTo("Prod Bar");
-	}
-
-	@Test
-	void contextHierarchy() {
-		assertThat(context).as("child ApplicationContext").isNotNull();
-		assertThat(context.getParent()).as("parent ApplicationContext").isNotNull();
-		assertThat(context.getParent().getParent()).as("grandparent ApplicationContext").isNull();
-	}
-
+  @Test
+  void contextHierarchy() {
+    assertThat(context).as("child ApplicationContext").isNotNull();
+    assertThat(context.getParent()).as("parent ApplicationContext").isNotNull();
+    assertThat(context.getParent().getParent()).as("grandparent ApplicationContext").isNull();
+  }
 }

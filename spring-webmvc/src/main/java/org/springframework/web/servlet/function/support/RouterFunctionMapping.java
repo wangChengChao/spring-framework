@@ -43,139 +43,135 @@ import org.springframework.web.servlet.handler.AbstractHandlerMapping;
 /**
  * {@code HandlerMapping} implementation that supports {@link RouterFunction RouterFunctions}.
  *
- * <p>If no {@link RouterFunction} is provided at
- * {@linkplain #RouterFunctionMapping(RouterFunction) construction time}, this mapping
- * will detect all router functions in the application context, and consult them in
- * {@linkplain org.springframework.core.annotation.Order order}.
+ * <p>If no {@link RouterFunction} is provided at {@linkplain #RouterFunctionMapping(RouterFunction)
+ * construction time}, this mapping will detect all router functions in the application context, and
+ * consult them in {@linkplain org.springframework.core.annotation.Order order}.
  *
  * @author Arjen Poutsma
  * @since 5.2
  */
 public class RouterFunctionMapping extends AbstractHandlerMapping implements InitializingBean {
 
-	@Nullable
-	private RouterFunction<?> routerFunction;
+  @Nullable private RouterFunction<?> routerFunction;
 
-	private List<HttpMessageConverter<?>> messageConverters = Collections.emptyList();
+  private List<HttpMessageConverter<?>> messageConverters = Collections.emptyList();
 
-	private boolean detectHandlerFunctionsInAncestorContexts = false;
+  private boolean detectHandlerFunctionsInAncestorContexts = false;
 
+  /**
+   * Create an empty {@code RouterFunctionMapping}.
+   *
+   * <p>If this constructor is used, this mapping will detect all {@link RouterFunction} instances
+   * available in the application context.
+   */
+  public RouterFunctionMapping() {}
 
+  /**
+   * Create a {@code RouterFunctionMapping} with the given {@link RouterFunction}.
+   *
+   * <p>If this constructor is used, no application context detection will occur.
+   *
+   * @param routerFunction the router function to use for mapping
+   */
+  public RouterFunctionMapping(RouterFunction<?> routerFunction) {
+    this.routerFunction = routerFunction;
+  }
 
-	/**
-	 * Create an empty {@code RouterFunctionMapping}.
-	 * <p>If this constructor is used, this mapping will detect all
-	 * {@link RouterFunction} instances available in the application context.
-	 */
-	public RouterFunctionMapping() {
-	}
+  /**
+   * Set the router function to map to.
+   *
+   * <p>If this property is used, no application context detection will occur.
+   */
+  public void setRouterFunction(@Nullable RouterFunction<?> routerFunction) {
+    this.routerFunction = routerFunction;
+  }
 
-	/**
-	 * Create a {@code RouterFunctionMapping} with the given {@link RouterFunction}.
-	 * <p>If this constructor is used, no application context detection will occur.
-	 * @param routerFunction the router function to use for mapping
-	 */
-	public RouterFunctionMapping(RouterFunction<?> routerFunction) {
-		this.routerFunction = routerFunction;
-	}
+  /**
+   * Return the configured {@link RouterFunction}.
+   *
+   * <p><strong>Note:</strong> When router functions are detected from the ApplicationContext, this
+   * method may return {@code null} if invoked prior to {@link #afterPropertiesSet()}.
+   *
+   * @return the router function or {@code null}
+   */
+  @Nullable
+  public RouterFunction<?> getRouterFunction() {
+    return this.routerFunction;
+  }
 
-	/**
-	 * Set the router function to map to.
-	 * <p>If this property is used, no application context detection will occur.
-	 */
-	public void setRouterFunction(@Nullable RouterFunction<?> routerFunction) {
-		this.routerFunction = routerFunction;
-	}
+  public void setMessageConverters(List<HttpMessageConverter<?>> messageConverters) {
+    this.messageConverters = messageConverters;
+  }
 
-	/**
-	 * Return the configured {@link RouterFunction}.
-	 * <p><strong>Note:</strong> When router functions are detected from the
-	 * ApplicationContext, this method may return {@code null} if invoked
-	 * prior to {@link #afterPropertiesSet()}.
-	 * @return the router function or {@code null}
-	 */
-	@Nullable
-	public RouterFunction<?> getRouterFunction() {
-		return this.routerFunction;
-	}
+  /**
+   * Set whether to detect handler functions in ancestor ApplicationContexts.
+   *
+   * <p>Default is "false": Only handler functions in the current ApplicationContext will be
+   * detected, i.e. only in the context that this HandlerMapping itself is defined in (typically the
+   * current DispatcherServlet's context).
+   *
+   * <p>Switch this flag on to detect handler beans in ancestor contexts (typically the Spring root
+   * WebApplicationContext) as well.
+   */
+  public void setDetectHandlerFunctionsInAncestorContexts(
+      boolean detectHandlerFunctionsInAncestorContexts) {
+    this.detectHandlerFunctionsInAncestorContexts = detectHandlerFunctionsInAncestorContexts;
+  }
 
-	public void setMessageConverters(List<HttpMessageConverter<?>> messageConverters) {
-		this.messageConverters = messageConverters;
-	}
+  @Override
+  public void afterPropertiesSet() throws Exception {
+    if (this.routerFunction == null) {
+      initRouterFunction();
+    }
+    if (CollectionUtils.isEmpty(this.messageConverters)) {
+      initMessageConverters();
+    }
+  }
 
-	/**
-	 * Set whether to detect handler functions in ancestor ApplicationContexts.
-	 * <p>Default is "false": Only handler functions in the current ApplicationContext
-	 * will be detected, i.e. only in the context that this HandlerMapping itself
-	 * is defined in (typically the current DispatcherServlet's context).
-	 * <p>Switch this flag on to detect handler beans in ancestor contexts
-	 * (typically the Spring root WebApplicationContext) as well.
-	 */
-	public void setDetectHandlerFunctionsInAncestorContexts(boolean detectHandlerFunctionsInAncestorContexts) {
-		this.detectHandlerFunctionsInAncestorContexts = detectHandlerFunctionsInAncestorContexts;
-	}
+  /**
+   * Detect a all {@linkplain RouterFunction router functions} in the current application context.
+   */
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  private void initRouterFunction() {
+    ApplicationContext applicationContext = obtainApplicationContext();
+    Map<String, RouterFunction> beans =
+        (this.detectHandlerFunctionsInAncestorContexts
+            ? BeanFactoryUtils.beansOfTypeIncludingAncestors(
+                applicationContext, RouterFunction.class)
+            : applicationContext.getBeansOfType(RouterFunction.class));
 
-	@Override
-	public void afterPropertiesSet() throws Exception {
-		if (this.routerFunction == null) {
-			initRouterFunction();
-		}
-		if (CollectionUtils.isEmpty(this.messageConverters)) {
-			initMessageConverters();
-		}
-	}
+    List<RouterFunction> routerFunctions = new ArrayList<>(beans.values());
+    if (!CollectionUtils.isEmpty(routerFunctions) && logger.isInfoEnabled()) {
+      routerFunctions.forEach(routerFunction -> logger.info("Mapped " + routerFunction));
+    }
+    this.routerFunction = routerFunctions.stream().reduce(RouterFunction::andOther).orElse(null);
+  }
 
-	/**
-	 * Detect a all {@linkplain RouterFunction router functions} in the
-	 * current application context.
-	 */
-	@SuppressWarnings({"rawtypes", "unchecked"})
-	private void initRouterFunction() {
-		ApplicationContext applicationContext = obtainApplicationContext();
-		Map<String, RouterFunction> beans =
-				(this.detectHandlerFunctionsInAncestorContexts ?
-						BeanFactoryUtils.beansOfTypeIncludingAncestors(applicationContext, RouterFunction.class) :
-						applicationContext.getBeansOfType(RouterFunction.class));
+  /** Initializes a default set of {@linkplain HttpMessageConverter message converters}. */
+  private void initMessageConverters() {
+    List<HttpMessageConverter<?>> messageConverters = new ArrayList<>(4);
+    messageConverters.add(new ByteArrayHttpMessageConverter());
+    messageConverters.add(new StringHttpMessageConverter());
 
-		List<RouterFunction> routerFunctions = new ArrayList<>(beans.values());
-		if (!CollectionUtils.isEmpty(routerFunctions) && logger.isInfoEnabled()) {
-			routerFunctions.forEach(routerFunction -> logger.info("Mapped " + routerFunction));
-		}
-		this.routerFunction = routerFunctions.stream()
-				.reduce(RouterFunction::andOther)
-				.orElse(null);
-	}
+    try {
+      messageConverters.add(new SourceHttpMessageConverter<>());
+    } catch (Error err) {
+      // Ignore when no TransformerFactory implementation is available
+    }
+    messageConverters.add(new AllEncompassingFormHttpMessageConverter());
 
-	/**
-	 * Initializes a default set of {@linkplain HttpMessageConverter message converters}.
-	 */
-	private void initMessageConverters() {
-		List<HttpMessageConverter<?>> messageConverters = new ArrayList<>(4);
-		messageConverters.add(new ByteArrayHttpMessageConverter());
-		messageConverters.add(new StringHttpMessageConverter());
+    this.messageConverters = messageConverters;
+  }
 
-		try {
-			messageConverters.add(new SourceHttpMessageConverter<>());
-		}
-		catch (Error err) {
-			// Ignore when no TransformerFactory implementation is available
-		}
-		messageConverters.add(new AllEncompassingFormHttpMessageConverter());
-
-		this.messageConverters = messageConverters;
-	}
-
-	@Nullable
-	@Override
-	protected Object getHandlerInternal(@NotNull HttpServletRequest servletRequest) throws Exception {
-		if (this.routerFunction != null) {
-			ServerRequest request = ServerRequest.create(servletRequest, this.messageConverters);
-			servletRequest.setAttribute(RouterFunctions.REQUEST_ATTRIBUTE, request);
-			return this.routerFunction.route(request).orElse(null);
-		}
-		else {
-			return null;
-		}
-	}
-
+  @Nullable
+  @Override
+  protected Object getHandlerInternal(@NotNull HttpServletRequest servletRequest) throws Exception {
+    if (this.routerFunction != null) {
+      ServerRequest request = ServerRequest.create(servletRequest, this.messageConverters);
+      servletRequest.setAttribute(RouterFunctions.REQUEST_ATTRIBUTE, request);
+      return this.routerFunction.route(request).orElse(null);
+    } else {
+      return null;
+    }
+  }
 }

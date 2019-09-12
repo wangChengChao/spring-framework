@@ -38,54 +38,53 @@ import static org.springframework.tests.TestGroup.LONG_RUNNING;
  */
 public class EhCacheCacheTests extends AbstractCacheTests<EhCacheCache> {
 
-	private CacheManager cacheManager;
+  private CacheManager cacheManager;
 
-	private Ehcache nativeCache;
+  private Ehcache nativeCache;
 
-	private EhCacheCache cache;
+  private EhCacheCache cache;
 
+  @BeforeEach
+  public void setup() {
+    cacheManager =
+        new CacheManager(
+            new Configuration()
+                .name("EhCacheCacheTests")
+                .defaultCache(new CacheConfiguration("default", 100)));
+    nativeCache = new net.sf.ehcache.Cache(new CacheConfiguration(CACHE_NAME, 100));
+    cacheManager.addCache(nativeCache);
 
-	@BeforeEach
-	public void setup() {
-		cacheManager = new CacheManager(new Configuration().name("EhCacheCacheTests")
-				.defaultCache(new CacheConfiguration("default", 100)));
-		nativeCache = new net.sf.ehcache.Cache(new CacheConfiguration(CACHE_NAME, 100));
-		cacheManager.addCache(nativeCache);
+    cache = new EhCacheCache(nativeCache);
+  }
 
-		cache = new EhCacheCache(nativeCache);
-	}
+  @AfterEach
+  public void shutdown() {
+    cacheManager.shutdown();
+  }
 
-	@AfterEach
-	public void shutdown() {
-		cacheManager.shutdown();
-	}
+  @Override
+  protected EhCacheCache getCache() {
+    return cache;
+  }
 
+  @Override
+  protected Ehcache getNativeCache() {
+    return nativeCache;
+  }
 
-	@Override
-	protected EhCacheCache getCache() {
-		return cache;
-	}
+  @Test
+  @EnabledForTestGroups(LONG_RUNNING)
+  public void testExpiredElements() throws Exception {
+    String key = "brancusi";
+    String value = "constantin";
+    Element brancusi = new Element(key, value);
+    // ttl = 10s
+    brancusi.setTimeToLive(3);
+    nativeCache.put(brancusi);
 
-	@Override
-	protected Ehcache getNativeCache() {
-		return nativeCache;
-	}
-
-
-	@Test
-	@EnabledForTestGroups(LONG_RUNNING)
-	public void testExpiredElements() throws Exception {
-		String key = "brancusi";
-		String value = "constantin";
-		Element brancusi = new Element(key, value);
-		// ttl = 10s
-		brancusi.setTimeToLive(3);
-		nativeCache.put(brancusi);
-
-		assertThat(cache.get(key).get()).isEqualTo(value);
-		// wait for the entry to expire
-		Thread.sleep(5 * 1000);
-		assertThat(cache.get(key)).isNull();
-	}
-
+    assertThat(cache.get(key).get()).isEqualTo(value);
+    // wait for the entry to expire
+    Thread.sleep(5 * 1000);
+    assertThat(cache.get(key)).isNull();
+  }
 }

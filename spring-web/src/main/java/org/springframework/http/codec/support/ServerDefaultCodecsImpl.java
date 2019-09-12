@@ -32,46 +32,45 @@ import org.springframework.util.ClassUtils;
  *
  * @author Rossen Stoyanchev
  */
-class ServerDefaultCodecsImpl extends BaseDefaultCodecs implements ServerCodecConfigurer.ServerDefaultCodecs {
+class ServerDefaultCodecsImpl extends BaseDefaultCodecs
+    implements ServerCodecConfigurer.ServerDefaultCodecs {
 
-	private static final boolean synchronossMultipartPresent =
-			ClassUtils.isPresent("org.synchronoss.cloud.nio.multipart.NioMultipartParser",
-					DefaultServerCodecConfigurer.class.getClassLoader());
+  private static final boolean synchronossMultipartPresent =
+      ClassUtils.isPresent(
+          "org.synchronoss.cloud.nio.multipart.NioMultipartParser",
+          DefaultServerCodecConfigurer.class.getClassLoader());
 
+  @Nullable private Encoder<?> sseEncoder;
 
-	@Nullable
-	private Encoder<?> sseEncoder;
+  @Override
+  public void serverSentEventEncoder(Encoder<?> encoder) {
+    this.sseEncoder = encoder;
+  }
 
+  @Override
+  protected void extendTypedReaders(List<HttpMessageReader<?>> typedReaders) {
+    if (synchronossMultipartPresent) {
+      boolean enable = isEnableLoggingRequestDetails();
 
-	@Override
-	public void serverSentEventEncoder(Encoder<?> encoder) {
-		this.sseEncoder = encoder;
-	}
+      SynchronossPartHttpMessageReader partReader = new SynchronossPartHttpMessageReader();
+      partReader.setEnableLoggingRequestDetails(enable);
+      typedReaders.add(partReader);
 
+      MultipartHttpMessageReader reader = new MultipartHttpMessageReader(partReader);
+      reader.setEnableLoggingRequestDetails(enable);
+      typedReaders.add(reader);
+    }
+  }
 
-	@Override
-	protected void extendTypedReaders(List<HttpMessageReader<?>> typedReaders) {
-		if (synchronossMultipartPresent) {
-			boolean enable = isEnableLoggingRequestDetails();
+  @Override
+  protected void extendObjectWriters(List<HttpMessageWriter<?>> objectWriters) {
+    objectWriters.add(new ServerSentEventHttpMessageWriter(getSseEncoder()));
+  }
 
-			SynchronossPartHttpMessageReader partReader = new SynchronossPartHttpMessageReader();
-			partReader.setEnableLoggingRequestDetails(enable);
-			typedReaders.add(partReader);
-
-			MultipartHttpMessageReader reader = new MultipartHttpMessageReader(partReader);
-			reader.setEnableLoggingRequestDetails(enable);
-			typedReaders.add(reader);
-		}
-	}
-
-	@Override
-	protected void extendObjectWriters(List<HttpMessageWriter<?>> objectWriters) {
-		objectWriters.add(new ServerSentEventHttpMessageWriter(getSseEncoder()));
-	}
-
-	@Nullable
-	private Encoder<?> getSseEncoder() {
-		return this.sseEncoder != null ? this.sseEncoder : jackson2Present ? getJackson2JsonEncoder() : null;
-	}
-
+  @Nullable
+  private Encoder<?> getSseEncoder() {
+    return this.sseEncoder != null
+        ? this.sseEncoder
+        : jackson2Present ? getJackson2JsonEncoder() : null;
+  }
 }

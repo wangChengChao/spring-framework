@@ -7,7 +7,8 @@
 
 	<context:annotation-config/>
 
-	<bean id="dao" class="org.springframework.orm.jpa.support.PersistenceInjectionTests$DefaultPublicPersistenceUnitSetterNamedPerson"/>
+	<bean id="dao"
+			class="org.springframework.orm.jpa.support.PersistenceInjectionTests$DefaultPublicPersistenceUnitSetterNamedPerson"/>
 
 	<bean class="org.springframework.orm.jpa.support.PersistenceInjectionTests$DefaultPublicPersistenceContextSetter"/>
 
@@ -15,7 +16,8 @@
 		<property name="proxyTargetClass" value="true"/>
 	</bean>
 
-	<bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean" lazy-init="true">
+	<bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean"
+			lazy-init="true">
 		<property name="targetObject" ref="dao"/>
 		<property name="targetMethod" value="toString"/>
 	</bean>

@@ -29,8 +29,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests that verify the behavior requested in
- * <a href="https://jira.spring.io/browse/SPR-9645">SPR-9645</a>.
+ * Integration tests that verify the behavior requested in <a
+ * href="https://jira.spring.io/browse/SPR-9645">SPR-9645</a>.
  *
  * @author Sam Brannen
  * @since 3.2
@@ -39,22 +39,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ContextConfiguration
 public class LookUpNonexistentTxMgrTests {
 
-	private static final CallCountingTransactionManager txManager = new CallCountingTransactionManager();
+  private static final CallCountingTransactionManager txManager =
+      new CallCountingTransactionManager();
 
-	@Configuration
-	static class Config {
+  @Configuration
+  static class Config {
 
-		@Bean
-		public PlatformTransactionManager transactionManager() {
-			return txManager;
-		}
-	}
+    @Bean
+    public PlatformTransactionManager transactionManager() {
+      return txManager;
+    }
+  }
 
-	@Test
-	public void nonTransactionalTest() {
-		assertThat(txManager.begun).isEqualTo(0);
-		assertThat(txManager.inflight).isEqualTo(0);
-		assertThat(txManager.commits).isEqualTo(0);
-		assertThat(txManager.rollbacks).isEqualTo(0);
-	}
+  @Test
+  public void nonTransactionalTest() {
+    assertThat(txManager.begun).isEqualTo(0);
+    assertThat(txManager.inflight).isEqualTo(0);
+    assertThat(txManager.commits).isEqualTo(0);
+    assertThat(txManager.rollbacks).isEqualTo(0);
+  }
 }

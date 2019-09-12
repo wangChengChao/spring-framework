@@ -33,33 +33,33 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
  */
 public class AspectMetadataTests {
 
-	@Test
-	public void testNotAnAspect() {
-		assertThatIllegalArgumentException().isThrownBy(() ->
-				new AspectMetadata(String.class,"someBean"));
-	}
+  @Test
+  public void testNotAnAspect() {
+    assertThatIllegalArgumentException()
+        .isThrownBy(() -> new AspectMetadata(String.class, "someBean"));
+  }
 
-	@Test
-	public void testSingletonAspect() {
-		AspectMetadata am = new AspectMetadata(ExceptionAspect.class,"someBean");
-		assertThat(am.isPerThisOrPerTarget()).isFalse();
-		assertThat(am.getPerClausePointcut()).isSameAs(Pointcut.TRUE);
-		assertThat(am.getAjType().getPerClause().getKind()).isEqualTo(PerClauseKind.SINGLETON);
-	}
+  @Test
+  public void testSingletonAspect() {
+    AspectMetadata am = new AspectMetadata(ExceptionAspect.class, "someBean");
+    assertThat(am.isPerThisOrPerTarget()).isFalse();
+    assertThat(am.getPerClausePointcut()).isSameAs(Pointcut.TRUE);
+    assertThat(am.getAjType().getPerClause().getKind()).isEqualTo(PerClauseKind.SINGLETON);
+  }
 
-	@Test
-	public void testPerTargetAspect() {
-		AspectMetadata am = new AspectMetadata(PerTargetAspect.class,"someBean");
-		assertThat(am.isPerThisOrPerTarget()).isTrue();
-		assertThat(am.getPerClausePointcut()).isNotSameAs(Pointcut.TRUE);
-		assertThat(am.getAjType().getPerClause().getKind()).isEqualTo(PerClauseKind.PERTARGET);
-	}
+  @Test
+  public void testPerTargetAspect() {
+    AspectMetadata am = new AspectMetadata(PerTargetAspect.class, "someBean");
+    assertThat(am.isPerThisOrPerTarget()).isTrue();
+    assertThat(am.getPerClausePointcut()).isNotSameAs(Pointcut.TRUE);
+    assertThat(am.getAjType().getPerClause().getKind()).isEqualTo(PerClauseKind.PERTARGET);
+  }
 
-	@Test
-	public void testPerThisAspect() {
-		AspectMetadata am = new AspectMetadata(PerThisAspect.class,"someBean");
-		assertThat(am.isPerThisOrPerTarget()).isTrue();
-		assertThat(am.getPerClausePointcut()).isNotSameAs(Pointcut.TRUE);
-		assertThat(am.getAjType().getPerClause().getKind()).isEqualTo(PerClauseKind.PERTHIS);
-	}
+  @Test
+  public void testPerThisAspect() {
+    AspectMetadata am = new AspectMetadata(PerThisAspect.class, "someBean");
+    assertThat(am.isPerThisOrPerTarget()).isTrue();
+    assertThat(am.getPerClausePointcut()).isNotSameAs(Pointcut.TRUE);
+    assertThat(am.getAjType().getPerClause().getKind()).isEqualTo(PerClauseKind.PERTHIS);
+  }
 }

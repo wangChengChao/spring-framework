@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "https://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN"
+		"https://www.springframework.org/dtd/spring-beans-2.0.dtd">
 <beans>
 
 	<bean class="org.springframework.scripting.support.ScriptFactoryPostProcessor"/>
@@ -8,12 +9,12 @@
 		<constructor-arg>
 			<!-- 'inline:' prefix is preceded by whitespace... -->
 			<value>
-    inline:
-			
-	class Bingo {
+				inline:
 
-		@Property String message;
-	}
+				class Bingo {
+
+				@Property String message;
+				}
 			</value>
 		</constructor-arg>
 		<property name="message" value="Hello World!"/>

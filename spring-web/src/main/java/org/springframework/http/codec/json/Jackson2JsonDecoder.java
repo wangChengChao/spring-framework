@@ -22,8 +22,8 @@ import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.util.MimeType;
 
 /**
- * Decode a byte stream into JSON and convert to Object's with Jackson 2.9,
- * leveraging non-blocking parsing.
+ * Decode a byte stream into JSON and convert to Object's with Jackson 2.9, leveraging non-blocking
+ * parsing.
  *
  * @author Sebastien Deleuze
  * @author Rossen Stoyanchev
@@ -32,12 +32,11 @@ import org.springframework.util.MimeType;
  */
 public class Jackson2JsonDecoder extends AbstractJackson2Decoder {
 
-	public Jackson2JsonDecoder() {
-		super(Jackson2ObjectMapperBuilder.json().build());
-	}
+  public Jackson2JsonDecoder() {
+    super(Jackson2ObjectMapperBuilder.json().build());
+  }
 
-	public Jackson2JsonDecoder(ObjectMapper mapper, MimeType... mimeTypes) {
-		super(mapper, mimeTypes);
-	}
-
+  public Jackson2JsonDecoder(ObjectMapper mapper, MimeType... mimeTypes) {
+    super(mapper, mimeTypes);
+  }
 }

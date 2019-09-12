@@ -30,41 +30,38 @@ import org.springframework.tests.sample.beans.Pet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests which verify that a subclass of {@link DefaultTestContextBootstrapper}
- * can specify a custom <em>default ContextLoader class</em> that overrides the standard
- * default class name.
+ * Integration tests which verify that a subclass of {@link DefaultTestContextBootstrapper} can
+ * specify a custom <em>default ContextLoader class</em> that overrides the standard default class
+ * name.
  *
  * @author Sam Brannen
  * @since 3.0
  */
 @RunWith(SpringRunner.class)
-@BootstrapWith(CustomDefaultContextLoaderClassSpringRunnerTests.PropertiesBasedTestContextBootstrapper.class)
+@BootstrapWith(
+    CustomDefaultContextLoaderClassSpringRunnerTests.PropertiesBasedTestContextBootstrapper.class)
 @ContextConfiguration("PropertiesBasedSpringJUnit4ClassRunnerAppCtxTests-context.properties")
 public class CustomDefaultContextLoaderClassSpringRunnerTests {
 
-	@Autowired
-	private Pet cat;
+  @Autowired private Pet cat;
 
-	@Autowired
-	private String testString;
+  @Autowired private String testString;
 
+  @Test
+  public void verifyAnnotationAutowiredFields() {
+    assertThat(this.cat).as("The cat field should have been autowired.").isNotNull();
+    assertThat(this.cat.getName()).isEqualTo("Garfield");
 
-	@Test
-	public void verifyAnnotationAutowiredFields() {
-		assertThat(this.cat).as("The cat field should have been autowired.").isNotNull();
-		assertThat(this.cat.getName()).isEqualTo("Garfield");
+    assertThat(this.testString).as("The testString field should have been autowired.").isNotNull();
+    assertThat(this.testString).isEqualTo("Test String");
+  }
 
-		assertThat(this.testString).as("The testString field should have been autowired.").isNotNull();
-		assertThat(this.testString).isEqualTo("Test String");
-	}
+  public static class PropertiesBasedTestContextBootstrapper
+      extends DefaultTestContextBootstrapper {
 
-
-	public static class PropertiesBasedTestContextBootstrapper extends DefaultTestContextBootstrapper {
-
-		@Override
-		protected Class<? extends ContextLoader> getDefaultContextLoaderClass(Class<?> testClass) {
-			return GenericPropertiesContextLoader.class;
-		}
-	}
-
+    @Override
+    protected Class<? extends ContextLoader> getDefaultContextLoaderClass(Class<?> testClass) {
+      return GenericPropertiesContextLoader.class;
+    }
+  }
 }

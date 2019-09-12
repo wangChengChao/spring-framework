@@ -27,27 +27,24 @@ import org.springframework.lang.Nullable;
  * @author Chris Beams
  * @author Juergen Hoeller
  * @since 3.1.1
- * @deprecated As of Spring Framework 5.2, this class and related classes in this
- * package have been replaced by {@link SimpleAnnotationMetadataReadingVisitor}
- * and related classes for internal use within the framework.
+ * @deprecated As of Spring Framework 5.2, this class and related classes in this package have been
+ *     replaced by {@link SimpleAnnotationMetadataReadingVisitor} and related classes for internal
+ *     use within the framework.
  */
 @Deprecated
 class RecursiveAnnotationAttributesVisitor extends AbstractRecursiveAnnotationVisitor {
 
-	protected final String annotationType;
+  protected final String annotationType;
 
+  public RecursiveAnnotationAttributesVisitor(
+      String annotationType, AnnotationAttributes attributes, @Nullable ClassLoader classLoader) {
 
-	public RecursiveAnnotationAttributesVisitor(
-			String annotationType, AnnotationAttributes attributes, @Nullable ClassLoader classLoader) {
+    super(classLoader, attributes);
+    this.annotationType = annotationType;
+  }
 
-		super(classLoader, attributes);
-		this.annotationType = annotationType;
-	}
-
-
-	@Override
-	public void visitEnd() {
-		AnnotationUtils.registerDefaultValues(this.attributes);
-	}
-
+  @Override
+  public void visitEnd() {
+    AnnotationUtils.registerDefaultValues(this.attributes);
+  }
 }

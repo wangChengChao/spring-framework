@@ -40,96 +40,106 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
  */
 public class PathExtensionContentNegotiationStrategyTests {
 
-	private NativeWebRequest webRequest;
+  private NativeWebRequest webRequest;
 
-	private MockHttpServletRequest servletRequest;
+  private MockHttpServletRequest servletRequest;
 
+  @BeforeEach
+  public void setup() {
+    this.servletRequest = new MockHttpServletRequest();
+    this.webRequest = new ServletWebRequest(servletRequest);
+  }
 
-	@BeforeEach
-	public void setup() {
-		this.servletRequest = new MockHttpServletRequest();
-		this.webRequest = new ServletWebRequest(servletRequest);
-	}
+  @Test
+  public void resolveMediaTypesFromMapping() throws Exception {
 
+    this.servletRequest.setRequestURI("test.html");
 
-	@Test
-	public void resolveMediaTypesFromMapping() throws Exception {
+    PathExtensionContentNegotiationStrategy strategy =
+        new PathExtensionContentNegotiationStrategy();
+    List<MediaType> mediaTypes = strategy.resolveMediaTypes(this.webRequest);
 
-		this.servletRequest.setRequestURI("test.html");
+    assertThat(mediaTypes).isEqualTo(Arrays.asList(new MediaType("text", "html")));
 
-		PathExtensionContentNegotiationStrategy strategy = new PathExtensionContentNegotiationStrategy();
-		List<MediaType> mediaTypes = strategy.resolveMediaTypes(this.webRequest);
+    Map<String, MediaType> mapping =
+        Collections.singletonMap("HTML", MediaType.APPLICATION_XHTML_XML);
+    strategy = new PathExtensionContentNegotiationStrategy(mapping);
+    mediaTypes = strategy.resolveMediaTypes(this.webRequest);
 
-		assertThat(mediaTypes).isEqualTo(Arrays.asList(new MediaType("text", "html")));
+    assertThat(mediaTypes).isEqualTo(Arrays.asList(new MediaType("application", "xhtml+xml")));
+  }
 
-		Map<String, MediaType> mapping = Collections.singletonMap("HTML", MediaType.APPLICATION_XHTML_XML);
-		strategy = new PathExtensionContentNegotiationStrategy(mapping);
-		mediaTypes = strategy.resolveMediaTypes(this.webRequest);
+  @Test
+  public void resolveMediaTypesFromMediaTypeFactory() throws Exception {
 
-		assertThat(mediaTypes).isEqualTo(Arrays.asList(new MediaType("application", "xhtml+xml")));
-	}
+    this.servletRequest.setRequestURI("test.xls");
 
-	@Test
-	public void resolveMediaTypesFromMediaTypeFactory() throws Exception {
+    PathExtensionContentNegotiationStrategy strategy =
+        new PathExtensionContentNegotiationStrategy();
+    List<MediaType> mediaTypes = strategy.resolveMediaTypes(this.webRequest);
 
-		this.servletRequest.setRequestURI("test.xls");
+    assertThat(mediaTypes).isEqualTo(Arrays.asList(new MediaType("application", "vnd.ms-excel")));
+  }
 
-		PathExtensionContentNegotiationStrategy strategy = new PathExtensionContentNegotiationStrategy();
-		List<MediaType> mediaTypes = strategy.resolveMediaTypes(this.webRequest);
+  // SPR-8678
 
-		assertThat(mediaTypes).isEqualTo(Arrays.asList(new MediaType("application", "vnd.ms-excel")));
-	}
+  @Test
+  public void getMediaTypeFilenameWithContextPath() throws Exception {
 
-	// SPR-8678
+    PathExtensionContentNegotiationStrategy strategy =
+        new PathExtensionContentNegotiationStrategy();
 
-	@Test
-	public void getMediaTypeFilenameWithContextPath() throws Exception {
+    this.servletRequest.setContextPath("/project-1.0.0.M3");
+    this.servletRequest.setRequestURI("/project-1.0.0.M3/");
+    assertThat(strategy.resolveMediaTypes(webRequest))
+        .as("Context path should be excluded")
+        .isEqualTo(ContentNegotiationStrategy.MEDIA_TYPE_ALL_LIST);
 
-		PathExtensionContentNegotiationStrategy strategy = new PathExtensionContentNegotiationStrategy();
+    this.servletRequest.setRequestURI("/project-1.0.0.M3");
+    assertThat(strategy.resolveMediaTypes(webRequest))
+        .as("Context path should be excluded")
+        .isEqualTo(ContentNegotiationStrategy.MEDIA_TYPE_ALL_LIST);
+  }
 
-		this.servletRequest.setContextPath("/project-1.0.0.M3");
-		this.servletRequest.setRequestURI("/project-1.0.0.M3/");
-		assertThat(strategy.resolveMediaTypes(webRequest)).as("Context path should be excluded").isEqualTo(ContentNegotiationStrategy.MEDIA_TYPE_ALL_LIST);
+  // SPR-9390
 
-		this.servletRequest.setRequestURI("/project-1.0.0.M3");
-		assertThat(strategy.resolveMediaTypes(webRequest)).as("Context path should be excluded").isEqualTo(ContentNegotiationStrategy.MEDIA_TYPE_ALL_LIST);
-	}
+  @Test
+  public void getMediaTypeFilenameWithEncodedURI() throws Exception {
 
-	// SPR-9390
+    this.servletRequest.setRequestURI("/quo%20vadis%3f.html");
 
-	@Test
-	public void getMediaTypeFilenameWithEncodedURI() throws Exception {
+    PathExtensionContentNegotiationStrategy strategy =
+        new PathExtensionContentNegotiationStrategy();
+    List<MediaType> result = strategy.resolveMediaTypes(webRequest);
 
-		this.servletRequest.setRequestURI("/quo%20vadis%3f.html");
+    assertThat(result)
+        .as("Invalid content type")
+        .isEqualTo(Collections.singletonList(new MediaType("text", "html")));
+  }
 
-		PathExtensionContentNegotiationStrategy strategy = new PathExtensionContentNegotiationStrategy();
-		List<MediaType> result = strategy.resolveMediaTypes(webRequest);
+  // SPR-10170
 
-		assertThat(result).as("Invalid content type").isEqualTo(Collections.singletonList(new MediaType("text", "html")));
-	}
+  @Test
+  public void resolveMediaTypesIgnoreUnknownExtension() throws Exception {
 
-	// SPR-10170
+    this.servletRequest.setRequestURI("test.foobar");
 
-	@Test
-	public void resolveMediaTypesIgnoreUnknownExtension() throws Exception {
+    PathExtensionContentNegotiationStrategy strategy =
+        new PathExtensionContentNegotiationStrategy();
+    List<MediaType> mediaTypes = strategy.resolveMediaTypes(this.webRequest);
 
-		this.servletRequest.setRequestURI("test.foobar");
+    assertThat(mediaTypes).isEqualTo(ContentNegotiationStrategy.MEDIA_TYPE_ALL_LIST);
+  }
 
-		PathExtensionContentNegotiationStrategy strategy = new PathExtensionContentNegotiationStrategy();
-		List<MediaType> mediaTypes = strategy.resolveMediaTypes(this.webRequest);
+  @Test
+  public void resolveMediaTypesDoNotIgnoreUnknownExtension() throws Exception {
 
-		assertThat(mediaTypes).isEqualTo(ContentNegotiationStrategy.MEDIA_TYPE_ALL_LIST);
-	}
+    this.servletRequest.setRequestURI("test.foobar");
 
-	@Test
-	public void resolveMediaTypesDoNotIgnoreUnknownExtension() throws Exception {
-
-		this.servletRequest.setRequestURI("test.foobar");
-
-		PathExtensionContentNegotiationStrategy strategy = new PathExtensionContentNegotiationStrategy();
-		strategy.setIgnoreUnknownExtensions(false);
-		assertThatExceptionOfType(HttpMediaTypeNotAcceptableException.class).isThrownBy(() ->
-				strategy.resolveMediaTypes(this.webRequest));
-	}
-
+    PathExtensionContentNegotiationStrategy strategy =
+        new PathExtensionContentNegotiationStrategy();
+    strategy.setIgnoreUnknownExtensions(false);
+    assertThatExceptionOfType(HttpMediaTypeNotAcceptableException.class)
+        .isThrownBy(() -> strategy.resolveMediaTypes(this.webRequest));
+  }
 }

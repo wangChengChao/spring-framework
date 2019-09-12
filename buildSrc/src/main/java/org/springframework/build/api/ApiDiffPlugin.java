@@ -33,83 +33,90 @@ import org.gradle.api.tasks.TaskProvider;
 import org.gradle.jvm.tasks.Jar;
 
 /**
- * {@link Plugin} that applies the {@code "japicmp-gradle-plugin"}
- * and create tasks for all subprojects, diffing the public API one by one
- * and creating the reports in {@code "build/reports/api-diff/$OLDVERSION_to_$NEWVERSION/"}.
- * <p>{@code "./gradlew apiDiff -PbaselineVersion=5.1.0.RELEASE"} will output the
- * reports for the API diff between the baseline version and the current one for all modules.
- * You can limit the report to a single module with
- * {@code "./gradlew :spring-core:apiDiff -PbaselineVersion=5.1.0.RELEASE"}.
+ * {@link Plugin} that applies the {@code "japicmp-gradle-plugin"} and create tasks for all
+ * subprojects, diffing the public API one by one and creating the reports in {@code
+ * "build/reports/api-diff/$OLDVERSION_to_$NEWVERSION/"}.
+ *
+ * <p>{@code "./gradlew apiDiff -PbaselineVersion=5.1.0.RELEASE"} will output the reports for the
+ * API diff between the baseline version and the current one for all modules. You can limit the
+ * report to a single module with {@code "./gradlew :spring-core:apiDiff
+ * -PbaselineVersion=5.1.0.RELEASE"}.
  *
  * @author Brian Clozel
  */
 public class ApiDiffPlugin implements Plugin<Project> {
 
-	public static final String TASK_NAME = "apiDiff";
+  public static final String TASK_NAME = "apiDiff";
 
-	private static final String BASELINE_VERSION_PROPERTY = "baselineVersion";
+  private static final String BASELINE_VERSION_PROPERTY = "baselineVersion";
 
-	private static final List<String> PACKAGE_INCLUDES = Collections.singletonList("org.springframework.*");
+  private static final List<String> PACKAGE_INCLUDES =
+      Collections.singletonList("org.springframework.*");
 
-	@Override
-	public void apply(Project project) {
-		if (project.hasProperty(BASELINE_VERSION_PROPERTY) && project.equals(project.getRootProject())) {
-			project.getPluginManager().apply(JapicmpPlugin.class);
-			project.getPlugins().withType(JapicmpPlugin.class,
-					plugin -> applyApiDiffConventions(project));
-		}
-	}
+  @Override
+  public void apply(Project project) {
+    if (project.hasProperty(BASELINE_VERSION_PROPERTY)
+        && project.equals(project.getRootProject())) {
+      project.getPluginManager().apply(JapicmpPlugin.class);
+      project
+          .getPlugins()
+          .withType(JapicmpPlugin.class, plugin -> applyApiDiffConventions(project));
+    }
+  }
 
-	private void applyApiDiffConventions(Project project) {
-		String baselineVersion = project.property(BASELINE_VERSION_PROPERTY).toString();
-		project.subprojects(subProject -> createApiDiffTask(baselineVersion, subProject));
-	}
+  private void applyApiDiffConventions(Project project) {
+    String baselineVersion = project.property(BASELINE_VERSION_PROPERTY).toString();
+    project.subprojects(subProject -> createApiDiffTask(baselineVersion, subProject));
+  }
 
-	private void createApiDiffTask(String baselineVersion, Project project) {
-		if (isProjectEligible(project)) {
-			JapicmpTask apiDiff = project.getTasks().create(TASK_NAME, JapicmpTask.class);
-			apiDiff.setDescription("Generates an API diff report with japicmp");
-			apiDiff.setGroup(JavaBasePlugin.DOCUMENTATION_GROUP);
+  private void createApiDiffTask(String baselineVersion, Project project) {
+    if (isProjectEligible(project)) {
+      JapicmpTask apiDiff = project.getTasks().create(TASK_NAME, JapicmpTask.class);
+      apiDiff.setDescription("Generates an API diff report with japicmp");
+      apiDiff.setGroup(JavaBasePlugin.DOCUMENTATION_GROUP);
 
-			apiDiff.setOldClasspath(project.files(createBaselineConfiguration(baselineVersion, project)));
-			TaskProvider<Jar> jar = project.getTasks().withType(Jar.class).named("jar");
-			apiDiff.setNewArchives(project.getLayout().files(jar.get().getArchiveFile().get().getAsFile()));
-			apiDiff.setNewClasspath(getRuntimeClassPath(project));
-			apiDiff.setPackageIncludes(PACKAGE_INCLUDES);
-			apiDiff.setOnlyModified(true);
-			apiDiff.setIgnoreMissingClasses(true);
-			// Ignore Kotlin metadata annotations since they contain
-			// illegal HTML characters and fail the report generation
-			apiDiff.setAnnotationExcludes(Collections.singletonList("@kotlin.Metadata"));
+      apiDiff.setOldClasspath(project.files(createBaselineConfiguration(baselineVersion, project)));
+      TaskProvider<Jar> jar = project.getTasks().withType(Jar.class).named("jar");
+      apiDiff.setNewArchives(
+          project.getLayout().files(jar.get().getArchiveFile().get().getAsFile()));
+      apiDiff.setNewClasspath(getRuntimeClassPath(project));
+      apiDiff.setPackageIncludes(PACKAGE_INCLUDES);
+      apiDiff.setOnlyModified(true);
+      apiDiff.setIgnoreMissingClasses(true);
+      // Ignore Kotlin metadata annotations since they contain
+      // illegal HTML characters and fail the report generation
+      apiDiff.setAnnotationExcludes(Collections.singletonList("@kotlin.Metadata"));
 
-			apiDiff.setHtmlOutputFile(getOutputFile(baselineVersion, project));
+      apiDiff.setHtmlOutputFile(getOutputFile(baselineVersion, project));
 
-			apiDiff.dependsOn(project.getTasks().getByName("jar"));
-		}
-	}
+      apiDiff.dependsOn(project.getTasks().getByName("jar"));
+    }
+  }
 
-	private boolean isProjectEligible(Project project) {
-		return project.getPlugins().hasPlugin(JavaPlugin.class)
-				&& !project.getName().equals("spring-core-coroutines")
-				&& !project.getName().equals("spring-framework-bom");
-	}
+  private boolean isProjectEligible(Project project) {
+    return project.getPlugins().hasPlugin(JavaPlugin.class)
+        && !project.getName().equals("spring-core-coroutines")
+        && !project.getName().equals("spring-framework-bom");
+  }
 
-	private Configuration createBaselineConfiguration(String baselineVersion, Project project) {
-		String baseline = String.join(":",
-				project.getGroup().toString(), project.getName(), baselineVersion);
-		Dependency baselineDependency = project.getDependencies().create(baseline + "@jar");
-		return project.getRootProject().getConfigurations().detachedConfiguration(baselineDependency);
-	}
+  private Configuration createBaselineConfiguration(String baselineVersion, Project project) {
+    String baseline =
+        String.join(":", project.getGroup().toString(), project.getName(), baselineVersion);
+    Dependency baselineDependency = project.getDependencies().create(baseline + "@jar");
+    return project.getRootProject().getConfigurations().detachedConfiguration(baselineDependency);
+  }
 
-	private Configuration getRuntimeClassPath(Project project) {
-		return project.getConfigurations().getByName(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME);
-	}
+  private Configuration getRuntimeClassPath(Project project) {
+    return project.getConfigurations().getByName(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME);
+  }
 
-	private File getOutputFile(String baseLineVersion, Project project) {
-		Path outDir = Paths.get(project.getRootProject().getBuildDir().getAbsolutePath(),
-				"reports", "api-diff",
-				baseLineVersion + "_to_" + project.getRootProject().getVersion());
-		return project.file(outDir.resolve(project.getName() + ".html").toString());
-	}
-
+  private File getOutputFile(String baseLineVersion, Project project) {
+    Path outDir =
+        Paths.get(
+            project.getRootProject().getBuildDir().getAbsolutePath(),
+            "reports",
+            "api-diff",
+            baseLineVersion + "_to_" + project.getRootProject().getVersion());
+    return project.file(outDir.resolve(project.getName() + ".html").toString());
+  }
 }

@@ -7,10 +7,12 @@
 
 	<aop:config>
 		<aop:aspect id="beanNameMatchingTest" ref="counterAspect">
-			<aop:pointcut id="bean1Operation" expression="execution(* set*(..)) and bean(myBean) and !bean(foo)"/>
+			<aop:pointcut id="bean1Operation"
+					expression="execution(* set*(..)) and bean(myBean) and !bean(foo)"/>
 			<aop:before pointcut-ref="bean1Operation" method="increment()"/>
 
-			<aop:pointcut id="nestedBeanOperation" expression="execution(* getCompany(..)) and bean(testBean*)"/>
+			<aop:pointcut id="nestedBeanOperation"
+					expression="execution(* getCompany(..)) and bean(testBean*)"/>
 			<aop:before pointcut-ref="nestedBeanOperation" method="increment()"/>
 
 			<aop:pointcut id="factoryBean1Operation" expression="bean(testFactoryBean1)"/>
@@ -59,6 +61,7 @@
 
 	<bean id="dontInterceptThis" class="org.springframework.tests.sample.beans.TestBean"/>
 
-	<bean id="testInterceptor" class="org.springframework.aop.aspectj.BeanNamePointcutTests$TestInterceptor"/>
+	<bean id="testInterceptor"
+			class="org.springframework.aop.aspectj.BeanNamePointcutTests$TestInterceptor"/>
 
 </beans>

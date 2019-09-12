@@ -118,7 +118,7 @@ class CoRouterFunctionDslTests {
 	fun rendering() {
 		val request = builder().uri(URI("/rendering")).build()
 		StepVerifier.create(sampleRouter().route(request).flatMap { it.handle(request) })
-				.expectNextMatches { it is RenderingResponse}
+				.expectNextMatches { it is RenderingResponse }
 				.verifyComplete()
 	}
 
@@ -134,7 +134,7 @@ class CoRouterFunctionDslTests {
 		(GET("/foo/") or GET("/foos/")) { req -> handle(req) }
 		"/api".nest {
 			POST("/foo/", ::handleFromClass)
-			PUT("/foo/", :: handleFromClass)
+			PUT("/foo/", ::handleFromClass)
 			PATCH("/foo/") {
 				ok().buildAndAwait()
 			}
@@ -154,8 +154,7 @@ class CoRouterFunctionDslTests {
 		resources {
 			if (it.path() == "/response.txt") {
 				ClassPathResource("/org/springframework/web/reactive/function/response.txt")
-			}
-			else {
+			} else {
 				null
 			}
 		}

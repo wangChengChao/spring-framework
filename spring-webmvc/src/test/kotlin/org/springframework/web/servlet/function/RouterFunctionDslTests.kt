@@ -120,7 +120,7 @@ class RouterFunctionDslTests {
 		(GET("/foo/") or GET("/foos/")) { req -> handle(req) }
 		"/api".nest {
 			POST("/foo/", ::handleFromClass)
-			PUT("/foo/", :: handleFromClass)
+			PUT("/foo/", ::handleFromClass)
 			PATCH("/foo/") {
 				ok().build()
 			}
@@ -140,8 +140,7 @@ class RouterFunctionDslTests {
 		resources {
 			if (it.path() == "/response.txt") {
 				ClassPathResource("/org/springframework/web/servlet/function/response.txt")
-			}
-			else {
+			} else {
 				null
 			}
 		}

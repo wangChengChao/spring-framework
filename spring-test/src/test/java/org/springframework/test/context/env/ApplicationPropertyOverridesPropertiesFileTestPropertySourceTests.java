@@ -30,11 +30,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests for {@link TestPropertySource @TestPropertySource}
- * support with an explicitly named properties file that overrides an
- * application-level property configured via
- * {@link PropertySource @PropertySource} on an
- * {@link Configuration @Configuration} class.
+ * Integration tests for {@link TestPropertySource @TestPropertySource} support with an explicitly
+ * named properties file that overrides an application-level property configured via {@link
+ * PropertySource @PropertySource} on an {@link Configuration @Configuration} class.
  *
  * @author Sam Brannen
  * @since 4.1
@@ -44,22 +42,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource("ApplicationPropertyOverridePropertiesFileTestPropertySourceTests.properties")
 class ApplicationPropertyOverridesPropertiesFileTestPropertySourceTests {
 
-	@Autowired
-	protected Environment env;
+  @Autowired protected Environment env;
 
+  @Test
+  void verifyPropertiesAreAvailableInEnvironment() {
+    assertThat(env.getProperty("explicit")).isEqualTo("test override");
+  }
 
-	@Test
-	void verifyPropertiesAreAvailableInEnvironment() {
-		assertThat(env.getProperty("explicit")).isEqualTo("test override");
-	}
+  // -------------------------------------------------------------------
 
-
-	// -------------------------------------------------------------------
-
-	@Configuration
-	@PropertySource("classpath:/org/springframework/test/context/env/explicit.properties")
-	static class Config {
-		/* no user beans required for these tests */
-	}
-
+  @Configuration
+  @PropertySource("classpath:/org/springframework/test/context/env/explicit.properties")
+  static class Config {
+    /* no user beans required for these tests */
+  }
 }

@@ -46,112 +46,113 @@ import static org.mockito.Mockito.mock;
 
 /**
  * Unit tests for {@link SessionAttributeMethodArgumentResolver}.
+ *
  * @author Rossen Stoyanchev
  */
 public class SessionAttributeMethodArgumentResolverTests {
 
-	private SessionAttributeMethodArgumentResolver resolver;
+  private SessionAttributeMethodArgumentResolver resolver;
 
-	private ServerWebExchange exchange;
+  private ServerWebExchange exchange;
 
-	private WebSession session;
+  private WebSession session;
 
-	private Method handleMethod;
+  private Method handleMethod;
 
+  @BeforeEach
+  @SuppressWarnings("resource")
+  public void setup() {
+    AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+    context.refresh();
+    ReactiveAdapterRegistry adapterRegistry = ReactiveAdapterRegistry.getSharedInstance();
+    this.resolver =
+        new SessionAttributeMethodArgumentResolver(context.getBeanFactory(), adapterRegistry);
+    this.session = mock(WebSession.class);
+    this.exchange =
+        MockServerWebExchange.builder(MockServerHttpRequest.get("/")).session(this.session).build();
+    this.handleMethod =
+        ReflectionUtils.findMethod(getClass(), "handleWithSessionAttribute", (Class<?>[]) null);
+  }
 
-	@BeforeEach
-	@SuppressWarnings("resource")
-	public void setup() {
-		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-		context.refresh();
-		ReactiveAdapterRegistry adapterRegistry = ReactiveAdapterRegistry.getSharedInstance();
-		this.resolver = new SessionAttributeMethodArgumentResolver(context.getBeanFactory(), adapterRegistry);
-		this.session = mock(WebSession.class);
-		this.exchange = MockServerWebExchange.builder(MockServerHttpRequest.get("/")).session(this.session).build();
-		this.handleMethod = ReflectionUtils.findMethod(getClass(), "handleWithSessionAttribute", (Class<?>[]) null);
-	}
+  @Test
+  public void supportsParameter() {
+    assertThat(this.resolver.supportsParameter(new MethodParameter(this.handleMethod, 0))).isTrue();
+    assertThat(this.resolver.supportsParameter(new MethodParameter(this.handleMethod, 4)))
+        .isFalse();
+  }
 
+  @Test
+  public void resolve() {
+    MethodParameter param = initMethodParameter(0);
+    Mono<Object> mono = this.resolver.resolveArgument(param, new BindingContext(), this.exchange);
+    StepVerifier.create(mono).expectError(ServerWebInputException.class).verify();
 
-	@Test
-	public void supportsParameter() {
-		assertThat(this.resolver.supportsParameter(new MethodParameter(this.handleMethod, 0))).isTrue();
-		assertThat(this.resolver.supportsParameter(new MethodParameter(this.handleMethod, 4))).isFalse();
-	}
+    Foo foo = new Foo();
+    given(this.session.getAttribute("foo")).willReturn(foo);
+    mono = this.resolver.resolveArgument(param, new BindingContext(), this.exchange);
+    assertThat(mono.block()).isSameAs(foo);
+  }
 
-	@Test
-	public void resolve() {
-		MethodParameter param = initMethodParameter(0);
-		Mono<Object> mono = this.resolver.resolveArgument(param, new BindingContext(), this.exchange);
-		StepVerifier.create(mono).expectError(ServerWebInputException.class).verify();
+  @Test
+  public void resolveWithName() {
+    MethodParameter param = initMethodParameter(1);
+    Foo foo = new Foo();
+    given(this.session.getAttribute("specialFoo")).willReturn(foo);
+    Mono<Object> mono = this.resolver.resolveArgument(param, new BindingContext(), this.exchange);
+    assertThat(mono.block()).isSameAs(foo);
+  }
 
-		Foo foo = new Foo();
-		given(this.session.getAttribute("foo")).willReturn(foo);
-		mono = this.resolver.resolveArgument(param, new BindingContext(), this.exchange);
-		assertThat(mono.block()).isSameAs(foo);
-	}
+  @Test
+  public void resolveNotRequired() {
+    MethodParameter param = initMethodParameter(2);
+    Mono<Object> mono = this.resolver.resolveArgument(param, new BindingContext(), this.exchange);
+    assertThat(mono.block()).isNull();
 
-	@Test
-	public void resolveWithName() {
-		MethodParameter param = initMethodParameter(1);
-		Foo foo = new Foo();
-		given(this.session.getAttribute("specialFoo")).willReturn(foo);
-		Mono<Object> mono = this.resolver.resolveArgument(param, new BindingContext(), this.exchange);
-		assertThat(mono.block()).isSameAs(foo);
-	}
+    Foo foo = new Foo();
+    given(this.session.getAttribute("foo")).willReturn(foo);
+    mono = this.resolver.resolveArgument(param, new BindingContext(), this.exchange);
+    assertThat(mono.block()).isSameAs(foo);
+  }
 
-	@Test
-	public void resolveNotRequired() {
-		MethodParameter param = initMethodParameter(2);
-		Mono<Object> mono = this.resolver.resolveArgument(param, new BindingContext(), this.exchange);
-		assertThat(mono.block()).isNull();
+  @SuppressWarnings("unchecked")
+  @Test
+  public void resolveOptional() {
+    MethodParameter param = initMethodParameter(3);
+    Optional<Object> actual =
+        (Optional<Object>)
+            this.resolver.resolveArgument(param, new BindingContext(), this.exchange).block();
 
-		Foo foo = new Foo();
-		given(this.session.getAttribute("foo")).willReturn(foo);
-		mono = this.resolver.resolveArgument(param, new BindingContext(), this.exchange);
-		assertThat(mono.block()).isSameAs(foo);
-	}
+    assertThat(actual).isNotNull();
+    assertThat(actual.isPresent()).isFalse();
 
-	@SuppressWarnings("unchecked")
-	@Test
-	public void resolveOptional() {
-		MethodParameter param = initMethodParameter(3);
-		Optional<Object> actual = (Optional<Object>) this.resolver
-				.resolveArgument(param, new BindingContext(), this.exchange).block();
+    ConfigurableWebBindingInitializer initializer = new ConfigurableWebBindingInitializer();
+    initializer.setConversionService(new DefaultFormattingConversionService());
+    BindingContext bindingContext = new BindingContext(initializer);
 
-		assertThat(actual).isNotNull();
-		assertThat(actual.isPresent()).isFalse();
+    Foo foo = new Foo();
+    given(this.session.getAttribute("foo")).willReturn(foo);
+    actual =
+        (Optional<Object>)
+            this.resolver.resolveArgument(param, bindingContext, this.exchange).block();
 
-		ConfigurableWebBindingInitializer initializer = new ConfigurableWebBindingInitializer();
-		initializer.setConversionService(new DefaultFormattingConversionService());
-		BindingContext bindingContext = new BindingContext(initializer);
+    assertThat(actual).isNotNull();
+    assertThat(actual.isPresent()).isTrue();
+    assertThat(actual.get()).isSameAs(foo);
+  }
 
-		Foo foo = new Foo();
-		given(this.session.getAttribute("foo")).willReturn(foo);
-		actual = (Optional<Object>) this.resolver.resolveArgument(param, bindingContext, this.exchange).block();
+  private MethodParameter initMethodParameter(int parameterIndex) {
+    MethodParameter param = new SynthesizingMethodParameter(this.handleMethod, parameterIndex);
+    param.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
+    return param.withContainingClass(this.resolver.getClass());
+  }
 
-		assertThat(actual).isNotNull();
-		assertThat(actual.isPresent()).isTrue();
-		assertThat(actual.get()).isSameAs(foo);
-	}
+  @SuppressWarnings({"unused", "OptionalUsedAsFieldOrParameterType"})
+  private void handleWithSessionAttribute(
+      @SessionAttribute Foo foo,
+      @SessionAttribute("specialFoo") Foo namedFoo,
+      @SessionAttribute(name = "foo", required = false) Foo notRequiredFoo,
+      @SessionAttribute(name = "foo") Optional<Foo> optionalFoo,
+      String notSupported) {}
 
-
-	private MethodParameter initMethodParameter(int parameterIndex) {
-		MethodParameter param = new SynthesizingMethodParameter(this.handleMethod, parameterIndex);
-		param.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
-		return param.withContainingClass(this.resolver.getClass());
-	}
-
-
-	@SuppressWarnings({"unused", "OptionalUsedAsFieldOrParameterType"})
-	private void handleWithSessionAttribute(
-			@SessionAttribute Foo foo,
-			@SessionAttribute("specialFoo") Foo namedFoo,
-			@SessionAttribute(name="foo", required = false) Foo notRequiredFoo,
-			@SessionAttribute(name="foo") Optional<Foo> optionalFoo,
-			String notSupported) {
-	}
-
-	private static class Foo {
-	}
-
+  private static class Foo {}
 }

@@ -40,8 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.transaction.TransactionAssert.assertThatTransaction;
 
 /**
- * Integration tests that ensure that <em>primary</em> transaction managers
- * are supported.
+ * Integration tests that ensure that <em>primary</em> transaction managers are supported.
  *
  * @author Sam Brannen
  * @since 4.3
@@ -51,67 +50,67 @@ import static org.springframework.test.transaction.TransactionAssert.assertThatT
 @DirtiesContext
 final class PrimaryTransactionManagerTests {
 
-	private JdbcTemplate jdbcTemplate;
+  private JdbcTemplate jdbcTemplate;
 
+  @Autowired
+  void setDataSource(DataSource dataSource1) {
+    this.jdbcTemplate = new JdbcTemplate(dataSource1);
+  }
 
-	@Autowired
-	void setDataSource(DataSource dataSource1) {
-		this.jdbcTemplate = new JdbcTemplate(dataSource1);
-	}
+  @BeforeTransaction
+  void beforeTransaction() {
+    assertNumUsers(0);
+  }
 
-	@BeforeTransaction
-	void beforeTransaction() {
-		assertNumUsers(0);
-	}
+  @AfterTransaction
+  void afterTransaction() {
+    assertNumUsers(0);
+  }
 
-	@AfterTransaction
-	void afterTransaction() {
-		assertNumUsers(0);
-	}
+  @Test
+  @Transactional
+  void transactionalTest() {
+    assertThatTransaction().isActive();
 
-	@Test
-	@Transactional
-	void transactionalTest() {
-		assertThatTransaction().isActive();
+    ClassPathResource resource =
+        new ClassPathResource("/org/springframework/test/context/jdbc/data.sql");
+    new ResourceDatabasePopulator(resource).execute(jdbcTemplate.getDataSource());
 
-		ClassPathResource resource = new ClassPathResource("/org/springframework/test/context/jdbc/data.sql");
-		new ResourceDatabasePopulator(resource).execute(jdbcTemplate.getDataSource());
+    assertNumUsers(1);
+  }
 
-		assertNumUsers(1);
-	}
+  private void assertNumUsers(int expected) {
+    assertThat(JdbcTestUtils.countRowsInTable(this.jdbcTemplate, "user"))
+        .as("Number of rows in the 'user' table")
+        .isEqualTo(expected);
+  }
 
-	private void assertNumUsers(int expected) {
-		assertThat(JdbcTestUtils.countRowsInTable(this.jdbcTemplate, "user")).as("Number of rows in the 'user' table").isEqualTo(expected);
-	}
+  @Configuration
+  @EnableTransactionManagement // SPR-17137: should not break trying to proxy the final test class
+  static class Config {
 
+    @Primary
+    @Bean
+    PlatformTransactionManager primaryTransactionManager() {
+      return new DataSourceTransactionManager(dataSource1());
+    }
 
-	@Configuration
-	@EnableTransactionManagement  // SPR-17137: should not break trying to proxy the final test class
-	static class Config {
+    @Bean
+    PlatformTransactionManager additionalTransactionManager() {
+      return new DataSourceTransactionManager(dataSource2());
+    }
 
-		@Primary
-		@Bean
-		PlatformTransactionManager primaryTransactionManager() {
-			return new DataSourceTransactionManager(dataSource1());
-		}
+    @Bean
+    DataSource dataSource1() {
+      return new EmbeddedDatabaseBuilder()
+          .generateUniqueName(true)
+          .addScript("classpath:/org/springframework/test/context/jdbc/schema.sql")
+          .build();
+    }
 
-		@Bean
-		PlatformTransactionManager additionalTransactionManager() {
-			return new DataSourceTransactionManager(dataSource2());
-		}
-
-		@Bean
-		DataSource dataSource1() {
-			return new EmbeddedDatabaseBuilder()
-					.generateUniqueName(true)
-					.addScript("classpath:/org/springframework/test/context/jdbc/schema.sql")
-					.build();
-		}
-
-		@Bean
-		DataSource dataSource2() {
-			return new EmbeddedDatabaseBuilder().generateUniqueName(true).build();
-		}
-	}
-
+    @Bean
+    DataSource dataSource2() {
+      return new EmbeddedDatabaseBuilder().generateUniqueName(true).build();
+    }
+  }
 }

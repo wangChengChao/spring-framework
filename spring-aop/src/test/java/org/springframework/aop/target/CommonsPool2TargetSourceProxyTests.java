@@ -27,21 +27,19 @@ import org.springframework.tests.sample.beans.ITestBean;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.tests.TestResourceUtils.qualifiedResource;
 
-/**
- * @author Stephane Nicoll
- */
+/** @author Stephane Nicoll */
 public class CommonsPool2TargetSourceProxyTests {
 
-	private static final Resource CONTEXT =
-		qualifiedResource(CommonsPool2TargetSourceProxyTests.class, "context.xml");
+  private static final Resource CONTEXT =
+      qualifiedResource(CommonsPool2TargetSourceProxyTests.class, "context.xml");
 
-	@Test
-	public void testProxy() throws Exception {
-		DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
-		XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(beanFactory);
-		reader.loadBeanDefinitions(CONTEXT);
-		beanFactory.preInstantiateSingletons();
-		ITestBean bean = (ITestBean)beanFactory.getBean("testBean");
-		assertThat(AopUtils.isAopProxy(bean)).isTrue();
-	}
+  @Test
+  public void testProxy() throws Exception {
+    DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
+    XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(beanFactory);
+    reader.loadBeanDefinitions(CONTEXT);
+    beanFactory.preInstantiateSingletons();
+    ITestBean bean = (ITestBean) beanFactory.getBean("testBean");
+    assertThat(AopUtils.isAopProxy(bean)).isTrue();
+  }
 }

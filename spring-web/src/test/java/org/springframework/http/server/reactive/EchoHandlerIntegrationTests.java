@@ -28,51 +28,44 @@ import org.springframework.web.client.RestTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * @author Arjen Poutsma
- */
+/** @author Arjen Poutsma */
 public class EchoHandlerIntegrationTests extends AbstractHttpHandlerIntegrationTests {
 
-	private static final int REQUEST_SIZE = 4096 * 3;
+  private static final int REQUEST_SIZE = 4096 * 3;
 
-	private final Random rnd = new Random();
+  private final Random rnd = new Random();
 
+  @Override
+  protected EchoHandler createHttpHandler() {
+    return new EchoHandler();
+  }
 
-	@Override
-	protected EchoHandler createHttpHandler() {
-		return new EchoHandler();
-	}
+  @ParameterizedHttpServerTest
+  public void echo(HttpServer httpServer) throws Exception {
+    startServer(httpServer);
 
+    RestTemplate restTemplate = new RestTemplate();
 
-	@ParameterizedHttpServerTest
-	public void echo(HttpServer httpServer) throws Exception {
-		startServer(httpServer);
+    byte[] body = randomBytes();
+    RequestEntity<byte[]> request =
+        RequestEntity.post(new URI("http://localhost:" + port)).body(body);
+    ResponseEntity<byte[]> response = restTemplate.exchange(request, byte[].class);
 
-		RestTemplate restTemplate = new RestTemplate();
+    assertThat(response.getBody()).isEqualTo(body);
+  }
 
-		byte[] body = randomBytes();
-		RequestEntity<byte[]> request = RequestEntity.post(new URI("http://localhost:" + port)).body(body);
-		ResponseEntity<byte[]> response = restTemplate.exchange(request, byte[].class);
+  private byte[] randomBytes() {
+    byte[] buffer = new byte[REQUEST_SIZE];
+    rnd.nextBytes(buffer);
+    return buffer;
+  }
 
-		assertThat(response.getBody()).isEqualTo(body);
-	}
+  /** @author Arjen Poutsma */
+  public static class EchoHandler implements HttpHandler {
 
-
-	private byte[] randomBytes() {
-		byte[] buffer = new byte[REQUEST_SIZE];
-		rnd.nextBytes(buffer);
-		return buffer;
-	}
-
-	/**
-	 * @author Arjen Poutsma
-	 */
-	public static class EchoHandler implements HttpHandler {
-
-		@Override
-		public Mono<Void> handle(ServerHttpRequest request, ServerHttpResponse response) {
-			return response.writeWith(request.getBody());
-		}
-	}
-
+    @Override
+    public Mono<Void> handle(ServerHttpRequest request, ServerHttpResponse response) {
+      return response.writeWith(request.getBody());
+    }
+  }
 }

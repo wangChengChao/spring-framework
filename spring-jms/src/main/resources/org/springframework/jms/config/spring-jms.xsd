@@ -7,7 +7,8 @@
 		elementFormDefault="qualified"
 		attributeFormDefault="unqualified">
 
-	<xsd:import namespace="http://www.springframework.org/schema/tool" schemaLocation="https://www.springframework.org/schema/tool/spring-tool.xsd"/>
+	<xsd:import namespace="http://www.springframework.org/schema/tool"
+			schemaLocation="https://www.springframework.org/schema/tool/spring-tool.xsd"/>
 
 	<xsd:annotation>
 		<xsd:documentation><![CDATA[
@@ -38,7 +39,8 @@
 					]]></xsd:documentation>
 					<xsd:appinfo>
 						<tool:annotation kind="ref">
-							<tool:expected-type type="org.springframework.jms.config.JmsListenerEndpointRegistry"/>
+							<tool:expected-type
+									type="org.springframework.jms.config.JmsListenerEndpointRegistry"/>
 						</tool:annotation>
 					</xsd:appinfo>
 				</xsd:annotation>
@@ -55,7 +57,8 @@
 					]]></xsd:documentation>
 					<xsd:appinfo>
 						<tool:annotation kind="ref">
-							<tool:expected-type type="org.springframework.jms.config.JmsListenerContainerFactory"/>
+							<tool:expected-type
+									type="org.springframework.jms.config.JmsListenerContainerFactory"/>
 						</tool:annotation>
 					</xsd:appinfo>
 				</xsd:annotation>
@@ -72,7 +75,8 @@
 					]]></xsd:documentation>
 					<xsd:appinfo>
 						<tool:annotation kind="ref">
-							<tool:expected-type type="org.springframework.messaging.handler.annotation.support.MessageHandlerMethodFactory"/>
+							<tool:expected-type
+									type="org.springframework.messaging.handler.annotation.support.MessageHandlerMethodFactory"/>
 						</tool:annotation>
 					</xsd:appinfo>
 				</xsd:annotation>
@@ -93,13 +97,15 @@
 			]]></xsd:documentation>
 			<xsd:appinfo>
 				<tool:annotation>
-					<tool:exports type="org.springframework.jms.listener.AbstractMessageListenerContainer"/>
+					<tool:exports
+							type="org.springframework.jms.listener.AbstractMessageListenerContainer"/>
 				</tool:annotation>
 			</xsd:appinfo>
 		</xsd:annotation>
 		<xsd:complexType>
 			<xsd:sequence>
-				<xsd:element name="listener" type="listenerType" minOccurs="0" maxOccurs="unbounded"/>
+				<xsd:element name="listener" type="listenerType" minOccurs="0"
+						maxOccurs="unbounded"/>
 			</xsd:sequence>
 			<xsd:attribute name="factory-id" type="xsd:string">
 				<xsd:annotation>
@@ -138,7 +144,8 @@
 					<xsd:appinfo>
 						<tool:annotation>
 							<tool:expected-type type="java.lang.Class"/>
-							<tool:assignable-to type="org.springframework.jms.listener.AbstractMessageListenerContainer"/>
+							<tool:assignable-to
+									type="org.springframework.jms.listener.AbstractMessageListenerContainer"/>
 						</tool:annotation>
 					</xsd:appinfo>
 				</xsd:annotation>
@@ -182,7 +189,8 @@
 					]]></xsd:documentation>
 					<xsd:appinfo>
 						<tool:annotation kind="ref">
-							<tool:expected-type type="org.springframework.jms.support.destination.DestinationResolver"/>
+							<tool:expected-type
+									type="org.springframework.jms.support.destination.DestinationResolver"/>
 						</tool:annotation>
 					</xsd:appinfo>
 				</xsd:annotation>
@@ -195,7 +203,8 @@
 					]]></xsd:documentation>
 					<xsd:appinfo>
 						<tool:annotation kind="ref">
-							<tool:expected-type type="org.springframework.jms.support.converter.MessageConverter"/>
+							<tool:expected-type
+									type="org.springframework.jms.support.converter.MessageConverter"/>
 						</tool:annotation>
 					</xsd:appinfo>
 				</xsd:annotation>
@@ -301,7 +310,8 @@
 					]]></xsd:documentation>
 					<xsd:appinfo>
 						<tool:annotation kind="ref">
-							<tool:expected-type type="org.springframework.transaction.PlatformTransactionManager"/>
+							<tool:expected-type
+									type="org.springframework.transaction.PlatformTransactionManager"/>
 						</tool:annotation>
 					</xsd:appinfo>
 				</xsd:annotation>
@@ -386,13 +396,15 @@
 			]]></xsd:documentation>
 			<xsd:appinfo>
 				<tool:annotation>
-					<tool:exports type="org.springframework.jms.listener.endpoint.JmsMessageEndpointManager"/>
+					<tool:exports
+							type="org.springframework.jms.listener.endpoint.JmsMessageEndpointManager"/>
 				</tool:annotation>
 			</xsd:appinfo>
 		</xsd:annotation>
 		<xsd:complexType>
 			<xsd:sequence>
-				<xsd:element name="listener" type="listenerType" minOccurs="0" maxOccurs="unbounded"/>
+				<xsd:element name="listener" type="listenerType" minOccurs="0"
+						maxOccurs="unbounded"/>
 			</xsd:sequence>
 			<xsd:attribute name="factory-id" type="xsd:string">
 				<xsd:annotation>
@@ -425,7 +437,8 @@
 					]]></xsd:documentation>
 					<xsd:appinfo>
 						<tool:annotation kind="ref">
-							<tool:expected-type type="org.springframework.jms.listener.endpoint.JmsActivationSpecFactory"/>
+							<tool:expected-type
+									type="org.springframework.jms.listener.endpoint.JmsActivationSpecFactory"/>
 						</tool:annotation>
 					</xsd:appinfo>
 				</xsd:annotation>
@@ -440,7 +453,8 @@
 					]]></xsd:documentation>
 					<xsd:appinfo>
 						<tool:annotation kind="ref">
-							<tool:expected-type type="org.springframework.jms.support.destination.DestinationResolver"/>
+							<tool:expected-type
+									type="org.springframework.jms.support.destination.DestinationResolver"/>
 						</tool:annotation>
 					</xsd:appinfo>
 				</xsd:annotation>
@@ -453,7 +467,8 @@
 					]]></xsd:documentation>
 					<xsd:appinfo>
 						<tool:annotation kind="ref">
-							<tool:expected-type type="org.springframework.jms.support.converter.MessageConverter"/>
+							<tool:expected-type
+									type="org.springframework.jms.support.converter.MessageConverter"/>
 						</tool:annotation>
 					</xsd:appinfo>
 				</xsd:annotation>

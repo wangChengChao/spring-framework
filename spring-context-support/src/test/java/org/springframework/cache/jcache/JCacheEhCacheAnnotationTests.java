@@ -48,106 +48,101 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 public class JCacheEhCacheAnnotationTests extends AbstractCacheAnnotationTests {
 
-	private final TransactionTemplate txTemplate = new TransactionTemplate(new CallCountingTransactionManager());
+  private final TransactionTemplate txTemplate =
+      new TransactionTemplate(new CallCountingTransactionManager());
 
-	private CacheManager jCacheManager;
+  private CacheManager jCacheManager;
 
+  @Override
+  protected ConfigurableApplicationContext getApplicationContext() {
+    AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+    context.getBeanFactory().registerSingleton("cachingProvider", getCachingProvider());
+    context.register(EnableCachingConfig.class);
+    context.refresh();
+    jCacheManager = context.getBean("jCacheManager", CacheManager.class);
+    return context;
+  }
 
-	@Override
-	protected ConfigurableApplicationContext getApplicationContext() {
-		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-		context.getBeanFactory().registerSingleton("cachingProvider", getCachingProvider());
-		context.register(EnableCachingConfig.class);
-		context.refresh();
-		jCacheManager = context.getBean("jCacheManager", CacheManager.class);
-		return context;
-	}
+  protected CachingProvider getCachingProvider() {
+    return Caching.getCachingProvider("org.ehcache.jcache.JCacheCachingProvider");
+  }
 
-	protected CachingProvider getCachingProvider() {
-		return Caching.getCachingProvider("org.ehcache.jcache.JCacheCachingProvider");
-	}
+  @AfterEach
+  public void shutdown() {
+    if (jCacheManager != null) {
+      jCacheManager.close();
+    }
+  }
 
-	@AfterEach
-	public void shutdown() {
-		if (jCacheManager != null) {
-			jCacheManager.close();
-		}
-	}
+  @Override
+  @Test
+  @Disabled("Multi cache manager support to be added")
+  public void testCustomCacheManager() {}
 
+  @Test
+  public void testEvictWithTransaction() {
+    txTemplate.execute(() -> testEvict(this.cs, false));
+  }
 
-	@Override
-	@Test
-	@Disabled("Multi cache manager support to be added")
-	public void testCustomCacheManager() {
-	}
+  @Test
+  public void testEvictEarlyWithTransaction() {
+    txTemplate.execute(() -> testEvictEarly(this.cs));
+  }
 
-	@Test
-	public void testEvictWithTransaction() {
-		txTemplate.execute(() -> testEvict(this.cs, false));
-	}
+  @Test
+  public void testEvictAllWithTransaction() {
+    txTemplate.execute(() -> testEvictAll(this.cs, false));
+  }
 
-	@Test
-	public void testEvictEarlyWithTransaction() {
-		txTemplate.execute(() -> testEvictEarly(this.cs));
-	}
+  @Test
+  public void testEvictAllEarlyWithTransaction() {
+    txTemplate.execute(() -> testEvictAllEarly(this.cs));
+  }
 
-	@Test
-	public void testEvictAllWithTransaction() {
-		txTemplate.execute(() -> testEvictAll(this.cs, false));
-	}
+  @Configuration
+  @EnableCaching
+  static class EnableCachingConfig extends CachingConfigurerSupport {
 
-	@Test
-	public void testEvictAllEarlyWithTransaction() {
-		txTemplate.execute(() -> testEvictAllEarly(this.cs));
-	}
+    @Autowired CachingProvider cachingProvider;
 
+    @Override
+    @Bean
+    public org.springframework.cache.CacheManager cacheManager() {
+      JCacheCacheManager cm = new JCacheCacheManager(jCacheManager());
+      cm.setTransactionAware(true);
+      return cm;
+    }
 
-	@Configuration
-	@EnableCaching
-	static class EnableCachingConfig extends CachingConfigurerSupport {
+    @Bean
+    public CacheManager jCacheManager() {
+      CacheManager cacheManager = this.cachingProvider.getCacheManager();
+      MutableConfiguration<Object, Object> mutableConfiguration = new MutableConfiguration<>();
+      mutableConfiguration.setStoreByValue(false); // otherwise value has to be Serializable
+      cacheManager.createCache("testCache", mutableConfiguration);
+      cacheManager.createCache("primary", mutableConfiguration);
+      cacheManager.createCache("secondary", mutableConfiguration);
+      return cacheManager;
+    }
 
-		@Autowired
-		CachingProvider cachingProvider;
+    @Bean
+    public CacheableService<?> service() {
+      return new DefaultCacheableService();
+    }
 
-		@Override
-		@Bean
-		public org.springframework.cache.CacheManager cacheManager() {
-			JCacheCacheManager cm = new JCacheCacheManager(jCacheManager());
-			cm.setTransactionAware(true);
-			return cm;
-		}
+    @Bean
+    public CacheableService<?> classService() {
+      return new AnnotatedClassCacheableService();
+    }
 
-		@Bean
-		public CacheManager jCacheManager() {
-			CacheManager cacheManager = this.cachingProvider.getCacheManager();
-			MutableConfiguration<Object, Object> mutableConfiguration = new MutableConfiguration<>();
-			mutableConfiguration.setStoreByValue(false);  // otherwise value has to be Serializable
-			cacheManager.createCache("testCache", mutableConfiguration);
-			cacheManager.createCache("primary", mutableConfiguration);
-			cacheManager.createCache("secondary", mutableConfiguration);
-			return cacheManager;
-		}
+    @Override
+    @Bean
+    public KeyGenerator keyGenerator() {
+      return new SimpleKeyGenerator();
+    }
 
-		@Bean
-		public CacheableService<?> service() {
-			return new DefaultCacheableService();
-		}
-
-		@Bean
-		public CacheableService<?> classService() {
-			return new AnnotatedClassCacheableService();
-		}
-
-		@Override
-		@Bean
-		public KeyGenerator keyGenerator() {
-			return new SimpleKeyGenerator();
-		}
-
-		@Bean
-		public KeyGenerator customKeyGenerator() {
-			return new SomeCustomKeyGenerator();
-		}
-	}
-
+    @Bean
+    public KeyGenerator customKeyGenerator() {
+      return new SomeCustomKeyGenerator();
+    }
+  }
 }

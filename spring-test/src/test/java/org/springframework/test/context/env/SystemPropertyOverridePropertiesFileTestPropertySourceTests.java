@@ -31,9 +31,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests for {@link TestPropertySource @TestPropertySource}
- * support with an explicitly named properties file that overrides a
- * system property.
+ * Integration tests for {@link TestPropertySource @TestPropertySource} support with an explicitly
+ * named properties file that overrides a system property.
  *
  * @author Sam Brannen
  * @since 4.1
@@ -43,33 +42,30 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource("SystemPropertyOverridePropertiesFileTestPropertySourceTests.properties")
 class SystemPropertyOverridePropertiesFileTestPropertySourceTests {
 
-	private static final String KEY = SystemPropertyOverridePropertiesFileTestPropertySourceTests.class.getSimpleName() + ".riddle";
+  private static final String KEY =
+      SystemPropertyOverridePropertiesFileTestPropertySourceTests.class.getSimpleName() + ".riddle";
 
-	@Autowired
-	protected Environment env;
+  @Autowired protected Environment env;
 
+  @BeforeAll
+  static void setSystemProperty() {
+    System.setProperty(KEY, "override me!");
+  }
 
-	@BeforeAll
-	static void setSystemProperty() {
-		System.setProperty(KEY, "override me!");
-	}
+  @AfterAll
+  static void removeSystemProperty() {
+    System.setProperty(KEY, "");
+  }
 
-	@AfterAll
-	static void removeSystemProperty() {
-		System.setProperty(KEY, "");
-	}
+  @Test
+  void verifyPropertiesAreAvailableInEnvironment() {
+    assertThat(env.getProperty(KEY)).isEqualTo("enigma");
+  }
 
-	@Test
-	void verifyPropertiesAreAvailableInEnvironment() {
-		assertThat(env.getProperty(KEY)).isEqualTo("enigma");
-	}
+  // -------------------------------------------------------------------
 
-
-	// -------------------------------------------------------------------
-
-	@Configuration
-	static class Config {
-		/* no user beans required for these tests */
-	}
-
+  @Configuration
+  static class Config {
+    /* no user beans required for these tests */
+  }
 }

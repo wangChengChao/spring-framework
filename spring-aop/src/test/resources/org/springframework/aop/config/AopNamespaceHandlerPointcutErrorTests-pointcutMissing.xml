@@ -8,7 +8,7 @@
 	<aop:config>
 		<aop:aspect id="countAgeCalls" ref="countingAdvice">
 			<aop:pointcut id="pc" expression="execution(* getAge())"/>
-			<aop:before method="myBeforeAdvice" />
+			<aop:before method="myBeforeAdvice"/>
 		</aop:aspect>
 	</aop:config>
 

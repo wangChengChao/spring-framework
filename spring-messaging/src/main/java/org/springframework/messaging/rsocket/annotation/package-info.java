@@ -1,6 +1,4 @@
-/**
- * Annotations and support classes for handling RSocket streams.
- */
+/** Annotations and support classes for handling RSocket streams. */
 @NonNullApi
 @NonNullFields
 package org.springframework.messaging.rsocket.annotation;

@@ -1,6 +1,4 @@
-/**
- * Mock implementations of Spring's reactive server web API abstractions.
- */
+/** Mock implementations of Spring's reactive server web API abstractions. */
 @NonNullApi
 @NonNullFields
 package org.springframework.mock.web.server;

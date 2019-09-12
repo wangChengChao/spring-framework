@@ -32,81 +32,84 @@ import org.springframework.web.client.RestTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * @author Rossen Stoyanchev
- */
+/** @author Rossen Stoyanchev */
 public class CookieIntegrationTests extends AbstractHttpHandlerIntegrationTests {
 
-	private final CookieHandler cookieHandler = new CookieHandler();
+  private final CookieHandler cookieHandler = new CookieHandler();
 
+  @Override
+  protected HttpHandler createHttpHandler() {
+    return this.cookieHandler;
+  }
 
-	@Override
-	protected HttpHandler createHttpHandler() {
-		return this.cookieHandler;
-	}
+  @ParameterizedHttpServerTest
+  public void basicTest(HttpServer httpServer) throws Exception {
+    startServer(httpServer);
 
+    URI url = new URI("http://localhost:" + port);
+    String header = "SID=31d4d96e407aad42; lang=en-US";
+    ResponseEntity<Void> response =
+        new RestTemplate()
+            .exchange(RequestEntity.get(url).header("Cookie", header).build(), Void.class);
 
-	@ParameterizedHttpServerTest
-	public void basicTest(HttpServer httpServer) throws Exception {
-		startServer(httpServer);
+    Map<String, List<HttpCookie>> requestCookies = this.cookieHandler.requestCookies;
+    assertThat(requestCookies.size()).isEqualTo(2);
 
-		URI url = new URI("http://localhost:" + port);
-		String header = "SID=31d4d96e407aad42; lang=en-US";
-		ResponseEntity<Void> response = new RestTemplate().exchange(
-				RequestEntity.get(url).header("Cookie", header).build(), Void.class);
+    List<HttpCookie> list = requestCookies.get("SID");
+    assertThat(list.size()).isEqualTo(1);
+    assertThat(list.iterator().next().getValue()).isEqualTo("31d4d96e407aad42");
 
-		Map<String, List<HttpCookie>> requestCookies = this.cookieHandler.requestCookies;
-		assertThat(requestCookies.size()).isEqualTo(2);
+    list = requestCookies.get("lang");
+    assertThat(list.size()).isEqualTo(1);
+    assertThat(list.iterator().next().getValue()).isEqualTo("en-US");
 
-		List<HttpCookie> list = requestCookies.get("SID");
-		assertThat(list.size()).isEqualTo(1);
-		assertThat(list.iterator().next().getValue()).isEqualTo("31d4d96e407aad42");
+    List<String> headerValues = response.getHeaders().get("Set-Cookie");
+    assertThat(headerValues.size()).isEqualTo(2);
 
-		list = requestCookies.get("lang");
-		assertThat(list.size()).isEqualTo(1);
-		assertThat(list.iterator().next().getValue()).isEqualTo("en-US");
+    List<String> cookie0 = splitCookie(headerValues.get(0));
+    assertThat(cookie0.remove("SID=31d4d96e407aad42")).as("SID").isTrue();
+    assertThat(cookie0.stream().map(String::toLowerCase))
+        .containsExactlyInAnyOrder("path=/", "secure", "httponly");
+    List<String> cookie1 = splitCookie(headerValues.get(1));
+    assertThat(cookie1.remove("lang=en-US")).as("lang").isTrue();
+    assertThat(cookie1.stream().map(String::toLowerCase))
+        .containsExactlyInAnyOrder("path=/", "domain=example.com");
+  }
 
-		List<String> headerValues = response.getHeaders().get("Set-Cookie");
-		assertThat(headerValues.size()).isEqualTo(2);
+  // No client side HttpCookie support yet
+  private List<String> splitCookie(String value) {
+    List<String> list = new ArrayList<>();
+    for (String s : value.split(";")) {
+      list.add(s.trim());
+    }
+    return list;
+  }
 
-		List<String> cookie0 = splitCookie(headerValues.get(0));
-		assertThat(cookie0.remove("SID=31d4d96e407aad42")).as("SID").isTrue();
-		assertThat(cookie0.stream().map(String::toLowerCase))
-				.containsExactlyInAnyOrder("path=/", "secure", "httponly");
-		List<String> cookie1 = splitCookie(headerValues.get(1));
-		assertThat(cookie1.remove("lang=en-US")).as("lang").isTrue();
-		assertThat(cookie1.stream().map(String::toLowerCase))
-				.containsExactlyInAnyOrder("path=/", "domain=example.com");
-	}
+  private class CookieHandler implements HttpHandler {
 
-	// No client side HttpCookie support yet
-	private List<String> splitCookie(String value) {
-		List<String> list = new ArrayList<>();
-		for (String s : value.split(";")){
-			list.add(s.trim());
-		}
-		return list;
-	}
+    private Map<String, List<HttpCookie>> requestCookies;
 
+    @Override
+    public Mono<Void> handle(ServerHttpRequest request, ServerHttpResponse response) {
 
-	private class CookieHandler implements HttpHandler {
+      this.requestCookies = request.getCookies();
+      this.requestCookies.size(); // Cause lazy loading
 
-		private Map<String, List<HttpCookie>> requestCookies;
+      response
+          .getCookies()
+          .add(
+              "SID",
+              ResponseCookie.from("SID", "31d4d96e407aad42")
+                  .path("/")
+                  .secure(true)
+                  .httpOnly(true)
+                  .build());
+      response
+          .getCookies()
+          .add(
+              "lang", ResponseCookie.from("lang", "en-US").domain("example.com").path("/").build());
 
-
-		@Override
-		public Mono<Void> handle(ServerHttpRequest request, ServerHttpResponse response) {
-
-			this.requestCookies = request.getCookies();
-			this.requestCookies.size(); // Cause lazy loading
-
-			response.getCookies().add("SID", ResponseCookie.from("SID", "31d4d96e407aad42")
-					.path("/").secure(true).httpOnly(true).build());
-			response.getCookies().add("lang", ResponseCookie.from("lang", "en-US")
-					.domain("example.com").path("/").build());
-
-			return response.setComplete();
-		}
-	}
-
+      return response.setComplete();
+    }
+  }
 }

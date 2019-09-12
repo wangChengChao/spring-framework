@@ -24,12 +24,12 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * {@code @TestPropertySources} is a container for one or more
- * {@link TestPropertySource @TestPropertySource} declarations.
+ * {@code @TestPropertySources} is a container for one or more {@link
+ * TestPropertySource @TestPropertySource} declarations.
  *
- * <p>Note, however, that use of the {@code @TestPropertySources} container is
- * completely optional since {@code @TestPropertySource} is a
- * {@linkplain java.lang.annotation.Repeatable repeatable} annotation.
+ * <p>Note, however, that use of the {@code @TestPropertySources} container is completely optional
+ * since {@code @TestPropertySource} is a {@linkplain java.lang.annotation.Repeatable repeatable}
+ * annotation.
  *
  * @author Anatoliy Korovin
  * @author Sam Brannen
@@ -41,10 +41,6 @@ import java.lang.annotation.Target;
 @Inherited
 public @interface TestPropertySources {
 
-	/**
-	 * An array of one or more {@link TestPropertySource @TestPropertySource}
-	 * declarations.
-	 */
-	TestPropertySource[] value();
-
+  /** An array of one or more {@link TestPropertySource @TestPropertySource} declarations. */
+  TestPropertySource[] value();
 }

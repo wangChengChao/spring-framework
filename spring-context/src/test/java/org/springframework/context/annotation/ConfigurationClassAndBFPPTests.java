@@ -26,93 +26,91 @@ import org.springframework.tests.sample.beans.TestBean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
 /**
- * Tests semantics of declaring {@link BeanFactoryPostProcessor}-returning @Bean
- * methods, specifically as regards static @Bean methods and the avoidance of
- * container lifecycle issues when BFPPs are in the mix.
+ * Tests semantics of declaring {@link BeanFactoryPostProcessor}-returning @Bean methods,
+ * specifically as regards static @Bean methods and the avoidance of container lifecycle issues when
+ * BFPPs are in the mix.
  *
  * @author Chris Beams
  * @since 3.1
  */
 public class ConfigurationClassAndBFPPTests {
 
-	@Test
-	public void autowiringFailsWithBFPPAsInstanceMethod() {
-		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
-		ctx.register(TestBeanConfig.class, AutowiredConfigWithBFPPAsInstanceMethod.class);
-		ctx.refresh();
-		// instance method BFPP interferes with lifecycle -> autowiring fails!
-		// WARN-level logging should have been issued about returning BFPP from non-static @Bean method
-		assertThat(ctx.getBean(AutowiredConfigWithBFPPAsInstanceMethod.class).autowiredTestBean).isNull();
-	}
+  @Test
+  public void autowiringFailsWithBFPPAsInstanceMethod() {
+    AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+    ctx.register(TestBeanConfig.class, AutowiredConfigWithBFPPAsInstanceMethod.class);
+    ctx.refresh();
+    // instance method BFPP interferes with lifecycle -> autowiring fails!
+    // WARN-level logging should have been issued about returning BFPP from non-static @Bean method
+    assertThat(ctx.getBean(AutowiredConfigWithBFPPAsInstanceMethod.class).autowiredTestBean)
+        .isNull();
+  }
 
-	@Test
-	public void autowiringSucceedsWithBFPPAsStaticMethod() {
-		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
-		ctx.register(TestBeanConfig.class, AutowiredConfigWithBFPPAsStaticMethod.class);
-		ctx.refresh();
-		// static method BFPP does not interfere with lifecycle -> autowiring succeeds
-		assertThat(ctx.getBean(AutowiredConfigWithBFPPAsStaticMethod.class).autowiredTestBean).isNotNull();
-	}
+  @Test
+  public void autowiringSucceedsWithBFPPAsStaticMethod() {
+    AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+    ctx.register(TestBeanConfig.class, AutowiredConfigWithBFPPAsStaticMethod.class);
+    ctx.refresh();
+    // static method BFPP does not interfere with lifecycle -> autowiring succeeds
+    assertThat(ctx.getBean(AutowiredConfigWithBFPPAsStaticMethod.class).autowiredTestBean)
+        .isNotNull();
+  }
 
+  @Configuration
+  static class TestBeanConfig {
+    @Bean
+    public TestBean testBean() {
+      return new TestBean();
+    }
+  }
 
-	@Configuration
-	static class TestBeanConfig {
-		@Bean
-		public TestBean testBean() {
-			return new TestBean();
-		}
-	}
+  @Configuration
+  static class AutowiredConfigWithBFPPAsInstanceMethod {
+    @Autowired TestBean autowiredTestBean;
 
+    @Bean
+    public BeanFactoryPostProcessor bfpp() {
+      return new BeanFactoryPostProcessor() {
+        @Override
+        public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory)
+            throws BeansException {
+          // no-op
+        }
+      };
+    }
+  }
 
-	@Configuration
-	static class AutowiredConfigWithBFPPAsInstanceMethod {
-		@Autowired TestBean autowiredTestBean;
+  @Configuration
+  static class AutowiredConfigWithBFPPAsStaticMethod {
+    @Autowired TestBean autowiredTestBean;
 
-		@Bean
-		public BeanFactoryPostProcessor bfpp() {
-			return new BeanFactoryPostProcessor() {
-				@Override
-				public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
-					// no-op
-				}
-			};
-		}
-	}
+    @Bean
+    public static final BeanFactoryPostProcessor bfpp() {
+      return new BeanFactoryPostProcessor() {
+        @Override
+        public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory)
+            throws BeansException {
+          // no-op
+        }
+      };
+    }
+  }
 
+  @Test
+  public void staticBeanMethodsDoNotRespectScoping() {
+    AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+    ctx.register(ConfigWithStaticBeanMethod.class);
+    ctx.refresh();
+    assertThat(ConfigWithStaticBeanMethod.testBean())
+        .isNotSameAs(ConfigWithStaticBeanMethod.testBean());
+  }
 
-	@Configuration
-	static class AutowiredConfigWithBFPPAsStaticMethod {
-		@Autowired TestBean autowiredTestBean;
-
-		@Bean
-		public static final BeanFactoryPostProcessor bfpp() {
-			return new BeanFactoryPostProcessor() {
-				@Override
-				public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
-					// no-op
-				}
-			};
-		}
-	}
-
-
-	@Test
-	public void staticBeanMethodsDoNotRespectScoping() {
-		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
-		ctx.register(ConfigWithStaticBeanMethod.class);
-		ctx.refresh();
-		assertThat(ConfigWithStaticBeanMethod.testBean()).isNotSameAs(ConfigWithStaticBeanMethod.testBean());
-	}
-
-
-	@Configuration
-	static class ConfigWithStaticBeanMethod {
-		@Bean
-		public static TestBean testBean() {
-			return new TestBean("foo");
-		}
-	}
-
+  @Configuration
+  static class ConfigWithStaticBeanMethod {
+    @Bean
+    public static TestBean testBean() {
+      return new TestBean("foo");
+    }
+  }
 }

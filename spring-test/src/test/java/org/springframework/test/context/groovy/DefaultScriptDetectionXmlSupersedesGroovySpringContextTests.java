@@ -24,8 +24,8 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration test class that verifies proper detection of a default
- * XML config file even though a suitable Groovy script exists.
+ * Integration test class that verifies proper detection of a default XML config file even though a
+ * suitable Groovy script exists.
  *
  * @author Sam Brannen
  * @since 4.1
@@ -33,13 +33,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringJUnitConfig
 class DefaultScriptDetectionXmlSupersedesGroovySpringContextTests {
 
-	@Autowired
-	String foo;
+  @Autowired String foo;
 
-
-	@Test
-	final void foo() {
-		assertThat(this.foo).as("The foo field should have been autowired.").isEqualTo("Foo");
-	}
-
+  @Test
+  final void foo() {
+    assertThat(this.foo).as("The foo field should have been autowired.").isEqualTo("Foo");
+  }
 }

@@ -29,26 +29,24 @@ import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * {@link EventListener @EventListener} annotation used to consume a
- * {@link AfterTestClassEvent} published by the
- * {@link org.springframework.test.context.event.EventPublishingTestExecutionListener
+ * {@link EventListener @EventListener} annotation used to consume a {@link AfterTestClassEvent}
+ * published by the {@link
+ * org.springframework.test.context.event.EventPublishingTestExecutionListener
  * EventPublishingTestExecutionListener}.
  *
- * <p>This annotation may be used on {@code @EventListener}-compliant methods within
- * a Spring test {@link org.springframework.context.ApplicationContext ApplicationContext}
- * &mdash; for example, on methods in a
- * {@link org.springframework.context.annotation.Configuration @Configuration}
- * class. A method annotated with this annotation will be invoked as part of the
- * {@link org.springframework.test.context.TestExecutionListener#afterTestClass}
- * lifecycle.
+ * <p>This annotation may be used on {@code @EventListener}-compliant methods within a Spring test
+ * {@link org.springframework.context.ApplicationContext ApplicationContext} &mdash; for example, on
+ * methods in a {@link org.springframework.context.annotation.Configuration @Configuration} class. A
+ * method annotated with this annotation will be invoked as part of the {@link
+ * org.springframework.test.context.TestExecutionListener#afterTestClass} lifecycle.
  *
- * <p>Event processing can optionally be made {@linkplain #value conditional} via
- * a SpEL expression &mdash; for example,
- * {@code @AfterTestClass("event.testContext.testClass.name matches '.+IntegrationTests'")}.
+ * <p>Event processing can optionally be made {@linkplain #value conditional} via a SpEL expression
+ * &mdash; for example, {@code @AfterTestClass("event.testContext.testClass.name matches
+ * '.+IntegrationTests'")}.
  *
- * <p>The {@code EventPublishingTestExecutionListener} must be registered in order
- * for this annotation to have an effect &mdash; for example, via
- * {@link org.springframework.test.context.TestExecutionListeners @TestExecutionListeners}.
+ * <p>The {@code EventPublishingTestExecutionListener} must be registered in order for this
+ * annotation to have an effect &mdash; for example, via {@link
+ * org.springframework.test.context.TestExecutionListeners @TestExecutionListeners}.
  *
  * @author Frank Scheffler
  * @author Sam Brannen
@@ -56,15 +54,12 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * @see AfterTestClassEvent
  */
 @Retention(RUNTIME)
-@Target({ METHOD, ANNOTATION_TYPE })
+@Target({METHOD, ANNOTATION_TYPE})
 @Documented
 @EventListener(AfterTestClassEvent.class)
 public @interface AfterTestClass {
 
-	/**
-	 * Alias for {@link EventListener#condition}.
-	 */
-	@AliasFor(annotation = EventListener.class, attribute = "condition")
-	String value() default "";
-
+  /** Alias for {@link EventListener#condition}. */
+  @AliasFor(annotation = EventListener.class, attribute = "condition")
+  String value() default "";
 }

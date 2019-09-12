@@ -70,7 +70,7 @@ class WebTestClientExtensionsTests {
 	@Test
 	fun `KotlinBodySpec#isEqualTo`() {
 		WebTestClient
-				.bindToRouterFunction( router { GET("/") { ok().bodyValue("foo") } } )
+				.bindToRouterFunction(router { GET("/") { ok().bodyValue("foo") } })
 				.build()
 				.get().uri("/").exchange().expectBody<String>().isEqualTo("foo")
 	}
@@ -78,7 +78,7 @@ class WebTestClientExtensionsTests {
 	@Test
 	fun `KotlinBodySpec#consumeWith`() {
 		WebTestClient
-				.bindToRouterFunction( router { GET("/") { ok().bodyValue("foo") } } )
+				.bindToRouterFunction(router { GET("/") { ok().bodyValue("foo") } })
 				.build()
 				.get().uri("/").exchange().expectBody<String>().consumeWith { assertThat(it.responseBody).isEqualTo("foo") }
 	}
@@ -86,7 +86,7 @@ class WebTestClientExtensionsTests {
 	@Test
 	fun `KotlinBodySpec#returnResult`() {
 		WebTestClient
-				.bindToRouterFunction( router { GET("/") { ok().bodyValue("foo") } } )
+				.bindToRouterFunction(router { GET("/") { ok().bodyValue("foo") } })
 				.build()
 				.get().uri("/").exchange().expectBody<String>().returnResult().apply { assertThat(responseBody).isEqualTo("foo") }
 	}

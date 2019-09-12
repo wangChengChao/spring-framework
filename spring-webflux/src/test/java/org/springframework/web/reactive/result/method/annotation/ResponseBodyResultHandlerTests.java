@@ -45,11 +45,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.web.method.ResolvableMethod.on;
 
 /**
- * Unit tests for {@link ResponseBodyResultHandler}.When adding a test also
- * consider whether the logic under test is in a parent class, then see:
+ * Unit tests for {@link ResponseBodyResultHandler}.When adding a test also consider whether the
+ * logic under test is in a parent class, then see:
+ *
  * <ul>
- * <li>{@code MessageWriterResultHandlerTests},
- * <li>{@code ContentNegotiatingResultHandlerSupportTests}
+ *   <li>{@code MessageWriterResultHandlerTests},
+ *   <li>{@code ContentNegotiatingResultHandlerSupportTests}
  * </ul>
  *
  * @author Sebastien Deleuze
@@ -57,106 +58,102 @@ import static org.springframework.web.method.ResolvableMethod.on;
  */
 public class ResponseBodyResultHandlerTests {
 
-	private ResponseBodyResultHandler resultHandler;
+  private ResponseBodyResultHandler resultHandler;
 
+  @BeforeEach
+  public void setup() throws Exception {
+    List<HttpMessageWriter<?>> writerList = new ArrayList<>(5);
+    writerList.add(new EncoderHttpMessageWriter<>(new ByteBufferEncoder()));
+    writerList.add(new EncoderHttpMessageWriter<>(CharSequenceEncoder.allMimeTypes()));
+    writerList.add(new ResourceHttpMessageWriter());
+    writerList.add(new EncoderHttpMessageWriter<>(new Jaxb2XmlEncoder()));
+    writerList.add(new EncoderHttpMessageWriter<>(new Jackson2JsonEncoder()));
+    RequestedContentTypeResolver resolver = new RequestedContentTypeResolverBuilder().build();
+    this.resultHandler = new ResponseBodyResultHandler(writerList, resolver);
+  }
 
-	@BeforeEach
-	public void setup() throws Exception {
-		List<HttpMessageWriter<?>> writerList = new ArrayList<>(5);
-		writerList.add(new EncoderHttpMessageWriter<>(new ByteBufferEncoder()));
-		writerList.add(new EncoderHttpMessageWriter<>(CharSequenceEncoder.allMimeTypes()));
-		writerList.add(new ResourceHttpMessageWriter());
-		writerList.add(new EncoderHttpMessageWriter<>(new Jaxb2XmlEncoder()));
-		writerList.add(new EncoderHttpMessageWriter<>(new Jackson2JsonEncoder()));
-		RequestedContentTypeResolver resolver = new RequestedContentTypeResolverBuilder().build();
-		this.resultHandler = new ResponseBodyResultHandler(writerList, resolver);
-	}
+  @Test
+  public void supports() {
+    Object controller = new TestController();
+    Method method;
 
+    method = on(TestController.class).annotPresent(ResponseBody.class).resolveMethod();
+    testSupports(controller, method);
 
-	@Test
-	public void supports() {
-		Object controller = new TestController();
-		Method method;
+    method = on(TestController.class).annotNotPresent(ResponseBody.class).resolveMethod("doWork");
+    HandlerResult handlerResult = getHandlerResult(controller, method);
+    assertThat(this.resultHandler.supports(handlerResult)).isFalse();
+  }
 
-		method = on(TestController.class).annotPresent(ResponseBody.class).resolveMethod();
-		testSupports(controller, method);
+  @Test
+  public void supportsRestController() {
+    Object controller = new TestRestController();
+    Method method;
 
-		method = on(TestController.class).annotNotPresent(ResponseBody.class).resolveMethod("doWork");
-		HandlerResult handlerResult = getHandlerResult(controller, method);
-		assertThat(this.resultHandler.supports(handlerResult)).isFalse();
-	}
+    method = on(TestRestController.class).returning(String.class).resolveMethod();
+    testSupports(controller, method);
 
-	@Test
-	public void supportsRestController() {
-		Object controller = new TestRestController();
-		Method method;
+    method = on(TestRestController.class).returning(Mono.class, String.class).resolveMethod();
+    testSupports(controller, method);
 
-		method = on(TestRestController.class).returning(String.class).resolveMethod();
-		testSupports(controller, method);
+    method = on(TestRestController.class).returning(Single.class, String.class).resolveMethod();
+    testSupports(controller, method);
 
-		method = on(TestRestController.class).returning(Mono.class, String.class).resolveMethod();
-		testSupports(controller, method);
+    method = on(TestRestController.class).returning(Completable.class).resolveMethod();
+    testSupports(controller, method);
+  }
 
-		method = on(TestRestController.class).returning(Single.class, String.class).resolveMethod();
-		testSupports(controller, method);
+  private void testSupports(Object controller, Method method) {
+    HandlerResult handlerResult = getHandlerResult(controller, method);
+    assertThat(this.resultHandler.supports(handlerResult)).isTrue();
+  }
 
-		method = on(TestRestController.class).returning(Completable.class).resolveMethod();
-		testSupports(controller, method);
-	}
+  private HandlerResult getHandlerResult(Object controller, Method method) {
+    HandlerMethod handlerMethod = new HandlerMethod(controller, method);
+    return new HandlerResult(handlerMethod, null, handlerMethod.getReturnType());
+  }
 
-	private void testSupports(Object controller, Method method) {
-		HandlerResult handlerResult = getHandlerResult(controller, method);
-		assertThat(this.resultHandler.supports(handlerResult)).isTrue();
-	}
+  @Test
+  public void defaultOrder() {
+    assertThat(this.resultHandler.getOrder()).isEqualTo(100);
+  }
 
-	private HandlerResult getHandlerResult(Object controller, Method method) {
-		HandlerMethod handlerMethod = new HandlerMethod(controller, method);
-		return new HandlerResult(handlerMethod, null, handlerMethod.getReturnType());
-	}
+  @RestController
+  @SuppressWarnings("unused")
+  private static class TestRestController {
 
-	@Test
-	public void defaultOrder() {
-		assertThat(this.resultHandler.getOrder()).isEqualTo(100);
-	}
+    public Mono<Void> handleToMonoVoid() {
+      return null;
+    }
 
+    public String handleToString() {
+      return null;
+    }
 
+    public Mono<String> handleToMonoString() {
+      return null;
+    }
 
-	@RestController
-	@SuppressWarnings("unused")
-	private static class TestRestController {
+    public Single<String> handleToSingleString() {
+      return null;
+    }
 
-		public Mono<Void> handleToMonoVoid() { return null;}
+    public Completable handleToCompletable() {
+      return null;
+    }
+  }
 
-		public String handleToString() {
-			return null;
-		}
+  @Controller
+  @SuppressWarnings("unused")
+  private static class TestController {
 
-		public Mono<String> handleToMonoString() {
-			return null;
-		}
+    @ResponseBody
+    public String handleToString() {
+      return null;
+    }
 
-		public Single<String> handleToSingleString() {
-			return null;
-		}
-
-		public Completable handleToCompletable() {
-			return null;
-		}
-	}
-
-
-	@Controller
-	@SuppressWarnings("unused")
-	private static class TestController {
-
-		@ResponseBody
-		public String handleToString() {
-			return null;
-		}
-
-		public String doWork() {
-			return null;
-		}
-	}
-
+    public String doWork() {
+      return null;
+    }
+  }
 }

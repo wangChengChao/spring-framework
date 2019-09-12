@@ -8,12 +8,16 @@
 		elementFormDefault="qualified"
 		attributeFormDefault="unqualified">
 
-	<xsd:import namespace="http://www.springframework.org/schema/beans" schemaLocation="https://www.springframework.org/schema/beans/spring-beans.xsd"/>
-	<xsd:import namespace="http://www.springframework.org/schema/tool" schemaLocation="https://www.springframework.org/schema/tool/spring-tool.xsd"/>
+	<xsd:import namespace="http://www.springframework.org/schema/beans"
+			schemaLocation="https://www.springframework.org/schema/beans/spring-beans.xsd"/>
+	<xsd:import namespace="http://www.springframework.org/schema/tool"
+			schemaLocation="https://www.springframework.org/schema/tool/spring-tool.xsd"/>
 
 	<xsd:element name="embedded-database">
 		<xsd:annotation>
-			<xsd:documentation source="java:org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactoryBean"><![CDATA[
+			<xsd:documentation
+					source="java:org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactoryBean">
+				<![CDATA[
 	Creates an embedded database instance and makes it available to other beans as a javax.sql.DataSource.
 			]]></xsd:documentation>
 			<xsd:appinfo>
@@ -26,7 +30,8 @@
 			<xsd:complexContent>
 				<xsd:extension base="beans:identifiedType">
 					<xsd:sequence>
-						<xsd:element name="script" type="scriptType" minOccurs="0" maxOccurs="unbounded">
+						<xsd:element name="script" type="scriptType" minOccurs="0"
+								maxOccurs="unbounded">
 							<xsd:annotation>
 								<xsd:documentation><![CDATA[
 			An SQL script to execute to populate, initialize, or clean up an embedded database.
@@ -44,14 +49,18 @@
 							]]></xsd:documentation>
 						</xsd:annotation>
 					</xsd:attribute>
-					<xsd:attribute name="generate-name" type="xsd:string" use="optional" default="false">
+					<xsd:attribute name="generate-name" type="xsd:string" use="optional"
+							default="false">
 						<xsd:annotation>
 							<xsd:documentation>
-			If set to "true", a pseudo-random unique name will be generated for the embedded
-			database, overriding any implicit name provided via the 'id' attribute or any
-			explicit name provided via the 'database-name' attribute.
-			Note that this is not the bean name but rather the name of the embedded database
-			as used in the JDBC connection URL for the database.
+								If set to "true", a pseudo-random unique name will be generated for
+								the embedded
+								database, overriding any implicit name provided via the 'id'
+								attribute or any
+								explicit name provided via the 'database-name' attribute.
+								Note that this is not the bean name but rather the name of the
+								embedded database
+								as used in the JDBC connection URL for the database.
 							</xsd:documentation>
 						</xsd:annotation>
 					</xsd:attribute>
@@ -77,7 +86,9 @@
 
 	<xsd:element name="initialize-database">
 		<xsd:annotation>
-			<xsd:documentation source="java:org.springframework.jdbc.datasource.init.DataSourceInitializer"><![CDATA[
+			<xsd:documentation
+					source="java:org.springframework.jdbc.datasource.init.DataSourceInitializer">
+				<![CDATA[
 	Initializes a database instance with SQL scripts provided in nested <script/> elements.
 			]]></xsd:documentation>
 		</xsd:annotation>
@@ -105,9 +116,9 @@
 			<xsd:attribute name="enabled" type="xsd:string" use="optional" default="true">
 				<xsd:annotation>
 					<xsd:documentation>
-			Is this bean "enabled", meaning the scripts will be executed?
-			Defaults to true but can be used to switch on and off script execution
-			depending on the environment.
+						Is this bean "enabled", meaning the scripts will be executed?
+						Defaults to true but can be used to switch on and off script execution
+						depending on the environment.
 					</xsd:documentation>
 				</xsd:annotation>
 			</xsd:attribute>

@@ -50,226 +50,241 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 /**
  * Unit tests for {@link AbstractMethodMessageHandler}.
+ *
  * @author Rossen Stoyanchev
  */
 public class MethodMessageHandlerTests {
 
+  @Test
+  public void duplicateMapping() {
+    assertThatIllegalStateException()
+        .isThrownBy(() -> initMethodMessageHandler(DuplicateMappingsController.class));
+  }
 
-	@Test
-	public void duplicateMapping() {
-		assertThatIllegalStateException().isThrownBy(() ->
-				initMethodMessageHandler(DuplicateMappingsController.class));
-	}
+  @Test
+  public void registeredMappings() {
+    TestMethodMessageHandler messageHandler = initMethodMessageHandler(TestController.class);
+    Map<String, HandlerMethod> mappings = messageHandler.getHandlerMethods();
 
-	@Test
-	public void registeredMappings() {
-		TestMethodMessageHandler messageHandler = initMethodMessageHandler(TestController.class);
-		Map<String, HandlerMethod> mappings = messageHandler.getHandlerMethods();
+    assertThat(mappings.keySet().size()).isEqualTo(5);
+    assertThat(mappings)
+        .containsOnlyKeys(
+            "/handleMessage",
+            "/handleMessageWithArgument",
+            "/handleMessageWithError",
+            "/handleMessageMatch1",
+            "/handleMessageMatch2");
+  }
 
-		assertThat(mappings.keySet().size()).isEqualTo(5);
-		assertThat(mappings).containsOnlyKeys(
-				"/handleMessage", "/handleMessageWithArgument", "/handleMessageWithError",
-				"/handleMessageMatch1", "/handleMessageMatch2");
-	}
+  @Test
+  @SuppressWarnings("unchecked")
+  public void bestMatch() throws NoSuchMethodException {
+    TestMethodMessageHandler handler = new TestMethodMessageHandler();
+    TestController controller = new TestController();
+    handler.register(
+        controller, TestController.class.getMethod("handleMessageMatch1"), "/bestmatch/{foo}/path");
+    handler.register(
+        controller, TestController.class.getMethod("handleMessageMatch2"), "/bestmatch/*/*");
+    handler.afterPropertiesSet();
 
-	@Test
-	@SuppressWarnings("unchecked")
-	public void bestMatch() throws NoSuchMethodException {
-		TestMethodMessageHandler handler = new TestMethodMessageHandler();
-		TestController controller = new TestController();
-		handler.register(controller, TestController.class.getMethod("handleMessageMatch1"), "/bestmatch/{foo}/path");
-		handler.register(controller, TestController.class.getMethod("handleMessageMatch2"), "/bestmatch/*/*");
-		handler.afterPropertiesSet();
+    Message<?> message =
+        new GenericMessage<>(
+            "body",
+            Collections.singletonMap(
+                DestinationPatternsMessageCondition.LOOKUP_DESTINATION_HEADER,
+                new SimpleRouteMatcher(new AntPathMatcher()).parseRoute("/bestmatch/bar/path")));
 
-		Message<?> message = new GenericMessage<>("body", Collections.singletonMap(
-				DestinationPatternsMessageCondition.LOOKUP_DESTINATION_HEADER,
-				new SimpleRouteMatcher(new AntPathMatcher()).parseRoute("/bestmatch/bar/path")));
+    handler.handleMessage(message).block(Duration.ofSeconds(5));
 
-		handler.handleMessage(message).block(Duration.ofSeconds(5));
+    StepVerifier.create((Publisher<Object>) handler.getLastReturnValue())
+        .expectNext("handleMessageMatch1")
+        .verifyComplete();
+  }
 
-		StepVerifier.create((Publisher<Object>) handler.getLastReturnValue())
-				.expectNext("handleMessageMatch1")
-				.verifyComplete();
-	}
+  @Test
+  @SuppressWarnings("unchecked")
+  public void argumentResolution() {
 
-	@Test
-	@SuppressWarnings("unchecked")
-	public void argumentResolution() {
+    ArgumentResolverConfigurer configurer = new ArgumentResolverConfigurer();
+    configurer.addCustomResolver(new StubArgumentResolver(String.class, "foo"));
 
-		ArgumentResolverConfigurer configurer = new ArgumentResolverConfigurer();
-		configurer.addCustomResolver(new StubArgumentResolver(String.class, "foo"));
+    TestMethodMessageHandler handler =
+        initMethodMessageHandler(
+            theHandler -> theHandler.setArgumentResolverConfigurer(configurer),
+            TestController.class);
 
-		TestMethodMessageHandler handler = initMethodMessageHandler(
-				theHandler -> theHandler.setArgumentResolverConfigurer(configurer),
-				TestController.class);
+    Message<?> message =
+        new GenericMessage<>(
+            "body",
+            Collections.singletonMap(
+                DestinationPatternsMessageCondition.LOOKUP_DESTINATION_HEADER,
+                new SimpleRouteMatcher(new AntPathMatcher())
+                    .parseRoute("/handleMessageWithArgument")));
 
-		Message<?> message = new GenericMessage<>("body", Collections.singletonMap(
-				DestinationPatternsMessageCondition.LOOKUP_DESTINATION_HEADER,
-				new SimpleRouteMatcher(new AntPathMatcher()).parseRoute("/handleMessageWithArgument")));
+    handler.handleMessage(message).block(Duration.ofSeconds(5));
 
-		handler.handleMessage(message).block(Duration.ofSeconds(5));
+    StepVerifier.create((Publisher<Object>) handler.getLastReturnValue())
+        .expectNext("handleMessageWithArgument,payload=foo")
+        .verifyComplete();
+  }
 
-		StepVerifier.create((Publisher<Object>) handler.getLastReturnValue())
-				.expectNext("handleMessageWithArgument,payload=foo")
-				.verifyComplete();
-	}
+  @Test
+  @SuppressWarnings("unchecked")
+  public void handleException() {
 
-	@Test
-	@SuppressWarnings("unchecked")
-	public void handleException() {
+    TestMethodMessageHandler handler = initMethodMessageHandler(TestController.class);
 
-		TestMethodMessageHandler handler = initMethodMessageHandler(TestController.class);
+    Message<?> message =
+        new GenericMessage<>(
+            "body",
+            Collections.singletonMap(
+                DestinationPatternsMessageCondition.LOOKUP_DESTINATION_HEADER,
+                new SimpleRouteMatcher(new AntPathMatcher())
+                    .parseRoute("/handleMessageWithError")));
 
-		Message<?> message = new GenericMessage<>("body", Collections.singletonMap(
-				DestinationPatternsMessageCondition.LOOKUP_DESTINATION_HEADER,
-				new SimpleRouteMatcher(new AntPathMatcher()).parseRoute("/handleMessageWithError")));
+    handler.handleMessage(message).block(Duration.ofSeconds(5));
 
-		handler.handleMessage(message).block(Duration.ofSeconds(5));
+    StepVerifier.create((Publisher<Object>) handler.getLastReturnValue())
+        .expectNext("handleIllegalStateException,ex=rejected")
+        .verifyComplete();
+  }
 
-		StepVerifier.create((Publisher<Object>) handler.getLastReturnValue())
-				.expectNext("handleIllegalStateException,ex=rejected")
-				.verifyComplete();
-	}
+  private TestMethodMessageHandler initMethodMessageHandler(Class<?>... handlerTypes) {
+    return initMethodMessageHandler(handler -> {}, handlerTypes);
+  }
 
+  private TestMethodMessageHandler initMethodMessageHandler(
+      Consumer<TestMethodMessageHandler> customizer, Class<?>... handlerTypes) {
 
-	private TestMethodMessageHandler initMethodMessageHandler(Class<?>... handlerTypes) {
-		return initMethodMessageHandler(handler -> {}, handlerTypes);
-	}
+    StaticApplicationContext context = new StaticApplicationContext();
+    for (Class<?> handlerType : handlerTypes) {
+      String beanName = ClassUtils.getShortNameAsProperty(handlerType);
+      context.registerPrototype(beanName, handlerType);
+    }
+    TestMethodMessageHandler messageHandler = new TestMethodMessageHandler();
+    messageHandler.setApplicationContext(context);
+    customizer.accept(messageHandler);
+    messageHandler.afterPropertiesSet();
+    return messageHandler;
+  }
 
-	private TestMethodMessageHandler initMethodMessageHandler(
-			Consumer<TestMethodMessageHandler> customizer, Class<?>... handlerTypes) {
+  @SuppressWarnings("unused")
+  private static class TestController {
 
-		StaticApplicationContext context = new StaticApplicationContext();
-		for (Class<?> handlerType : handlerTypes) {
-			String beanName = ClassUtils.getShortNameAsProperty(handlerType);
-			context.registerPrototype(beanName, handlerType);
-		}
-		TestMethodMessageHandler messageHandler = new TestMethodMessageHandler();
-		messageHandler.setApplicationContext(context);
-		customizer.accept(messageHandler);
-		messageHandler.afterPropertiesSet();
-		return messageHandler;
-	}
+    public Mono<String> handleMessage() {
+      return delay("handleMessage");
+    }
 
+    public Mono<String> handleMessageWithArgument(String payload) {
+      return delay("handleMessageWithArgument,payload=" + payload);
+    }
 
-	@SuppressWarnings("unused")
-	private static class TestController {
+    public Mono<String> handleMessageWithError() {
+      return Mono.delay(Duration.ofMillis(10))
+          .flatMap(aLong -> Mono.error(new IllegalStateException("rejected")));
+    }
 
-		public Mono<String> handleMessage() {
-			return delay("handleMessage");
-		}
+    public Mono<String> handleMessageMatch1() {
+      return delay("handleMessageMatch1");
+    }
 
-		public Mono<String> handleMessageWithArgument(String payload) {
-			return delay("handleMessageWithArgument,payload=" + payload);
-		}
+    public Mono<String> handleMessageMatch2() {
+      return delay("handleMessageMatch2");
+    }
 
-		public Mono<String> handleMessageWithError() {
-			return Mono.delay(Duration.ofMillis(10))
-					.flatMap(aLong -> Mono.error(new IllegalStateException("rejected")));
-		}
+    public Mono<String> handleIllegalStateException(IllegalStateException ex) {
+      return delay("handleIllegalStateException,ex=" + ex.getMessage());
+    }
 
-		public Mono<String> handleMessageMatch1() {
-			return delay("handleMessageMatch1");
-		}
+    private Mono<String> delay(String value) {
+      return Mono.delay(Duration.ofMillis(10)).map(aLong -> value);
+    }
+  }
 
-		public Mono<String> handleMessageMatch2() {
-			return delay("handleMessageMatch2");
-		}
+  @SuppressWarnings("unused")
+  private static class DuplicateMappingsController {
 
-		public Mono<String> handleIllegalStateException(IllegalStateException ex) {
-			return delay("handleIllegalStateException,ex=" + ex.getMessage());
-		}
+    void handleMessageFoo() {}
 
-		private Mono<String> delay(String value) {
-			return Mono.delay(Duration.ofMillis(10)).map(aLong -> value);
-		}
-	}
+    void handleMessageFoo(String foo) {}
+  }
 
+  private static class TestMethodMessageHandler extends AbstractMethodMessageHandler<String> {
 
-	@SuppressWarnings("unused")
-	private static class DuplicateMappingsController {
+    private final TestReturnValueHandler returnValueHandler = new TestReturnValueHandler();
 
-		void handleMessageFoo() { }
+    private PathMatcher pathMatcher = new AntPathMatcher();
 
-		void handleMessageFoo(String foo) { }
-	}
+    public TestMethodMessageHandler() {
+      setHandlerPredicate(handlerType -> handlerType.getName().endsWith("Controller"));
+    }
 
+    @Override
+    protected List<? extends HandlerMethodArgumentResolver> initArgumentResolvers() {
+      return Collections.emptyList();
+    }
 
-	private static class TestMethodMessageHandler extends AbstractMethodMessageHandler<String> {
+    @Override
+    protected List<? extends HandlerMethodReturnValueHandler> initReturnValueHandlers() {
+      return Collections.singletonList(this.returnValueHandler);
+    }
 
-		private final TestReturnValueHandler returnValueHandler = new TestReturnValueHandler();
+    @Nullable
+    public Object getLastReturnValue() {
+      return this.returnValueHandler.getLastReturnValue();
+    }
 
-		private PathMatcher pathMatcher = new AntPathMatcher();
+    public void register(Object handler, Method method, String mapping) {
+      super.registerHandlerMethod(handler, method, mapping);
+    }
 
+    @Override
+    protected String getMappingForMethod(Method method, Class<?> handlerType) {
+      String methodName = method.getName();
+      if (methodName.startsWith("handleMessage")) {
+        return "/" + methodName;
+      }
+      return null;
+    }
 
-		public TestMethodMessageHandler() {
-			setHandlerPredicate(handlerType -> handlerType.getName().endsWith("Controller"));
-		}
+    @Override
+    protected Set<String> getDirectLookupMappings(String mapping) {
+      return Collections.singleton(mapping);
+    }
 
-		@Override
-		protected List<? extends HandlerMethodArgumentResolver> initArgumentResolvers() {
-			return Collections.emptyList();
-		}
+    @Override
+    @Nullable
+    protected RouteMatcher.Route getDestination(Message<?> message) {
+      return (RouteMatcher.Route)
+          message.getHeaders().get(DestinationPatternsMessageCondition.LOOKUP_DESTINATION_HEADER);
+    }
 
-		@Override
-		protected List<? extends HandlerMethodReturnValueHandler> initReturnValueHandlers() {
-			return Collections.singletonList(this.returnValueHandler);
-		}
+    @Override
+    protected String getMatchingMapping(String mapping, Message<?> message) {
+      RouteMatcher.Route destination = getDestination(message);
+      Assert.notNull(destination, "No destination");
+      return mapping.equals(destination.value())
+              || this.pathMatcher.match(mapping, destination.value())
+          ? mapping
+          : null;
+    }
 
-		@Nullable
-		public Object getLastReturnValue() {
-			return this.returnValueHandler.getLastReturnValue();
-		}
+    @Override
+    protected Comparator<String> getMappingComparator(Message<?> message) {
+      return (info1, info2) -> {
+        SimpleRouteMatcher routeMatcher = new SimpleRouteMatcher(new AntPathMatcher());
+        DestinationPatternsMessageCondition cond1 =
+            new DestinationPatternsMessageCondition(new String[] {info1}, routeMatcher);
+        DestinationPatternsMessageCondition cond2 =
+            new DestinationPatternsMessageCondition(new String[] {info2}, routeMatcher);
+        return cond1.compareTo(cond2, message);
+      };
+    }
 
-		public void register(Object handler, Method method, String mapping) {
-			super.registerHandlerMethod(handler, method, mapping);
-		}
-
-		@Override
-		protected String getMappingForMethod(Method method, Class<?> handlerType) {
-			String methodName = method.getName();
-			if (methodName.startsWith("handleMessage")) {
-				return "/" + methodName;
-			}
-			return null;
-		}
-
-		@Override
-		protected Set<String> getDirectLookupMappings(String mapping) {
-			return Collections.singleton(mapping);
-		}
-
-		@Override
-		@Nullable
-		protected RouteMatcher.Route getDestination(Message<?> message) {
-			return (RouteMatcher.Route) message.getHeaders().get(
-					DestinationPatternsMessageCondition.LOOKUP_DESTINATION_HEADER);
-		}
-
-		@Override
-		protected String getMatchingMapping(String mapping, Message<?> message) {
-			RouteMatcher.Route destination = getDestination(message);
-			Assert.notNull(destination, "No destination");
-			return mapping.equals(destination.value()) ||
-					this.pathMatcher.match(mapping, destination.value()) ? mapping : null;
-		}
-
-		@Override
-		protected Comparator<String> getMappingComparator(Message<?> message) {
-			return (info1, info2) -> {
-				SimpleRouteMatcher routeMatcher = new SimpleRouteMatcher(new AntPathMatcher());
-				DestinationPatternsMessageCondition cond1 =
-						new DestinationPatternsMessageCondition(new String[] { info1 }, routeMatcher);
-				DestinationPatternsMessageCondition cond2 =
-						new DestinationPatternsMessageCondition(new String[] { info2 }, routeMatcher);
-				return cond1.compareTo(cond2, message);
-			};
-		}
-
-		@Override
-		protected AbstractExceptionHandlerMethodResolver createExceptionMethodResolverFor(Class<?> beanType) {
-			return new TestExceptionResolver(beanType);
-		}
-	}
-
+    @Override
+    protected AbstractExceptionHandlerMethodResolver createExceptionMethodResolverFor(
+        Class<?> beanType) {
+      return new TestExceptionResolver(beanType);
+    }
+  }
 }

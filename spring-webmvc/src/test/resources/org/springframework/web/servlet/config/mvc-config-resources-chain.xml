@@ -16,9 +16,9 @@
   -->
 
 <beans xmlns="http://www.springframework.org/schema/beans"
-    xmlns:mvc="http://www.springframework.org/schema/mvc"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+		xmlns:mvc="http://www.springframework.org/schema/mvc"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd">
 
 	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
@@ -27,8 +27,10 @@
 		</property>
 	</bean>
 
-	<mvc:resources mapping="/resources/**" location="/, classpath:/META-INF/, [charset=ISO-8859-1]${location}">
-		<mvc:resource-chain resource-cache="true" cache-manager="resourceCache" cache-name="test-resource-cache">
+	<mvc:resources mapping="/resources/**"
+			location="/, classpath:/META-INF/, [charset=ISO-8859-1]${location}">
+		<mvc:resource-chain resource-cache="true" cache-manager="resourceCache"
+				cache-name="test-resource-cache">
 			<mvc:resolvers>
 				<mvc:version-resolver>
 					<mvc:fixed-version-strategy version="abc" patterns="/**/*.js"/>
@@ -41,5 +43,6 @@
 		</mvc:resource-chain>
 	</mvc:resources>
 
-	<bean id="resourceCache" class="org.springframework.web.servlet.config.MvcNamespaceTests$TestCacheManager"/>
+	<bean id="resourceCache"
+			class="org.springframework.web.servlet.config.MvcNamespaceTests$TestCacheManager"/>
 </beans>

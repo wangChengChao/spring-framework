@@ -44,226 +44,232 @@ import org.springframework.stereotype.Controller;
 /**
  * Client-side handling of requests initiated from the server side.
  *
- *  @author Rossen Stoyanchev
+ * @author Rossen Stoyanchev
  * @author Brian Clozel
  */
 public class RSocketServerToClientIntegrationTests {
 
-	private static AnnotationConfigApplicationContext context;
+  private static AnnotationConfigApplicationContext context;
 
-	private static CloseableChannel server;
+  private static CloseableChannel server;
 
+  @BeforeAll
+  @SuppressWarnings("ConstantConditions")
+  public static void setupOnce() {
 
-	@BeforeAll
-	@SuppressWarnings("ConstantConditions")
-	public static void setupOnce() {
+    context = new AnnotationConfigApplicationContext(RSocketConfig.class);
+    RSocketMessageHandler messageHandler = context.getBean(RSocketMessageHandler.class);
+    SocketAcceptor responder = messageHandler.responder();
 
-		context = new AnnotationConfigApplicationContext(RSocketConfig.class);
-		RSocketMessageHandler messageHandler = context.getBean(RSocketMessageHandler.class);
-		SocketAcceptor responder = messageHandler.responder();
+    server =
+        RSocketFactory.receive()
+            .frameDecoder(PayloadDecoder.ZERO_COPY)
+            .acceptor(responder)
+            .transport(TcpServerTransport.create("localhost", 0))
+            .start()
+            .block();
+  }
 
-		server = RSocketFactory.receive()
-				.frameDecoder(PayloadDecoder.ZERO_COPY)
-				.acceptor(responder)
-				.transport(TcpServerTransport.create("localhost", 0))
-				.start()
-				.block();
-	}
+  @AfterAll
+  public static void tearDownOnce() {
+    server.dispose();
+  }
 
-	@AfterAll
-	public static void tearDownOnce() {
-		server.dispose();
-	}
+  @Test
+  public void echo() {
+    connectAndRunTest("echo");
+  }
 
+  @Test
+  public void echoAsync() {
+    connectAndRunTest("echo-async");
+  }
 
-	@Test
-	public void echo() {
-		connectAndRunTest("echo");
-	}
+  @Test
+  public void echoStream() {
+    connectAndRunTest("echo-stream");
+  }
 
-	@Test
-	public void echoAsync() {
-		connectAndRunTest("echo-async");
-	}
+  @Test
+  public void echoChannel() {
+    connectAndRunTest("echo-channel");
+  }
 
-	@Test
-	public void echoStream() {
-		connectAndRunTest("echo-stream");
-	}
+  private static void connectAndRunTest(String connectionRoute) {
 
-	@Test
-	public void echoChannel() {
-		connectAndRunTest("echo-channel");
-	}
+    ServerController serverController = context.getBean(ServerController.class);
+    serverController.reset();
 
+    RSocketStrategies strategies = context.getBean(RSocketStrategies.class);
+    ClientRSocketFactoryConfigurer clientResponderConfigurer =
+        RSocketMessageHandler.clientResponder(strategies, new ClientHandler());
 
-	private static void connectAndRunTest(String connectionRoute) {
+    RSocketRequester requester = null;
+    try {
+      requester =
+          RSocketRequester.builder()
+              .setupRoute(connectionRoute)
+              .rsocketStrategies(strategies)
+              .rsocketFactory(clientResponderConfigurer)
+              .connectTcp("localhost", server.address().getPort())
+              .block();
 
-		ServerController serverController = context.getBean(ServerController.class);
-		serverController.reset();
+      serverController.await(Duration.ofSeconds(5));
+    } finally {
+      if (requester != null) {
+        requester.rsocket().dispose();
+      }
+    }
+  }
 
-		RSocketStrategies strategies = context.getBean(RSocketStrategies.class);
-		ClientRSocketFactoryConfigurer clientResponderConfigurer =
-				RSocketMessageHandler.clientResponder(strategies, new ClientHandler());
+  @Controller
+  @SuppressWarnings({"unused", "NullableProblems"})
+  static class ServerController {
 
-		RSocketRequester requester = null;
-		try {
-			requester = RSocketRequester.builder()
-					.setupRoute(connectionRoute)
-					.rsocketStrategies(strategies)
-					.rsocketFactory(clientResponderConfigurer)
-					.connectTcp("localhost", server.address().getPort())
-					.block();
+    // Must be initialized by @Test method...
+    volatile MonoProcessor<Void> result;
 
-			serverController.await(Duration.ofSeconds(5));
-		}
-		finally {
-			if (requester != null) {
-				requester.rsocket().dispose();
-			}
-		}
-	}
+    public void reset() {
+      this.result = MonoProcessor.create();
+    }
 
+    public void await(Duration duration) {
+      this.result.block(duration);
+    }
 
-	@Controller
-	@SuppressWarnings({"unused", "NullableProblems"})
-	static class ServerController {
+    @ConnectMapping("echo")
+    void echo(RSocketRequester requester) {
+      runTest(
+          () -> {
+            Flux<String> flux =
+                Flux.range(1, 3)
+                    .concatMap(
+                        i -> requester.route("echo").data("Hello " + i).retrieveMono(String.class));
 
-		// Must be initialized by @Test method...
-		volatile MonoProcessor<Void> result;
+            StepVerifier.create(flux)
+                .expectNext("Hello 1")
+                .expectNext("Hello 2")
+                .expectNext("Hello 3")
+                .expectComplete()
+                .verify(Duration.ofSeconds(5));
+          });
+    }
 
+    @ConnectMapping("echo-async")
+    void echoAsync(RSocketRequester requester) {
+      runTest(
+          () -> {
+            Flux<String> flux =
+                Flux.range(1, 3)
+                    .concatMap(
+                        i ->
+                            requester
+                                .route("echo-async")
+                                .data("Hello " + i)
+                                .retrieveMono(String.class));
 
-		public void reset() {
-			this.result = MonoProcessor.create();
-		}
+            StepVerifier.create(flux)
+                .expectNext("Hello 1 async")
+                .expectNext("Hello 2 async")
+                .expectNext("Hello 3 async")
+                .expectComplete()
+                .verify(Duration.ofSeconds(5));
+          });
+    }
 
-		public void await(Duration duration) {
-			this.result.block(duration);
-		}
+    @ConnectMapping("echo-stream")
+    void echoStream(RSocketRequester requester) {
+      runTest(
+          () -> {
+            Flux<String> flux =
+                requester.route("echo-stream").data("Hello").retrieveFlux(String.class);
 
+            StepVerifier.create(flux)
+                .expectNext("Hello 0")
+                .expectNextCount(5)
+                .expectNext("Hello 6")
+                .expectNext("Hello 7")
+                .thenCancel()
+                .verify(Duration.ofSeconds(5));
+          });
+    }
 
-		@ConnectMapping("echo")
-		void echo(RSocketRequester requester) {
-			runTest(() -> {
-				Flux<String> flux = Flux.range(1, 3).concatMap(i ->
-						requester.route("echo").data("Hello " + i).retrieveMono(String.class));
+    @ConnectMapping("echo-channel")
+    void echoChannel(RSocketRequester requester) {
+      runTest(
+          () -> {
+            Flux<String> flux =
+                requester
+                    .route("echo-channel")
+                    .data(Flux.range(1, 10).map(i -> "Hello " + i), String.class)
+                    .retrieveFlux(String.class);
 
-				StepVerifier.create(flux)
-						.expectNext("Hello 1")
-						.expectNext("Hello 2")
-						.expectNext("Hello 3")
-						.expectComplete()
-						.verify(Duration.ofSeconds(5));
-			});
-		}
+            StepVerifier.create(flux)
+                .expectNext("Hello 1 async")
+                .expectNextCount(7)
+                .expectNext("Hello 9 async")
+                .expectNext("Hello 10 async")
+                .verifyComplete();
+          });
+    }
 
-		@ConnectMapping("echo-async")
-		void echoAsync(RSocketRequester requester) {
-			runTest(() -> {
-				Flux<String> flux = Flux.range(1, 3).concatMap(i ->
-						requester.route("echo-async").data("Hello " + i).retrieveMono(String.class));
+    private void runTest(Runnable testEcho) {
+      Mono.fromRunnable(testEcho)
+          .doOnError(ex -> result.onError(ex))
+          .doOnSuccess(o -> result.onComplete())
+          .subscribeOn(Schedulers.elastic()) // StepVerifier will block
+          .subscribe();
+    }
+  }
 
-				StepVerifier.create(flux)
-						.expectNext("Hello 1 async")
-						.expectNext("Hello 2 async")
-						.expectNext("Hello 3 async")
-						.expectComplete()
-						.verify(Duration.ofSeconds(5));
-			});
-		}
+  private static class ClientHandler {
 
-		@ConnectMapping("echo-stream")
-		void echoStream(RSocketRequester requester) {
-			runTest(() -> {
-				Flux<String> flux = requester.route("echo-stream").data("Hello").retrieveFlux(String.class);
+    final ReplayProcessor<String> fireForgetPayloads = ReplayProcessor.create();
 
-				StepVerifier.create(flux)
-						.expectNext("Hello 0")
-						.expectNextCount(5)
-						.expectNext("Hello 6")
-						.expectNext("Hello 7")
-						.thenCancel()
-						.verify(Duration.ofSeconds(5));
-			});
-		}
+    @MessageMapping("receive")
+    void receive(String payload) {
+      this.fireForgetPayloads.onNext(payload);
+    }
 
-		@ConnectMapping("echo-channel")
-		void echoChannel(RSocketRequester requester) {
-			runTest(() -> {
-				Flux<String> flux = requester.route("echo-channel")
-						.data(Flux.range(1, 10).map(i -> "Hello " + i), String.class)
-						.retrieveFlux(String.class);
+    @MessageMapping("echo")
+    String echo(String payload) {
+      return payload;
+    }
 
-				StepVerifier.create(flux)
-						.expectNext("Hello 1 async")
-						.expectNextCount(7)
-						.expectNext("Hello 9 async")
-						.expectNext("Hello 10 async")
-						.verifyComplete();
-			});
-		}
+    @MessageMapping("echo-async")
+    Mono<String> echoAsync(String payload) {
+      return Mono.delay(Duration.ofMillis(10)).map(aLong -> payload + " async");
+    }
 
+    @MessageMapping("echo-stream")
+    Flux<String> echoStream(String payload) {
+      return Flux.interval(Duration.ofMillis(10)).map(aLong -> payload + " " + aLong);
+    }
 
-		private void runTest(Runnable testEcho) {
-			Mono.fromRunnable(testEcho)
-					.doOnError(ex -> result.onError(ex))
-					.doOnSuccess(o -> result.onComplete())
-					.subscribeOn(Schedulers.elastic()) // StepVerifier will block
-					.subscribe();
-		}
-	}
+    @MessageMapping("echo-channel")
+    Flux<String> echoChannel(Flux<String> payloads) {
+      return payloads.delayElements(Duration.ofMillis(10)).map(payload -> payload + " async");
+    }
+  }
 
+  @Configuration
+  static class RSocketConfig {
 
-	private static class ClientHandler {
+    @Bean
+    public ServerController serverController() {
+      return new ServerController();
+    }
 
-		final ReplayProcessor<String> fireForgetPayloads = ReplayProcessor.create();
+    @Bean
+    public RSocketMessageHandler serverMessageHandler() {
+      RSocketMessageHandler handler = new RSocketMessageHandler();
+      handler.setRSocketStrategies(rsocketStrategies());
+      return handler;
+    }
 
-		@MessageMapping("receive")
-		void receive(String payload) {
-			this.fireForgetPayloads.onNext(payload);
-		}
-
-		@MessageMapping("echo")
-		String echo(String payload) {
-			return payload;
-		}
-
-		@MessageMapping("echo-async")
-		Mono<String> echoAsync(String payload) {
-			return Mono.delay(Duration.ofMillis(10)).map(aLong -> payload + " async");
-		}
-
-		@MessageMapping("echo-stream")
-		Flux<String> echoStream(String payload) {
-			return Flux.interval(Duration.ofMillis(10)).map(aLong -> payload + " " + aLong);
-		}
-
-		@MessageMapping("echo-channel")
-		Flux<String> echoChannel(Flux<String> payloads) {
-			return payloads.delayElements(Duration.ofMillis(10)).map(payload -> payload + " async");
-		}
-	}
-
-
-	@Configuration
-	static class RSocketConfig {
-
-		@Bean
-		public ServerController serverController() {
-			return new ServerController();
-		}
-
-		@Bean
-		public RSocketMessageHandler serverMessageHandler() {
-			RSocketMessageHandler handler = new RSocketMessageHandler();
-			handler.setRSocketStrategies(rsocketStrategies());
-			return handler;
-		}
-
-		@Bean
-		public RSocketStrategies rsocketStrategies() {
-			return RSocketStrategies.create();
-		}
-	}
-
+    @Bean
+    public RSocketStrategies rsocketStrategies() {
+      return RSocketStrategies.create();
+    }
+  }
 }

@@ -23,26 +23,25 @@ import org.springframework.test.context.ContextConfiguration;
 import static org.springframework.test.transaction.TransactionAssert.assertThatTransaction;
 
 /**
- * Timed integration tests for
- * {@link AbstractTransactionalTestNGSpringContextTests}; used to verify claim
- * raised in <a href="https://jira.springframework.org/browse/SPR-6124"
+ * Timed integration tests for {@link AbstractTransactionalTestNGSpringContextTests}; used to verify
+ * claim raised in <a href="https://jira.springframework.org/browse/SPR-6124"
  * target="_blank">SPR-6124</a>.
  *
  * @author Sam Brannen
  * @since 3.0
  */
 @ContextConfiguration
-public class TimedTransactionalTestNGSpringContextTests extends AbstractTransactionalTestNGSpringContextTests {
+public class TimedTransactionalTestNGSpringContextTests
+    extends AbstractTransactionalTestNGSpringContextTests {
 
-	@Test
-	public void testWithoutTimeout() {
-		assertThatTransaction().isActive();
-	}
+  @Test
+  public void testWithoutTimeout() {
+    assertThatTransaction().isActive();
+  }
 
-	// TODO Enable TestNG test with timeout once we have a solution.
-	@Test(timeOut = 10000, enabled = false)
-	public void testWithTimeout() {
-		assertThatTransaction().isActive();
-	}
-
+  // TODO Enable TestNG test with timeout once we have a solution.
+  @Test(timeOut = 10000, enabled = false)
+  public void testWithTimeout() {
+    assertThatTransaction().isActive();
+  }
 }

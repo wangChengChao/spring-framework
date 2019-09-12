@@ -36,56 +36,54 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.transaction.TransactionAssert.assertThatTransaction;
 
 /**
- * Integration tests for {@link Sql @Sql} support with only a {@link DataSource}
- * present in the context (i.e., no transaction manager).
+ * Integration tests for {@link Sql @Sql} support with only a {@link DataSource} present in the
+ * context (i.e., no transaction manager).
  *
  * @author Sam Brannen
  * @since 4.1
  */
 @SpringJUnitConfig
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@Sql({ "schema.sql", "data.sql" })
+@Sql({"schema.sql", "data.sql"})
 @DirtiesContext
 class DataSourceOnlySqlScriptsTests {
 
-	private JdbcTemplate jdbcTemplate;
+  private JdbcTemplate jdbcTemplate;
 
+  @Autowired
+  void setDataSource(DataSource dataSource) {
+    this.jdbcTemplate = new JdbcTemplate(dataSource);
+  }
 
-	@Autowired
-	void setDataSource(DataSource dataSource) {
-		this.jdbcTemplate = new JdbcTemplate(dataSource);
-	}
+  @Test
+  @Order(1)
+  void classLevelScripts() {
+    assertThatTransaction().isNotActive();
+    assertNumUsers(1);
+  }
 
-	@Test
-	@Order(1)
-	void classLevelScripts() {
-		assertThatTransaction().isNotActive();
-		assertNumUsers(1);
-	}
+  @Test
+  @Sql({"drop-schema.sql", "schema.sql", "data.sql", "data-add-dogbert.sql"})
+  @Order(2)
+  void methodLevelScripts() {
+    assertThatTransaction().isNotActive();
+    assertNumUsers(2);
+  }
 
-	@Test
-	@Sql({ "drop-schema.sql", "schema.sql", "data.sql", "data-add-dogbert.sql" })
-	@Order(2)
-	void methodLevelScripts() {
-		assertThatTransaction().isNotActive();
-		assertNumUsers(2);
-	}
+  protected void assertNumUsers(int expected) {
+    assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "user"))
+        .as("Number of rows in the 'user' table.")
+        .isEqualTo(expected);
+  }
 
-	protected void assertNumUsers(int expected) {
-		assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "user")).as(
-			"Number of rows in the 'user' table.").isEqualTo(expected);
-	}
+  @Configuration
+  static class Config {
 
-
-	@Configuration
-	static class Config {
-
-		@Bean
-		DataSource dataSource() {
-			return new EmbeddedDatabaseBuilder()//
-					.setName("empty-sql-scripts-without-tx-mgr-test-db")//
-					.build();
-		}
-	}
-
+    @Bean
+    DataSource dataSource() {
+      return new EmbeddedDatabaseBuilder() //
+          .setName("empty-sql-scripts-without-tx-mgr-test-db") //
+          .build();
+    }
+  }
 }

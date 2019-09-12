@@ -44,142 +44,140 @@ import static org.springframework.tests.TestResourceUtils.qualifiedResource;
  */
 public class ObjectFactoryCreatingFactoryBeanTests {
 
-	private DefaultListableBeanFactory beanFactory;
+  private DefaultListableBeanFactory beanFactory;
 
+  @BeforeEach
+  public void setup() {
+    this.beanFactory = new DefaultListableBeanFactory();
+    new XmlBeanDefinitionReader(this.beanFactory)
+        .loadBeanDefinitions(
+            qualifiedResource(ObjectFactoryCreatingFactoryBeanTests.class, "context.xml"));
+    this.beanFactory.setSerializationId("test");
+  }
 
-	@BeforeEach
-	public void setup() {
-		this.beanFactory = new DefaultListableBeanFactory();
-		new XmlBeanDefinitionReader(this.beanFactory).loadBeanDefinitions(
-				qualifiedResource(ObjectFactoryCreatingFactoryBeanTests.class, "context.xml"));
-		this.beanFactory.setSerializationId("test");
-	}
+  @AfterEach
+  public void close() {
+    this.beanFactory.setSerializationId(null);
+  }
 
-	@AfterEach
-	public void close() {
-		this.beanFactory.setSerializationId(null);
-	}
+  @Test
+  public void testFactoryOperation() {
+    FactoryTestBean testBean = beanFactory.getBean("factoryTestBean", FactoryTestBean.class);
+    ObjectFactory<?> objectFactory = testBean.getObjectFactory();
 
+    Date date1 = (Date) objectFactory.getObject();
+    Date date2 = (Date) objectFactory.getObject();
+    assertThat(date1 != date2).isTrue();
+  }
 
-	@Test
-	public void testFactoryOperation() {
-		FactoryTestBean testBean = beanFactory.getBean("factoryTestBean", FactoryTestBean.class);
-		ObjectFactory<?> objectFactory = testBean.getObjectFactory();
+  @Test
+  @SuppressWarnings("rawtypes")
+  public void testFactorySerialization() throws Exception {
+    FactoryTestBean testBean = beanFactory.getBean("factoryTestBean", FactoryTestBean.class);
+    ObjectFactory<?> objectFactory = testBean.getObjectFactory();
 
-		Date date1 = (Date) objectFactory.getObject();
-		Date date2 = (Date) objectFactory.getObject();
-		assertThat(date1 != date2).isTrue();
-	}
+    objectFactory = (ObjectFactory) SerializationTestUtils.serializeAndDeserialize(objectFactory);
 
-	@Test
-	@SuppressWarnings("rawtypes")
-	public void testFactorySerialization() throws Exception {
-		FactoryTestBean testBean = beanFactory.getBean("factoryTestBean", FactoryTestBean.class);
-		ObjectFactory<?> objectFactory = testBean.getObjectFactory();
+    Date date1 = (Date) objectFactory.getObject();
+    Date date2 = (Date) objectFactory.getObject();
+    assertThat(date1 != date2).isTrue();
+  }
 
-		objectFactory = (ObjectFactory) SerializationTestUtils.serializeAndDeserialize(objectFactory);
+  @Test
+  public void testProviderOperation() {
+    ProviderTestBean testBean = beanFactory.getBean("providerTestBean", ProviderTestBean.class);
+    Provider<?> provider = testBean.getProvider();
 
-		Date date1 = (Date) objectFactory.getObject();
-		Date date2 = (Date) objectFactory.getObject();
-		assertThat(date1 != date2).isTrue();
-	}
+    Date date1 = (Date) provider.get();
+    Date date2 = (Date) provider.get();
+    assertThat(date1 != date2).isTrue();
+  }
 
-	@Test
-	public void testProviderOperation() {
-		ProviderTestBean testBean = beanFactory.getBean("providerTestBean", ProviderTestBean.class);
-		Provider<?> provider = testBean.getProvider();
+  @Test
+  @SuppressWarnings("rawtypes")
+  public void testProviderSerialization() throws Exception {
+    ProviderTestBean testBean = beanFactory.getBean("providerTestBean", ProviderTestBean.class);
+    Provider<?> provider = testBean.getProvider();
 
-		Date date1 = (Date) provider.get();
-		Date date2 = (Date) provider.get();
-		assertThat(date1 != date2).isTrue();
-	}
+    provider = (Provider) SerializationTestUtils.serializeAndDeserialize(provider);
 
-	@Test
-	@SuppressWarnings("rawtypes")
-	public void testProviderSerialization() throws Exception {
-		ProviderTestBean testBean = beanFactory.getBean("providerTestBean", ProviderTestBean.class);
-		Provider<?> provider = testBean.getProvider();
+    Date date1 = (Date) provider.get();
+    Date date2 = (Date) provider.get();
+    assertThat(date1 != date2).isTrue();
+  }
 
-		provider = (Provider) SerializationTestUtils.serializeAndDeserialize(provider);
+  @Test
+  public void testDoesNotComplainWhenTargetBeanNameRefersToSingleton() throws Exception {
+    final String targetBeanName = "singleton";
+    final String expectedSingleton = "Alicia Keys";
 
-		Date date1 = (Date) provider.get();
-		Date date2 = (Date) provider.get();
-		assertThat(date1 != date2).isTrue();
-	}
+    BeanFactory beanFactory = mock(BeanFactory.class);
+    given(beanFactory.getBean(targetBeanName)).willReturn(expectedSingleton);
 
-	@Test
-	public void testDoesNotComplainWhenTargetBeanNameRefersToSingleton() throws Exception {
-		final String targetBeanName = "singleton";
-		final String expectedSingleton = "Alicia Keys";
+    ObjectFactoryCreatingFactoryBean factory = new ObjectFactoryCreatingFactoryBean();
+    factory.setTargetBeanName(targetBeanName);
+    factory.setBeanFactory(beanFactory);
+    factory.afterPropertiesSet();
+    ObjectFactory<?> objectFactory = factory.getObject();
+    Object actualSingleton = objectFactory.getObject();
+    assertThat(actualSingleton).isSameAs(expectedSingleton);
+  }
 
-		BeanFactory beanFactory = mock(BeanFactory.class);
-		given(beanFactory.getBean(targetBeanName)).willReturn(expectedSingleton);
+  @Test
+  public void testWhenTargetBeanNameIsNull() throws Exception {
+    assertThatIllegalArgumentException()
+        .as("'targetBeanName' property not set")
+        .isThrownBy(new ObjectFactoryCreatingFactoryBean()::afterPropertiesSet);
+  }
 
-		ObjectFactoryCreatingFactoryBean factory = new ObjectFactoryCreatingFactoryBean();
-		factory.setTargetBeanName(targetBeanName);
-		factory.setBeanFactory(beanFactory);
-		factory.afterPropertiesSet();
-		ObjectFactory<?> objectFactory = factory.getObject();
-		Object actualSingleton = objectFactory.getObject();
-		assertThat(actualSingleton).isSameAs(expectedSingleton);
-	}
+  @Test
+  public void testWhenTargetBeanNameIsEmptyString() throws Exception {
+    ObjectFactoryCreatingFactoryBean factory = new ObjectFactoryCreatingFactoryBean();
+    factory.setTargetBeanName("");
+    assertThatIllegalArgumentException()
+        .as("'targetBeanName' property set to (invalid) empty string")
+        .isThrownBy(factory::afterPropertiesSet);
+  }
 
-	@Test
-	public void testWhenTargetBeanNameIsNull() throws Exception {
-		assertThatIllegalArgumentException().as(
-				"'targetBeanName' property not set").isThrownBy(
-						new ObjectFactoryCreatingFactoryBean()::afterPropertiesSet);
-	}
+  @Test
+  public void testWhenTargetBeanNameIsWhitespacedString() throws Exception {
+    ObjectFactoryCreatingFactoryBean factory = new ObjectFactoryCreatingFactoryBean();
+    factory.setTargetBeanName("  \t");
+    assertThatIllegalArgumentException()
+        .as("'targetBeanName' property set to (invalid) only-whitespace string")
+        .isThrownBy(factory::afterPropertiesSet);
+  }
 
-	@Test
-	public void testWhenTargetBeanNameIsEmptyString() throws Exception {
-		ObjectFactoryCreatingFactoryBean factory = new ObjectFactoryCreatingFactoryBean();
-		factory.setTargetBeanName("");
-		assertThatIllegalArgumentException().as(
-				"'targetBeanName' property set to (invalid) empty string").isThrownBy(
-						factory::afterPropertiesSet);
-	}
+  @Test
+  public void testEnsureOFBFBReportsThatItActuallyCreatesObjectFactoryInstances() {
+    assertThat(new ObjectFactoryCreatingFactoryBean().getObjectType())
+        .as("Must be reporting that it creates ObjectFactory instances (as per class contract).")
+        .isEqualTo(ObjectFactory.class);
+  }
 
-	@Test
-	public void testWhenTargetBeanNameIsWhitespacedString() throws Exception {
-		ObjectFactoryCreatingFactoryBean factory = new ObjectFactoryCreatingFactoryBean();
-		factory.setTargetBeanName("  \t");
-		assertThatIllegalArgumentException().as(
-				"'targetBeanName' property set to (invalid) only-whitespace string").isThrownBy(
-						factory::afterPropertiesSet);
-	}
+  public static class FactoryTestBean {
 
-	@Test
-	public void testEnsureOFBFBReportsThatItActuallyCreatesObjectFactoryInstances() {
-		assertThat(new ObjectFactoryCreatingFactoryBean().getObjectType()).as("Must be reporting that it creates ObjectFactory instances (as per class contract).").isEqualTo(ObjectFactory.class);
-	}
+    private ObjectFactory<?> objectFactory;
 
+    public ObjectFactory<?> getObjectFactory() {
+      return objectFactory;
+    }
 
-	public static class FactoryTestBean {
+    public void setObjectFactory(ObjectFactory<?> objectFactory) {
+      this.objectFactory = objectFactory;
+    }
+  }
 
-		private ObjectFactory<?> objectFactory;
+  public static class ProviderTestBean {
 
-		public ObjectFactory<?> getObjectFactory() {
-			return objectFactory;
-		}
+    private Provider<?> provider;
 
-		public void setObjectFactory(ObjectFactory<?> objectFactory) {
-			this.objectFactory = objectFactory;
-		}
-	}
+    public Provider<?> getProvider() {
+      return provider;
+    }
 
-
-	public static class ProviderTestBean {
-
-		private Provider<?> provider;
-
-		public Provider<?> getProvider() {
-			return provider;
-		}
-
-		public void setProvider(Provider<?> provider) {
-			this.provider = provider;
-		}
-	}
-
+    public void setProvider(Provider<?> provider) {
+      this.provider = provider;
+    }
+  }
 }

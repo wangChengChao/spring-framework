@@ -38,61 +38,58 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.web.reactive.function.server.RequestPredicates.accept;
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;
 
-/**
- * @author Arjen Poutsma
- */
+/** @author Arjen Poutsma */
 class DispatcherHandlerIntegrationTests extends AbstractHttpHandlerIntegrationTests {
 
-	private final RestTemplate restTemplate = new RestTemplate();
+  private final RestTemplate restTemplate = new RestTemplate();
 
+  @Override
+  protected HttpHandler createHttpHandler() {
+    AnnotationConfigApplicationContext wac = new AnnotationConfigApplicationContext();
+    wac.register(TestConfiguration.class);
+    wac.refresh();
 
-	@Override
-	protected HttpHandler createHttpHandler() {
-		AnnotationConfigApplicationContext wac = new AnnotationConfigApplicationContext();
-		wac.register(TestConfiguration.class);
-		wac.refresh();
+    return WebHttpHandlerBuilder.webHandler(new DispatcherHandler(wac)).build();
+  }
 
-		return WebHttpHandlerBuilder.webHandler(new DispatcherHandler(wac)).build();
-	}
+  @ParameterizedHttpServerTest
+  void nested(HttpServer httpServer) throws Exception {
+    startServer(httpServer);
 
+    ResponseEntity<String> result =
+        this.restTemplate.getForEntity("http://localhost:" + this.port + "/foo/bar", String.class);
 
-	@ParameterizedHttpServerTest
-	void nested(HttpServer httpServer) throws Exception {
-		startServer(httpServer);
+    assertThat(result.getStatusCodeValue()).isEqualTo(200);
+  }
 
-		ResponseEntity<String> result = this.restTemplate
-				.getForEntity("http://localhost:" + this.port + "/foo/bar", String.class);
+  @Configuration
+  @EnableWebFlux
+  static class TestConfiguration {
 
-		assertThat(result.getStatusCodeValue()).isEqualTo(200);
-	}
+    @Bean
+    public RouterFunction<ServerResponse> router(Handler handler) {
+      return route()
+          .path(
+              "/foo",
+              () ->
+                  route()
+                      .nest(
+                          accept(MediaType.APPLICATION_JSON),
+                          builder -> builder.GET("/bar", handler::handle))
+                      .build())
+          .build();
+    }
 
+    @Bean
+    public Handler handler() {
+      return new Handler();
+    }
+  }
 
-	@Configuration
-	@EnableWebFlux
-	static class TestConfiguration {
+  static class Handler {
 
-		@Bean
-		public RouterFunction<ServerResponse> router(Handler handler) {
-			return route()
-					.path("/foo", () -> route()
-							.nest(accept(MediaType.APPLICATION_JSON), builder -> builder
-									.GET("/bar", handler::handle))
-							.build())
-					.build();
-		}
-
-		@Bean
-		public Handler handler() {
-			return new Handler();
-		}
-	}
-
-
-	static class Handler {
-
-		public Mono<ServerResponse> handle(ServerRequest request) {
-			return ServerResponse.ok().build();
-		}
-	}
-
+    public Mono<ServerResponse> handle(ServerRequest request) {
+      return ServerResponse.ok().build();
+    }
+  }
 }

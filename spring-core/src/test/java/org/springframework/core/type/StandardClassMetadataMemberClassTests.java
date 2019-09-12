@@ -23,10 +23,9 @@ package org.springframework.core.type;
  */
 class StandardClassMetadataMemberClassTests extends AbstractClassMetadataMemberClassTests {
 
-	@Override
-	@SuppressWarnings("deprecation")
-	public ClassMetadata getClassMetadataFor(Class<?> clazz) {
-		return new StandardClassMetadata(clazz);
-	}
-
+  @Override
+  @SuppressWarnings("deprecation")
+  public ClassMetadata getClassMetadataFor(Class<?> clazz) {
+    return new StandardClassMetadata(clazz);
+  }
 }

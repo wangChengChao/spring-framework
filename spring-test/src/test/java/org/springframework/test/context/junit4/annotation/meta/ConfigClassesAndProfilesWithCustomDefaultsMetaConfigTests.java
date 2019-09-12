@@ -25,8 +25,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests for meta-annotation attribute override support, relying on
- * default attribute values defined in {@link ConfigClassesAndProfilesWithCustomDefaultsMetaConfig}.
+ * Integration tests for meta-annotation attribute override support, relying on default attribute
+ * values defined in {@link ConfigClassesAndProfilesWithCustomDefaultsMetaConfig}.
  *
  * @author Sam Brannen
  * @since 4.0
@@ -35,12 +35,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ConfigClassesAndProfilesWithCustomDefaultsMetaConfig
 public class ConfigClassesAndProfilesWithCustomDefaultsMetaConfigTests {
 
-	@Autowired
-	private String foo;
+  @Autowired private String foo;
 
-
-	@Test
-	public void foo() {
-		assertThat(foo).isEqualTo("Dev Foo");
-	}
+  @Test
+  public void foo() {
+    assertThat(foo).isEqualTo("Dev Foo");
+  }
 }

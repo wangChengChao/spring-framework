@@ -64,225 +64,209 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class SpringHandlerInstantiatorTests {
 
-	private SpringHandlerInstantiator instantiator;
+  private SpringHandlerInstantiator instantiator;
 
-	private ObjectMapper objectMapper;
+  private ObjectMapper objectMapper;
 
+  @BeforeEach
+  public void setup() {
+    DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
+    AutowiredAnnotationBeanPostProcessor bpp = new AutowiredAnnotationBeanPostProcessor();
+    bpp.setBeanFactory(bf);
+    bf.addBeanPostProcessor(bpp);
+    bf.registerBeanDefinition("capitalizer", new RootBeanDefinition(Capitalizer.class));
+    instantiator = new SpringHandlerInstantiator(bf);
+    objectMapper = Jackson2ObjectMapperBuilder.json().handlerInstantiator(instantiator).build();
+  }
 
-	@BeforeEach
-	public void setup() {
-		DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
-		AutowiredAnnotationBeanPostProcessor bpp = new AutowiredAnnotationBeanPostProcessor();
-		bpp.setBeanFactory(bf);
-		bf.addBeanPostProcessor(bpp);
-		bf.registerBeanDefinition("capitalizer", new RootBeanDefinition(Capitalizer.class));
-		instantiator = new SpringHandlerInstantiator(bf);
-		objectMapper = Jackson2ObjectMapperBuilder.json().handlerInstantiator(instantiator).build();
-	}
+  @Test
+  public void autowiredSerializer() throws JsonProcessingException {
+    User user = new User("bob");
+    String json = this.objectMapper.writeValueAsString(user);
+    assertThat(json).isEqualTo("{\"username\":\"BOB\"}");
+  }
 
+  @Test
+  public void autowiredDeserializer() throws IOException {
+    String json = "{\"username\":\"bob\"}";
+    User user = this.objectMapper.readValue(json, User.class);
+    assertThat(user.getUsername()).isEqualTo("BOB");
+  }
 
-	@Test
-	public void autowiredSerializer() throws JsonProcessingException {
-		User user = new User("bob");
-		String json = this.objectMapper.writeValueAsString(user);
-		assertThat(json).isEqualTo("{\"username\":\"BOB\"}");
-	}
+  @Test
+  public void autowiredKeyDeserializer() throws IOException {
+    String json = "{\"credentials\":{\"bob\":\"admin\"}}";
+    SecurityRegistry registry = this.objectMapper.readValue(json, SecurityRegistry.class);
+    assertThat(registry.getCredentials().keySet().contains("BOB")).isTrue();
+    assertThat(registry.getCredentials().keySet().contains("bob")).isFalse();
+  }
 
-	@Test
-	public void autowiredDeserializer() throws IOException {
-		String json = "{\"username\":\"bob\"}";
-		User user = this.objectMapper.readValue(json, User.class);
-		assertThat(user.getUsername()).isEqualTo("BOB");
-	}
+  @Test
+  public void applicationContextAwaretypeResolverBuilder() throws JsonProcessingException {
+    this.objectMapper.writeValueAsString(new Group());
+    assertThat(CustomTypeResolverBuilder.isAutowiredFiledInitialized).isTrue();
+  }
 
-	@Test
-	public void autowiredKeyDeserializer() throws IOException {
-		String json = "{\"credentials\":{\"bob\":\"admin\"}}";
-		SecurityRegistry registry = this.objectMapper.readValue(json, SecurityRegistry.class);
-		assertThat(registry.getCredentials().keySet().contains("BOB")).isTrue();
-		assertThat(registry.getCredentials().keySet().contains("bob")).isFalse();
-	}
+  @Test
+  public void applicationContextAwareTypeIdResolver() throws JsonProcessingException {
+    this.objectMapper.writeValueAsString(new Group());
+    assertThat(CustomTypeIdResolver.isAutowiredFiledInitialized).isTrue();
+  }
 
-	@Test
-	public void applicationContextAwaretypeResolverBuilder() throws JsonProcessingException {
-		this.objectMapper.writeValueAsString(new Group());
-		assertThat(CustomTypeResolverBuilder.isAutowiredFiledInitialized).isTrue();
-	}
+  public static class UserDeserializer extends JsonDeserializer<User> {
 
-	@Test
-	public void applicationContextAwareTypeIdResolver() throws JsonProcessingException {
-		this.objectMapper.writeValueAsString(new Group());
-		assertThat(CustomTypeIdResolver.isAutowiredFiledInitialized).isTrue();
-	}
+    @Autowired private Capitalizer capitalizer;
 
+    @Override
+    public User deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
+        throws IOException {
+      ObjectCodec oc = jsonParser.getCodec();
+      JsonNode node = oc.readTree(jsonParser);
+      return new User(this.capitalizer.capitalize(node.get("username").asText()));
+    }
+  }
 
-	public static class UserDeserializer extends JsonDeserializer<User> {
+  public static class UserSerializer extends JsonSerializer<User> {
 
-		@Autowired
-		private Capitalizer capitalizer;
+    @Autowired private Capitalizer capitalizer;
 
-		@Override
-		public User deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws  IOException {
-			ObjectCodec oc = jsonParser.getCodec();
-			JsonNode node = oc.readTree(jsonParser);
-			return new User(this.capitalizer.capitalize(node.get("username").asText()));
-		}
-	}
+    @Override
+    public void serialize(
+        User user, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
+        throws IOException {
 
+      jsonGenerator.writeStartObject();
+      jsonGenerator.writeStringField("username", this.capitalizer.capitalize(user.getUsername()));
+      jsonGenerator.writeEndObject();
+    }
+  }
 
-	public static class UserSerializer extends JsonSerializer<User> {
+  public static class UpperCaseKeyDeserializer extends KeyDeserializer {
 
-		@Autowired
-		private Capitalizer capitalizer;
+    @Autowired private Capitalizer capitalizer;
 
-		@Override
-		public void serialize(User user, JsonGenerator jsonGenerator,
-				SerializerProvider serializerProvider) throws IOException {
+    @Override
+    public Object deserializeKey(String key, DeserializationContext context) throws IOException {
+      return this.capitalizer.capitalize(key);
+    }
+  }
 
-			jsonGenerator.writeStartObject();
-			jsonGenerator.writeStringField("username", this.capitalizer.capitalize(user.getUsername()));
-			jsonGenerator.writeEndObject();
-		}
-	}
+  public static class CustomTypeResolverBuilder extends StdTypeResolverBuilder {
 
+    @Autowired private Capitalizer capitalizer;
 
-	public static class UpperCaseKeyDeserializer extends KeyDeserializer {
+    public static boolean isAutowiredFiledInitialized = false;
 
-		@Autowired
-		private Capitalizer capitalizer;
+    @Override
+    public TypeSerializer buildTypeSerializer(
+        SerializationConfig config, JavaType baseType, Collection<NamedType> subtypes) {
 
-		@Override
-		public Object deserializeKey(String key, DeserializationContext context) throws IOException {
-			return this.capitalizer.capitalize(key);
-		}
-	}
+      isAutowiredFiledInitialized = (this.capitalizer != null);
+      return super.buildTypeSerializer(config, baseType, subtypes);
+    }
 
+    @Override
+    public TypeDeserializer buildTypeDeserializer(
+        DeserializationConfig config, JavaType baseType, Collection<NamedType> subtypes) {
 
-	public static class CustomTypeResolverBuilder extends StdTypeResolverBuilder {
+      return super.buildTypeDeserializer(config, baseType, subtypes);
+    }
+  }
 
-		@Autowired
-		private Capitalizer capitalizer;
+  public static class CustomTypeIdResolver implements TypeIdResolver {
 
-		public static boolean isAutowiredFiledInitialized = false;
+    @Autowired private Capitalizer capitalizer;
 
-		@Override
-		public TypeSerializer buildTypeSerializer(SerializationConfig config, JavaType baseType,
-				Collection<NamedType> subtypes) {
+    public static boolean isAutowiredFiledInitialized = false;
 
-			isAutowiredFiledInitialized = (this.capitalizer != null);
-			return super.buildTypeSerializer(config, baseType, subtypes);
-		}
+    public CustomTypeIdResolver() {}
 
-		@Override
-		public TypeDeserializer buildTypeDeserializer(DeserializationConfig config,
-				JavaType baseType, Collection<NamedType> subtypes) {
+    @Override
+    public String idFromValueAndType(Object o, Class<?> type) {
+      return type.getClass().getName();
+    }
 
-			return super.buildTypeDeserializer(config, baseType, subtypes);
-		}
-	}
+    @Override
+    public JsonTypeInfo.Id getMechanism() {
+      return JsonTypeInfo.Id.CUSTOM;
+    }
 
+    // Only needed when compiling against Jackson 2.7; gone in 2.8
+    public JavaType typeFromId(String s) {
+      return TypeFactory.defaultInstance().constructFromCanonical(s);
+    }
 
-	public static class CustomTypeIdResolver implements TypeIdResolver {
+    @Override
+    public String idFromValue(Object value) {
+      isAutowiredFiledInitialized = (this.capitalizer != null);
+      return value.getClass().getName();
+    }
 
-		@Autowired
-		private Capitalizer capitalizer;
+    @Override
+    public void init(JavaType type) {}
 
-		public static boolean isAutowiredFiledInitialized = false;
+    @Override
+    public String idFromBaseType() {
+      return null;
+    }
 
-		public CustomTypeIdResolver() {
-		}
+    @Override
+    public JavaType typeFromId(DatabindContext context, String id) {
+      return null;
+    }
 
-		@Override
-		public String idFromValueAndType(Object o, Class<?> type) {
-			return type.getClass().getName();
-		}
+    // New in Jackson 2.7
+    @Override
+    public String getDescForKnownTypeIds() {
+      return null;
+    }
+  }
 
-		@Override
-		public JsonTypeInfo.Id getMechanism() {
-			return JsonTypeInfo.Id.CUSTOM;
-		}
+  @JsonDeserialize(using = UserDeserializer.class)
+  @JsonSerialize(using = UserSerializer.class)
+  public static class User {
 
-		// Only needed when compiling against Jackson 2.7; gone in 2.8
-		public JavaType typeFromId(String s) {
-			return TypeFactory.defaultInstance().constructFromCanonical(s);
-		}
+    private String username;
 
-		@Override
-		public String idFromValue(Object value) {
-			isAutowiredFiledInitialized = (this.capitalizer != null);
-			return value.getClass().getName();
-		}
+    public User() {}
 
-		@Override
-		public void init(JavaType type) {
-		}
+    public User(String username) {
+      this.username = username;
+    }
 
-		@Override
-		public String idFromBaseType() {
-			return null;
-		}
+    public String getUsername() {
+      return this.username;
+    }
+  }
 
-		@Override
-		public JavaType typeFromId(DatabindContext context, String id) {
-			return null;
-		}
+  public static class SecurityRegistry {
 
-		// New in Jackson 2.7
-		@Override
-		public String getDescForKnownTypeIds() {
-			return null;
-		}
-	}
+    @JsonDeserialize(keyUsing = UpperCaseKeyDeserializer.class)
+    private Map<String, String> credentials = new HashMap<>();
 
+    public void addCredential(String username, String credential) {
+      this.credentials.put(username, credential);
+    }
 
-	@JsonDeserialize(using = UserDeserializer.class)
-	@JsonSerialize(using = UserSerializer.class)
-	public static class User {
+    public Map<String, String> getCredentials() {
+      return credentials;
+    }
+  }
 
-		private String username;
+  @JsonTypeInfo(use = JsonTypeInfo.Id.CUSTOM, property = "type")
+  @JsonTypeResolver(CustomTypeResolverBuilder.class)
+  @JsonTypeIdResolver(CustomTypeIdResolver.class)
+  public static class Group {
 
-		public User() {
-		}
+    public String getType() {
+      return Group.class.getName();
+    }
+  }
 
-		public User(String username) {
-			this.username = username;
-		}
+  public static class Capitalizer {
 
-		public String getUsername() { return this.username; }
-	}
-
-
-	public static class SecurityRegistry {
-
-		@JsonDeserialize(keyUsing = UpperCaseKeyDeserializer.class)
-		private Map<String, String> credentials = new HashMap<>();
-
-		public void addCredential(String username, String credential) {
-			this.credentials.put(username, credential);
-		}
-
-		public Map<String, String> getCredentials() {
-			return credentials;
-		}
-	}
-
-
-	@JsonTypeInfo(use = JsonTypeInfo.Id.CUSTOM, property = "type")
-	@JsonTypeResolver(CustomTypeResolverBuilder.class)
-	@JsonTypeIdResolver(CustomTypeIdResolver.class)
-	public static class Group {
-
-		public String getType() {
-			return Group.class.getName();
-		}
-	}
-
-
-	public static class Capitalizer {
-
-		public String capitalize(String text) {
-			return text.toUpperCase();
-		}
-	}
-
+    public String capitalize(String text) {
+      return text.toUpperCase();
+    }
+  }
 }

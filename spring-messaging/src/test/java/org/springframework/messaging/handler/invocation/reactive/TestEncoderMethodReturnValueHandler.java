@@ -30,40 +30,39 @@ import org.springframework.messaging.Message;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * Implementation of {@link AbstractEncoderMethodReturnValueHandler} for tests.
- * "Handles" by storing encoded return values.
+ * Implementation of {@link AbstractEncoderMethodReturnValueHandler} for tests. "Handles" by storing
+ * encoded return values.
  *
  * @author Rossen Stoyanchev
  */
 public class TestEncoderMethodReturnValueHandler extends AbstractEncoderMethodReturnValueHandler {
 
-	private Flux<DataBuffer> encodedContent;
+  private Flux<DataBuffer> encodedContent;
 
+  public TestEncoderMethodReturnValueHandler(
+      List<Encoder<?>> encoders, ReactiveAdapterRegistry registry) {
+    super(encoders, registry);
+  }
 
-	public TestEncoderMethodReturnValueHandler(List<Encoder<?>> encoders, ReactiveAdapterRegistry registry) {
-		super(encoders, registry);
-	}
+  public Flux<DataBuffer> getContent() {
+    return this.encodedContent;
+  }
 
+  public Flux<String> getContentAsStrings() {
+    return this.encodedContent.map(buffer -> DataBufferTestUtils.dumpString(buffer, UTF_8));
+  }
 
-	public Flux<DataBuffer> getContent() {
-		return this.encodedContent;
-	}
+  @Override
+  protected Mono<Void> handleEncodedContent(
+      Flux<DataBuffer> encodedContent, MethodParameter returnType, Message<?> message) {
 
-	public Flux<String> getContentAsStrings() {
-		return this.encodedContent.map(buffer -> DataBufferTestUtils.dumpString(buffer, UTF_8));
-	}
+    this.encodedContent = encodedContent.cache();
+    return this.encodedContent.then();
+  }
 
-	@Override
-	protected Mono<Void> handleEncodedContent(
-			Flux<DataBuffer> encodedContent, MethodParameter returnType, Message<?> message) {
-
-		this.encodedContent = encodedContent.cache();
-		return this.encodedContent.then();
-	}
-
-	@Override
-	protected Mono<Void> handleNoContent(MethodParameter returnType, Message<?> message) {
-		this.encodedContent = Flux.empty();
-		return Mono.empty();
-	}
+  @Override
+  protected Mono<Void> handleNoContent(MethodParameter returnType, Message<?> message) {
+    this.encodedContent = Flux.empty();
+    return Mono.empty();
+  }
 }

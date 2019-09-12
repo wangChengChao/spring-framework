@@ -30,12 +30,12 @@ import org.springframework.test.context.junit.jupiter.comics.Character;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Abstract base class for integration tests that demonstrate support for
- * Java generics in JUnit Jupiter test classes when used with the Spring TestContext
- * Framework and the {@link SpringExtension}.
+ * Abstract base class for integration tests that demonstrate support for Java generics in JUnit
+ * Jupiter test classes when used with the Spring TestContext Framework and the {@link
+ * SpringExtension}.
  *
- * <p>To run these tests in an IDE that does not have built-in support for the JUnit
- * Platform, simply run {@link SpringJUnitJupiterTestSuite} as a JUnit 4 test.
+ * <p>To run these tests in an IDE that does not have built-in support for the JUnit Platform,
+ * simply run {@link SpringJUnitJupiterTestSuite} as a JUnit 4 test.
  *
  * @author Sam Brannen
  * @since 5.0
@@ -43,27 +43,33 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringJUnitConfig(TestConfig.class)
 abstract class GenericComicCharactersTests<T extends Character> {
 
-	@Autowired
-	T character;
+  @Autowired T character;
 
-	@Autowired
-	List<T> characters;
+  @Autowired List<T> characters;
 
-	@Test
-	void autowiredFields() {
-		assertThat(this.character).as("Character should have been @Autowired by Spring").isNotNull();
-		assertThat(this.character).as("character's name").extracting(Character::getName).isEqualTo(getExpectedName());
-		assertThat(this.characters).as("Number of characters in context").size().isEqualTo(getExpectedNumCharacters());
-	}
+  @Test
+  void autowiredFields() {
+    assertThat(this.character).as("Character should have been @Autowired by Spring").isNotNull();
+    assertThat(this.character)
+        .as("character's name")
+        .extracting(Character::getName)
+        .isEqualTo(getExpectedName());
+    assertThat(this.characters)
+        .as("Number of characters in context")
+        .size()
+        .isEqualTo(getExpectedNumCharacters());
+  }
 
-	@Test
-	void autowiredParameterByTypeForSingleGenericBean(@Autowired T character) {
-		assertThat(character).as("Character should have been @Autowired by Spring").isNotNull();
-		assertThat(this.character).as("character's name").extracting(Character::getName).isEqualTo(getExpectedName());
-	}
+  @Test
+  void autowiredParameterByTypeForSingleGenericBean(@Autowired T character) {
+    assertThat(character).as("Character should have been @Autowired by Spring").isNotNull();
+    assertThat(this.character)
+        .as("character's name")
+        .extracting(Character::getName)
+        .isEqualTo(getExpectedName());
+  }
 
-	abstract int getExpectedNumCharacters();
+  abstract int getExpectedNumCharacters();
 
-	abstract String getExpectedName();
-
+  abstract String getExpectedName();
 }

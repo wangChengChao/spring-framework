@@ -27,12 +27,11 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.env.repeatable.LocalPropertiesFileAndMetaPropertiesFileTests.MetaFileTestProperty;
 
 /**
- * Integration tests for {@link TestPropertySource @TestPropertySource} as a
- * repeatable annotation.
+ * Integration tests for {@link TestPropertySource @TestPropertySource} as a repeatable annotation.
  *
- * <p>Verify a property value is defined both in the properties file which is declared
- * via {@link MetaFileTestProperty @MetaFileTestProperty} and in the properties file
- * which is declared locally via {@code @TestPropertySource}.
+ * <p>Verify a property value is defined both in the properties file which is declared via {@link
+ * MetaFileTestProperty @MetaFileTestProperty} and in the properties file which is declared locally
+ * via {@code @TestPropertySource}.
  *
  * @author Anatoliy Korovin
  * @author Sam Brannen
@@ -40,23 +39,21 @@ import org.springframework.test.context.env.repeatable.LocalPropertiesFileAndMet
  */
 @TestPropertySource("local.properties")
 @MetaFileTestProperty
-class LocalPropertiesFileAndMetaPropertiesFileTests extends AbstractRepeatableTestPropertySourceTests {
+class LocalPropertiesFileAndMetaPropertiesFileTests
+    extends AbstractRepeatableTestPropertySourceTests {
 
-	@Test
-	void test() {
-		assertEnvironmentValue("key1", "local file");
-		assertEnvironmentValue("key2", "meta file");
-	}
+  @Test
+  void test() {
+    assertEnvironmentValue("key1", "local file");
+    assertEnvironmentValue("key2", "meta file");
+  }
 
-
-	/**
-	 * Composed annotation that declares a properties file via
-	 * {@link TestPropertySource @TestPropertySource}.
-	 */
-	@Target(ElementType.TYPE)
-	@Retention(RetentionPolicy.RUNTIME)
-	@TestPropertySource("meta.properties")
-	@interface MetaFileTestProperty {
-	}
-
+  /**
+   * Composed annotation that declares a properties file via {@link
+   * TestPropertySource @TestPropertySource}.
+   */
+  @Target(ElementType.TYPE)
+  @Retention(RetentionPolicy.RUNTIME)
+  @TestPropertySource("meta.properties")
+  @interface MetaFileTestProperty {}
 }

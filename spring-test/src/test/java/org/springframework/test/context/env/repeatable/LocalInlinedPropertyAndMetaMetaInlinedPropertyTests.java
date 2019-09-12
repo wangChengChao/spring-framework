@@ -21,8 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.context.TestPropertySource;
 
 /**
- * Integration tests for {@link TestPropertySource @TestPropertySource} as a
- * repeatable annotation.
+ * Integration tests for {@link TestPropertySource @TestPropertySource} as a repeatable annotation.
  *
  * @author Anatoliy Korovin
  * @author Sam Brannen
@@ -30,12 +29,12 @@ import org.springframework.test.context.TestPropertySource;
  */
 @TestPropertySource(properties = "key1 = local")
 @MetaComposedTestProperty
-class LocalInlinedPropertyAndMetaMetaInlinedPropertyTests extends AbstractRepeatableTestPropertySourceTests {
+class LocalInlinedPropertyAndMetaMetaInlinedPropertyTests
+    extends AbstractRepeatableTestPropertySourceTests {
 
-	@Test
-	void test() {
-		assertEnvironmentValue("key1", "local");
-		assertEnvironmentValue("enigma", "meta meta");
-	}
-
+  @Test
+  void test() {
+    assertEnvironmentValue("key1", "local");
+    assertEnvironmentValue("enigma", "meta meta");
+  }
 }

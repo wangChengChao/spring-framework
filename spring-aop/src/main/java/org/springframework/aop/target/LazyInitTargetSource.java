@@ -20,16 +20,15 @@ import org.springframework.beans.BeansException;
 import org.springframework.lang.Nullable;
 
 /**
- * {@link org.springframework.aop.TargetSource} that lazily accesses a
- * singleton bean from a {@link org.springframework.beans.factory.BeanFactory}.
+ * {@link org.springframework.aop.TargetSource} that lazily accesses a singleton bean from a {@link
+ * org.springframework.beans.factory.BeanFactory}.
  *
- * <p>Useful when a proxy reference is needed on initialization but
- * the actual target object should not be initialized until first use.
- * When the target bean is defined in an
- * {@link org.springframework.context.ApplicationContext} (or a
- * {@code BeanFactory} that is eagerly pre-instantiating singleton beans)
- * it must be marked as "lazy-init" too, else it will be instantiated by said
- * {@code ApplicationContext} (or {@code BeanFactory}) on startup.
+ * <p>Useful when a proxy reference is needed on initialization but the actual target object should
+ * not be initialized until first use. When the target bean is defined in an {@link
+ * org.springframework.context.ApplicationContext} (or a {@code BeanFactory} that is eagerly
+ * pre-instantiating singleton beans) it must be marked as "lazy-init" too, else it will be
+ * instantiated by said {@code ApplicationContext} (or {@code BeanFactory}) on startup.
+ *
  * <p>For example:
  *
  * <pre class="code">
@@ -45,8 +44,8 @@ import org.springframework.lang.Nullable;
  *   &lt;/property&gt;
  * &lt;/bean&gt;</pre>
  *
- * The "serviceTarget" bean will not get initialized until a method on the
- * "service" proxy gets invoked.
+ * The "serviceTarget" bean will not get initialized until a method on the "service" proxy gets
+ * invoked.
  *
  * <p>Subclasses can extend this class and override the {@link #postProcessTargetObject(Object)} to
  * perform some additional processing with the target object when it is first loaded.
@@ -60,26 +59,23 @@ import org.springframework.lang.Nullable;
 @SuppressWarnings("serial")
 public class LazyInitTargetSource extends AbstractBeanFactoryBasedTargetSource {
 
-	@Nullable
-	private Object target;
+  @Nullable private Object target;
 
+  @Override
+  @Nullable
+  public synchronized Object getTarget() throws BeansException {
+    if (this.target == null) {
+      this.target = getBeanFactory().getBean(getTargetBeanName());
+      postProcessTargetObject(this.target);
+    }
+    return this.target;
+  }
 
-	@Override
-	@Nullable
-	public synchronized Object getTarget() throws BeansException {
-		if (this.target == null) {
-			this.target = getBeanFactory().getBean(getTargetBeanName());
-			postProcessTargetObject(this.target);
-		}
-		return this.target;
-	}
-
-	/**
-	 * Subclasses may override this method to perform additional processing on
-	 * the target object when it is first loaded.
-	 * @param targetObject the target object that has just been instantiated (and configured)
-	 */
-	protected void postProcessTargetObject(Object targetObject) {
-	}
-
+  /**
+   * Subclasses may override this method to perform additional processing on the target object when
+   * it is first loaded.
+   *
+   * @param targetObject the target object that has just been instantiated (and configured)
+   */
+  protected void postProcessTargetObject(Object targetObject) {}
 }

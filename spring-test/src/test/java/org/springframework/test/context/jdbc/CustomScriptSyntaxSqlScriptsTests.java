@@ -22,8 +22,8 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 
 /**
- * Integration tests that verify support for custom SQL script syntax
- * configured via {@link SqlConfig @SqlConfig}.
+ * Integration tests that verify support for custom SQL script syntax configured via {@link
+ * SqlConfig @SqlConfig}.
  *
  * @author Sam Brannen
  * @since 4.1
@@ -32,12 +32,17 @@ import org.springframework.test.context.ContextConfiguration;
 @DirtiesContext
 class CustomScriptSyntaxSqlScriptsTests extends AbstractTransactionalTests {
 
-	@Test
-	@Sql("schema.sql")
-	@Sql(scripts = "data-add-users-with-custom-script-syntax.sql",//
-	config = @SqlConfig(commentPrefixes = { "`", "%%" }, blockCommentStartDelimiter = "#$", blockCommentEndDelimiter = "$#", separator = "@@"))
-	void methodLevelScripts() {
-		assertNumUsers(3);
-	}
-
+  @Test
+  @Sql("schema.sql")
+  @Sql(
+      scripts = "data-add-users-with-custom-script-syntax.sql", //
+      config =
+          @SqlConfig(
+              commentPrefixes = {"`", "%%"},
+              blockCommentStartDelimiter = "#$",
+              blockCommentEndDelimiter = "$#",
+              separator = "@@"))
+  void methodLevelScripts() {
+    assertNumUsers(3);
+  }
 }

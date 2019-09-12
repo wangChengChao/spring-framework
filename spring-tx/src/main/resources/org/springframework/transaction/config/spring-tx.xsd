@@ -8,8 +8,10 @@
 		elementFormDefault="qualified"
 		attributeFormDefault="unqualified">
 
-	<xsd:import namespace="http://www.springframework.org/schema/beans" schemaLocation="https://www.springframework.org/schema/beans/spring-beans.xsd"/>
-	<xsd:import namespace="http://www.springframework.org/schema/tool" schemaLocation="https://www.springframework.org/schema/tool/spring-tool.xsd"/>
+	<xsd:import namespace="http://www.springframework.org/schema/beans"
+			schemaLocation="https://www.springframework.org/schema/beans/spring-beans.xsd"/>
+	<xsd:import namespace="http://www.springframework.org/schema/tool"
+			schemaLocation="https://www.springframework.org/schema/tool/spring-tool.xsd"/>
 
 	<xsd:annotation>
 		<xsd:documentation><![CDATA[
@@ -21,7 +23,9 @@
 	<xsd:element name="advice">
 		<xsd:complexType>
 			<xsd:annotation>
-				<xsd:documentation source="java:org.springframework.transaction.interceptor.TransactionInterceptor"><![CDATA[
+				<xsd:documentation
+						source="java:org.springframework.transaction.interceptor.TransactionInterceptor">
+					<![CDATA[
 	Defines the transactional semantics of the AOP advice that is to be
 	executed.
 
@@ -32,18 +36,23 @@
 				]]></xsd:documentation>
 				<xsd:appinfo>
 					<tool:annotation>
-						<tool:exports type="org.springframework.transaction.interceptor.TransactionInterceptor"/>
+						<tool:exports
+								type="org.springframework.transaction.interceptor.TransactionInterceptor"/>
 					</tool:annotation>
 				</xsd:appinfo>
 			</xsd:annotation>
 			<xsd:complexContent>
 				<xsd:extension base="beans:identifiedType">
 					<xsd:sequence>
-						<xsd:element name="attributes" type="attributesType" minOccurs="0" maxOccurs="1"/>
+						<xsd:element name="attributes" type="attributesType" minOccurs="0"
+								maxOccurs="1"/>
 					</xsd:sequence>
-					<xsd:attribute name="transaction-manager" type="xsd:string" default="transactionManager">
+					<xsd:attribute name="transaction-manager" type="xsd:string"
+							default="transactionManager">
 						<xsd:annotation>
-							<xsd:documentation source="java:org.springframework.transaction.PlatformTransactionManager"><![CDATA[
+							<xsd:documentation
+									source="java:org.springframework.transaction.PlatformTransactionManager">
+								<![CDATA[
 	The bean name of the PlatformTransactionManager that is to be used
 	to drive transactions.
 
@@ -53,7 +62,8 @@
 							]]></xsd:documentation>
 							<xsd:appinfo>
 								<tool:annotation kind="ref">
-									<tool:expected-type type="org.springframework.transaction.PlatformTransactionManager"/>
+									<tool:expected-type
+											type="org.springframework.transaction.PlatformTransactionManager"/>
 								</tool:annotation>
 							</xsd:appinfo>
 						</xsd:annotation>
@@ -66,7 +76,9 @@
 	<xsd:element name="annotation-driven">
 		<xsd:complexType>
 			<xsd:annotation>
-				<xsd:documentation source="java:org.springframework.transaction.annotation.AnnotationTransactionAttributeSource"><![CDATA[
+				<xsd:documentation
+						source="java:org.springframework.transaction.annotation.AnnotationTransactionAttributeSource">
+					<![CDATA[
 	Indicates that transaction configuration is defined by Java 5
 	annotations on bean classes, and that proxies are automatically
 	to be created for the relevant annotated beans.
@@ -81,9 +93,12 @@
 	for information on code-based alternatives to this XML element.
 				]]></xsd:documentation>
 			</xsd:annotation>
-			<xsd:attribute name="transaction-manager" type="xsd:string" default="transactionManager">
+			<xsd:attribute name="transaction-manager" type="xsd:string"
+					default="transactionManager">
 				<xsd:annotation>
-					<xsd:documentation source="java:org.springframework.transaction.PlatformTransactionManager"><![CDATA[
+					<xsd:documentation
+							source="java:org.springframework.transaction.PlatformTransactionManager">
+						<![CDATA[
 	The bean name of the PlatformTransactionManager that is to be used
 	to drive transactions.
 
@@ -93,7 +108,8 @@
 					]]></xsd:documentation>
 					<xsd:appinfo>
 						<tool:annotation kind="ref">
-							<tool:expected-type type="org.springframework.transaction.PlatformTransactionManager"/>
+							<tool:expected-type
+									type="org.springframework.transaction.PlatformTransactionManager"/>
 						</tool:annotation>
 					</xsd:appinfo>
 				</xsd:annotation>
@@ -177,7 +193,9 @@
 					</xsd:attribute>
 					<xsd:attribute name="propagation" default="REQUIRED">
 						<xsd:annotation>
-							<xsd:documentation source="java:org.springframework.transaction.annotation.Propagation"><![CDATA[
+							<xsd:documentation
+									source="java:org.springframework.transaction.annotation.Propagation">
+								<![CDATA[
 	The transaction propagation behavior.
 							]]></xsd:documentation>
 						</xsd:annotation>
@@ -195,7 +213,9 @@
 					</xsd:attribute>
 					<xsd:attribute name="isolation" default="DEFAULT">
 						<xsd:annotation>
-							<xsd:documentation source="java:org.springframework.transaction.annotation.Isolation"><![CDATA[
+							<xsd:documentation
+									source="java:org.springframework.transaction.annotation.Isolation">
+								<![CDATA[
 	The transaction isolation level.
 							]]></xsd:documentation>
 						</xsd:annotation>

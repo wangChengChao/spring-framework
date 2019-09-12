@@ -8,8 +8,10 @@
 		elementFormDefault="qualified"
 		attributeFormDefault="unqualified">
 
-	<xsd:import namespace="http://www.springframework.org/schema/beans" schemaLocation="https://www.springframework.org/schema/beans/spring-beans.xsd"/>
-	<xsd:import namespace="http://www.springframework.org/schema/tool" schemaLocation="https://www.springframework.org/schema/tool/spring-tool.xsd"/>
+	<xsd:import namespace="http://www.springframework.org/schema/beans"
+			schemaLocation="https://www.springframework.org/schema/beans/spring-beans.xsd"/>
+	<xsd:import namespace="http://www.springframework.org/schema/tool"
+			schemaLocation="https://www.springframework.org/schema/tool/spring-tool.xsd"/>
 
 	<xsd:annotation>
 		<xsd:documentation><![CDATA[
@@ -20,7 +22,8 @@
 
 	<xsd:element name="jndi-lookup">
 		<xsd:annotation>
-			<xsd:documentation source="java:org.springframework.jndi.JndiObjectFactoryBean"><![CDATA[
+			<xsd:documentation source="java:org.springframework.jndi.JndiObjectFactoryBean">
+				<![CDATA[
 	Exposes an object reference via a JNDI lookup.
 			]]></xsd:documentation>
 		</xsd:annotation>
@@ -97,7 +100,9 @@
 
 	<xsd:element name="local-slsb" type="ejbType">
 		<xsd:annotation>
-			<xsd:documentation source="java:org.springframework.ejb.access.LocalStatelessSessionProxyFactoryBean"><![CDATA[
+			<xsd:documentation
+					source="java:org.springframework.ejb.access.LocalStatelessSessionProxyFactoryBean">
+				<![CDATA[
 	Exposes a reference to a local EJB Stateless SessionBean.
 			]]></xsd:documentation>
 		</xsd:annotation>
@@ -105,7 +110,9 @@
 
 	<xsd:element name="remote-slsb">
 		<xsd:annotation>
-			<xsd:documentation source="java:org.springframework.ejb.access.SimpleRemoteStatelessSessionProxyFactoryBean"><![CDATA[
+			<xsd:documentation
+					source="java:org.springframework.ejb.access.SimpleRemoteStatelessSessionProxyFactoryBean">
+				<![CDATA[
 	Exposes a reference to a remote EJB Stateless SessionBean.
 			]]></xsd:documentation>
 		</xsd:annotation>
@@ -121,7 +128,8 @@
 							]]></xsd:documentation>
 						</xsd:annotation>
 					</xsd:attribute>
-					<xsd:attribute name="refresh-home-on-connect-failure" type="xsd:boolean" default="false">
+					<xsd:attribute name="refresh-home-on-connect-failure" type="xsd:boolean"
+							default="false">
 						<xsd:annotation>
 							<xsd:documentation><![CDATA[
 	Controls whether to refresh the EJB home on connect failure.

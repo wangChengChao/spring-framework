@@ -34,18 +34,16 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.StringValueResolver;
 
 /**
- * {@link BeanPostProcessor} implementation that supplies the {@code ApplicationContext},
- * {@link org.springframework.core.env.Environment Environment}, or
- * {@link StringValueResolver} for the {@code ApplicationContext} to beans that
- * implement the {@link EnvironmentAware}, {@link EmbeddedValueResolverAware},
- * {@link ResourceLoaderAware}, {@link ApplicationEventPublisherAware},
+ * {@link BeanPostProcessor} implementation that supplies the {@code ApplicationContext}, {@link
+ * org.springframework.core.env.Environment Environment}, or {@link StringValueResolver} for the
+ * {@code ApplicationContext} to beans that implement the {@link EnvironmentAware}, {@link
+ * EmbeddedValueResolverAware}, {@link ResourceLoaderAware}, {@link ApplicationEventPublisherAware},
  * {@link MessageSourceAware}, and/or {@link ApplicationContextAware} interfaces.
  *
- * <p>Implemented interfaces are satisfied in the order in which they are
- * mentioned above.
+ * <p>Implemented interfaces are satisfied in the order in which they are mentioned above.
  *
- * <p>Application contexts will automatically register this with their
- * underlying bean factory. Applications do not use this directly.
+ * <p>Application contexts will automatically register this with their underlying bean factory.
+ * Applications do not use this directly.
  *
  * @author Juergen Hoeller
  * @author Costin Leau
@@ -61,67 +59,68 @@ import org.springframework.util.StringValueResolver;
  */
 class ApplicationContextAwareProcessor implements BeanPostProcessor {
 
-	private final ConfigurableApplicationContext applicationContext;
+  private final ConfigurableApplicationContext applicationContext;
 
-	private final StringValueResolver embeddedValueResolver;
+  private final StringValueResolver embeddedValueResolver;
 
+  /** Create a new ApplicationContextAwareProcessor for the given context. */
+  public ApplicationContextAwareProcessor(ConfigurableApplicationContext applicationContext) {
+    this.applicationContext = applicationContext;
+    this.embeddedValueResolver = new EmbeddedValueResolver(applicationContext.getBeanFactory());
+  }
 
-	/**
-	 * Create a new ApplicationContextAwareProcessor for the given context.
-	 */
-	public ApplicationContextAwareProcessor(ConfigurableApplicationContext applicationContext) {
-		this.applicationContext = applicationContext;
-		this.embeddedValueResolver = new EmbeddedValueResolver(applicationContext.getBeanFactory());
-	}
+  @Override
+  @Nullable
+  public Object postProcessBeforeInitialization(Object bean, String beanName)
+      throws BeansException {
+    if (!(bean instanceof EnvironmentAware
+        || bean instanceof EmbeddedValueResolverAware
+        || bean instanceof ResourceLoaderAware
+        || bean instanceof ApplicationEventPublisherAware
+        || bean instanceof MessageSourceAware
+        || bean instanceof ApplicationContextAware)) {
+      return bean;
+    }
 
+    AccessControlContext acc = null;
 
-	@Override
-	@Nullable
-	public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-		if (!(bean instanceof EnvironmentAware || bean instanceof EmbeddedValueResolverAware ||
-				bean instanceof ResourceLoaderAware || bean instanceof ApplicationEventPublisherAware ||
-				bean instanceof MessageSourceAware || bean instanceof ApplicationContextAware)){
-			return bean;
-		}
+    if (System.getSecurityManager() != null) {
+      acc = this.applicationContext.getBeanFactory().getAccessControlContext();
+    }
 
-		AccessControlContext acc = null;
+    if (acc != null) {
+      AccessController.doPrivileged(
+          (PrivilegedAction<Object>)
+              () -> {
+                invokeAwareInterfaces(bean);
+                return null;
+              },
+          acc);
+    } else {
+      invokeAwareInterfaces(bean);
+    }
 
-		if (System.getSecurityManager() != null) {
-			acc = this.applicationContext.getBeanFactory().getAccessControlContext();
-		}
+    return bean;
+  }
 
-		if (acc != null) {
-			AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
-				invokeAwareInterfaces(bean);
-				return null;
-			}, acc);
-		}
-		else {
-			invokeAwareInterfaces(bean);
-		}
-
-		return bean;
-	}
-
-	private void invokeAwareInterfaces(Object bean) {
-		if (bean instanceof EnvironmentAware) {
-			((EnvironmentAware) bean).setEnvironment(this.applicationContext.getEnvironment());
-		}
-		if (bean instanceof EmbeddedValueResolverAware) {
-			((EmbeddedValueResolverAware) bean).setEmbeddedValueResolver(this.embeddedValueResolver);
-		}
-		if (bean instanceof ResourceLoaderAware) {
-			((ResourceLoaderAware) bean).setResourceLoader(this.applicationContext);
-		}
-		if (bean instanceof ApplicationEventPublisherAware) {
-			((ApplicationEventPublisherAware) bean).setApplicationEventPublisher(this.applicationContext);
-		}
-		if (bean instanceof MessageSourceAware) {
-			((MessageSourceAware) bean).setMessageSource(this.applicationContext);
-		}
-		if (bean instanceof ApplicationContextAware) {
-			((ApplicationContextAware) bean).setApplicationContext(this.applicationContext);
-		}
-	}
-
+  private void invokeAwareInterfaces(Object bean) {
+    if (bean instanceof EnvironmentAware) {
+      ((EnvironmentAware) bean).setEnvironment(this.applicationContext.getEnvironment());
+    }
+    if (bean instanceof EmbeddedValueResolverAware) {
+      ((EmbeddedValueResolverAware) bean).setEmbeddedValueResolver(this.embeddedValueResolver);
+    }
+    if (bean instanceof ResourceLoaderAware) {
+      ((ResourceLoaderAware) bean).setResourceLoader(this.applicationContext);
+    }
+    if (bean instanceof ApplicationEventPublisherAware) {
+      ((ApplicationEventPublisherAware) bean).setApplicationEventPublisher(this.applicationContext);
+    }
+    if (bean instanceof MessageSourceAware) {
+      ((MessageSourceAware) bean).setMessageSource(this.applicationContext);
+    }
+    if (bean instanceof ApplicationContextAware) {
+      ((ApplicationContextAware) bean).setApplicationContext(this.applicationContext);
+    }
+  }
 }

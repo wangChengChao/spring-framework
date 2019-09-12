@@ -30,32 +30,30 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration tests that verify support for {@link ApplicationContextInitializer
- * ApplicationContextInitializers} in conjunction with annotation-driven
- * configuration in the TestContext framework.
+ * ApplicationContextInitializers} in conjunction with annotation-driven configuration in the
+ * TestContext framework.
  *
  * @author Sam Brannen
  * @since 3.2
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = { GlobalConfig.class, DevProfileConfig.class }, initializers = FooBarAliasInitializer.class)
+@ContextConfiguration(
+    classes = {GlobalConfig.class, DevProfileConfig.class},
+    initializers = FooBarAliasInitializer.class)
 public class SingleInitializerAnnotationConfigTests {
 
-	@Autowired
-	protected String foo;
+  @Autowired protected String foo;
 
-	@Autowired(required = false)
-	@Qualifier("bar")
-	protected String bar;
+  @Autowired(required = false)
+  @Qualifier("bar")
+  protected String bar;
 
-	@Autowired
-	protected String baz;
+  @Autowired protected String baz;
 
-
-	@Test
-	public void activeBeans() {
-		assertThat(foo).isEqualTo("foo");
-		assertThat(bar).isEqualTo("foo");
-		assertThat(baz).isEqualTo("global config");
-	}
-
+  @Test
+  public void activeBeans() {
+    assertThat(foo).isEqualTo("foo");
+    assertThat(bar).isEqualTo("foo");
+    assertThat(baz).isEqualTo("global config");
+  }
 }

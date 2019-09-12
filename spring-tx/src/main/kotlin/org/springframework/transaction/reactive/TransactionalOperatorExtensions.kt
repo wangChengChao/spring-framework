@@ -19,11 +19,11 @@ fun <T : Any> TransactionalOperator.transactional(flow: Flow<T>): Flow<T> =
 		transactional(flow.asFlux()).asFlow()
 
 /**
-* Coroutines variant of [TransactionalOperator.transactional] with a suspending lambda
-* parameter.
-*
-* @author Sebastien Deleuze
-* @since 5.2
-*/
+ * Coroutines variant of [TransactionalOperator.transactional] with a suspending lambda
+ * parameter.
+ *
+ * @author Sebastien Deleuze
+ * @since 5.2
+ */
 suspend fun <T : Any> TransactionalOperator.transactional(f: suspend () -> T?): T? =
 		transactional(mono(Dispatchers.Unconfined) { f() }).awaitFirstOrNull()

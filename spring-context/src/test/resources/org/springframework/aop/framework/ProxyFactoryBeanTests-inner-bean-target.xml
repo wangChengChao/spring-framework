@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "https://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN"
+		"https://www.springframework.org/dtd/spring-beans-2.0.dtd">
 
 <!--
 	Test that inner bean for target means that we can use
@@ -13,17 +14,19 @@
 	</bean>
 
 	<bean id="testBean"
-		class="org.springframework.aop.framework.ProxyFactoryBean"
+			class="org.springframework.aop.framework.ProxyFactoryBean"
 	>
-			<property name="target">
-				<bean class="org.springframework.tests.sample.beans.TestBean">
-					<property name="name"><value>innerBeanTarget</value></property>
-				</bean>
-			</property>
+		<property name="target">
+			<bean class="org.springframework.tests.sample.beans.TestBean">
+				<property name="name">
+					<value>innerBeanTarget</value>
+				</property>
+			</bean>
+		</property>
 
-			<property name="interceptorNames">
-				<value>nopInterceptor</value>
-			</property>
+		<property name="interceptorNames">
+			<value>nopInterceptor</value>
+		</property>
 	</bean>
 
 	<!--
@@ -31,8 +34,8 @@
 		we expect just to have proxy
 	-->
 	<bean id="autowireCheck"
-		class="org.springframework.aop.framework.ProxyFactoryBeanTests$DependsOnITestBean"
-			autowire="constructor" />
+			class="org.springframework.aop.framework.ProxyFactoryBeanTests$DependsOnITestBean"
+			autowire="constructor"/>
 
 </beans>
 

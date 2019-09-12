@@ -24,8 +24,7 @@ import org.springframework.test.context.transaction.AfterTransaction;
 import org.springframework.test.context.transaction.BeforeTransaction;
 
 /**
- * Transactional integration tests that verify rollback semantics for
- * {@link Sql @Sql} support.
+ * Transactional integration tests that verify rollback semantics for {@link Sql @Sql} support.
  *
  * @author Sam Brannen
  * @since 4.1
@@ -34,16 +33,15 @@ import org.springframework.test.context.transaction.BeforeTransaction;
 @DirtiesContext
 class PopulatedSchemaTransactionalSqlScriptsTests extends AbstractTransactionalTests {
 
-	@BeforeTransaction
-	@AfterTransaction
-	void verifyPreAndPostTransactionDatabaseState() {
-		assertNumUsers(0);
-	}
+  @BeforeTransaction
+  @AfterTransaction
+  void verifyPreAndPostTransactionDatabaseState() {
+    assertNumUsers(0);
+  }
 
-	@Test
-	@SqlGroup(@Sql("data-add-dogbert.sql"))
-	void methodLevelScripts() {
-		assertNumUsers(1);
-	}
-
+  @Test
+  @SqlGroup(@Sql("data-add-dogbert.sql"))
+  void methodLevelScripts() {
+    assertNumUsers(1);
+  }
 }

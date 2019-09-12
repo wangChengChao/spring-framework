@@ -25,9 +25,9 @@ import org.springframework.tests.sample.beans.Pet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * JUnit 4 based integration test for verifying support for the
- * {@link ContextConfiguration#inheritLocations() inheritLocations} flag of
- * {@link ContextConfiguration @ContextConfiguration} indirectly proposed in <a
+ * JUnit 4 based integration test for verifying support for the {@link
+ * ContextConfiguration#inheritLocations() inheritLocations} flag of {@link
+ * ContextConfiguration @ContextConfiguration} indirectly proposed in <a
  * href="https://opensource.atlassian.com/projects/spring/browse/SPR-3896"
  * target="_blank">SPR-3896</a>.
  *
@@ -37,13 +37,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ContextConfiguration
 public class DefaultLocationsInheritedTests extends DefaultLocationsBaseTests {
 
-	@Autowired
-	private Pet pet;
+  @Autowired private Pet pet;
 
-
-	@Test
-	public void verifyPetSetFromExtendedContextConfig() {
-		assertThat(this.pet).as("The pet should have been autowired.").isNotNull();
-		assertThat(this.pet.getName()).isEqualTo("Fido");
-	}
+  @Test
+  public void verifyPetSetFromExtendedContextConfig() {
+    assertThat(this.pet).as("The pet should have been autowired.").isNotNull();
+    assertThat(this.pet.getName()).isEqualTo("Fido");
+  }
 }

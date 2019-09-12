@@ -42,105 +42,106 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for {@link JettyWebSocketClient}.
+ *
  * @author Rossen Stoyanchev
  */
 public class JettyWebSocketClientTests {
 
-	private JettyWebSocketClient client;
+  private JettyWebSocketClient client;
 
-	private TestJettyWebSocketServer server;
+  private TestJettyWebSocketServer server;
 
-	private String wsUrl;
+  private String wsUrl;
 
-	private WebSocketSession wsSession;
+  private WebSocketSession wsSession;
 
+  @BeforeEach
+  public void setup() throws Exception {
 
-	@BeforeEach
-	public void setup() throws Exception {
+    this.server = new TestJettyWebSocketServer(new TextWebSocketHandler());
+    this.server.start();
 
-		this.server = new TestJettyWebSocketServer(new TextWebSocketHandler());
-		this.server.start();
+    this.client = new JettyWebSocketClient();
+    this.client.start();
 
-		this.client = new JettyWebSocketClient();
-		this.client.start();
+    this.wsUrl = "ws://localhost:" + this.server.getPort() + "/test";
+  }
 
-		this.wsUrl = "ws://localhost:" + this.server.getPort() + "/test";
-	}
+  @AfterEach
+  public void teardown() throws Exception {
+    this.wsSession.close();
+    this.client.stop();
+    this.server.stop();
+  }
 
-	@AfterEach
-	public void teardown() throws Exception {
-		this.wsSession.close();
-		this.client.stop();
-		this.server.stop();
-	}
+  @Test
+  public void doHandshake() throws Exception {
 
+    WebSocketHttpHeaders headers = new WebSocketHttpHeaders();
+    headers.setSecWebSocketProtocol(Arrays.asList("echo"));
 
-	@Test
-	public void doHandshake() throws Exception {
+    this.wsSession =
+        this.client.doHandshake(new TextWebSocketHandler(), headers, new URI(this.wsUrl)).get();
 
-		WebSocketHttpHeaders headers = new WebSocketHttpHeaders();
-		headers.setSecWebSocketProtocol(Arrays.asList("echo"));
+    assertThat(this.wsSession.getUri().toString()).isEqualTo(this.wsUrl);
+    assertThat(this.wsSession.getAcceptedProtocol()).isEqualTo("echo");
+  }
 
-		this.wsSession = this.client.doHandshake(new TextWebSocketHandler(), headers, new URI(this.wsUrl)).get();
+  @Test
+  public void doHandshakeWithTaskExecutor() throws Exception {
 
-		assertThat(this.wsSession.getUri().toString()).isEqualTo(this.wsUrl);
-		assertThat(this.wsSession.getAcceptedProtocol()).isEqualTo("echo");
-	}
+    WebSocketHttpHeaders headers = new WebSocketHttpHeaders();
+    headers.setSecWebSocketProtocol(Arrays.asList("echo"));
 
-	@Test
-	public void doHandshakeWithTaskExecutor() throws Exception {
+    this.client.setTaskExecutor(new SimpleAsyncTaskExecutor());
+    this.wsSession =
+        this.client.doHandshake(new TextWebSocketHandler(), headers, new URI(this.wsUrl)).get();
 
-		WebSocketHttpHeaders headers = new WebSocketHttpHeaders();
-		headers.setSecWebSocketProtocol(Arrays.asList("echo"));
+    assertThat(this.wsSession.getUri().toString()).isEqualTo(this.wsUrl);
+    assertThat(this.wsSession.getAcceptedProtocol()).isEqualTo("echo");
+  }
 
-		this.client.setTaskExecutor(new SimpleAsyncTaskExecutor());
-		this.wsSession = this.client.doHandshake(new TextWebSocketHandler(), headers, new URI(this.wsUrl)).get();
+  private static class TestJettyWebSocketServer {
 
-		assertThat(this.wsSession.getUri().toString()).isEqualTo(this.wsUrl);
-		assertThat(this.wsSession.getAcceptedProtocol()).isEqualTo("echo");
-	}
+    private final Server server;
 
+    public TestJettyWebSocketServer(final WebSocketHandler webSocketHandler) {
 
-	private static class TestJettyWebSocketServer {
+      this.server = new Server();
+      ServerConnector connector = new ServerConnector(this.server);
+      connector.setPort(0);
 
-		private final Server server;
+      this.server.addConnector(connector);
+      this.server.setHandler(
+          new org.eclipse.jetty.websocket.server.WebSocketHandler() {
+            @Override
+            public void configure(WebSocketServletFactory factory) {
+              factory.setCreator(
+                  new WebSocketCreator() {
+                    @Override
+                    public Object createWebSocket(
+                        ServletUpgradeRequest req, ServletUpgradeResponse resp) {
+                      if (!CollectionUtils.isEmpty(req.getSubProtocols())) {
+                        resp.setAcceptedSubProtocol(req.getSubProtocols().get(0));
+                      }
+                      JettyWebSocketSession session = new JettyWebSocketSession(null, null);
+                      return new JettyWebSocketHandlerAdapter(webSocketHandler, session);
+                    }
+                  });
+            }
+          });
+    }
 
+    public void start() throws Exception {
+      this.server.start();
+    }
 
-		public TestJettyWebSocketServer(final WebSocketHandler webSocketHandler) {
+    public void stop() throws Exception {
+      this.server.stop();
+    }
 
-			this.server = new Server();
-			ServerConnector connector = new ServerConnector(this.server);
-			connector.setPort(0);
-
-			this.server.addConnector(connector);
-			this.server.setHandler(new org.eclipse.jetty.websocket.server.WebSocketHandler() {
-				@Override
-				public void configure(WebSocketServletFactory factory) {
-					factory.setCreator(new WebSocketCreator() {
-						@Override
-						public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp) {
-							if (!CollectionUtils.isEmpty(req.getSubProtocols())) {
-								resp.setAcceptedSubProtocol(req.getSubProtocols().get(0));
-							}
-							JettyWebSocketSession session = new JettyWebSocketSession(null, null);
-							return new JettyWebSocketHandlerAdapter(webSocketHandler, session);
-						}
-					});
-				}
-			});
-		}
-
-		public void start() throws Exception {
-			this.server.start();
-		}
-
-		public void stop() throws Exception {
-			this.server.stop();
-		}
-
-		public int getPort() {
-			return ((ServerConnector) this.server.getConnectors()[0]).getLocalPort();
-		}
-	}
-
+    public int getPort() {
+      return ((ServerConnector) this.server.getConnectors()[0]).getLocalPort();
+    }
+  }
 }

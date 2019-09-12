@@ -42,69 +42,74 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class WebSocketConfigurationTests extends AbstractWebSocketIntegrationTests {
 
-	@Override
-	protected Class<?>[] getAnnotatedConfigClasses() {
-		return new Class<?>[] {TestConfig.class};
-	}
+  @Override
+  protected Class<?>[] getAnnotatedConfigClasses() {
+    return new Class<?>[] {TestConfig.class};
+  }
 
+  @ParameterizedWebSocketTest
+  void registerWebSocketHandler(
+      WebSocketTestServer server, WebSocketClient webSocketClient, TestInfo testInfo)
+      throws Exception {
+    super.setup(server, webSocketClient, testInfo);
 
-	@ParameterizedWebSocketTest
-	void registerWebSocketHandler(WebSocketTestServer server, WebSocketClient webSocketClient, TestInfo testInfo) throws Exception {
-		super.setup(server, webSocketClient, testInfo);
+    WebSocketSession session =
+        this.webSocketClient
+            .doHandshake(new AbstractWebSocketHandler() {}, getWsBaseUrl() + "/ws")
+            .get();
 
-		WebSocketSession session = this.webSocketClient.doHandshake(
-				new AbstractWebSocketHandler() {}, getWsBaseUrl() + "/ws").get();
+    TestHandler serverHandler = this.wac.getBean(TestHandler.class);
+    assertThat(serverHandler.connectLatch.await(2, TimeUnit.SECONDS)).isTrue();
 
-		TestHandler serverHandler = this.wac.getBean(TestHandler.class);
-		assertThat(serverHandler.connectLatch.await(2, TimeUnit.SECONDS)).isTrue();
+    session.close();
+  }
 
-		session.close();
-	}
+  @ParameterizedWebSocketTest
+  void registerWebSocketHandlerWithSockJS(
+      WebSocketTestServer server, WebSocketClient webSocketClient, TestInfo testInfo)
+      throws Exception {
+    super.setup(server, webSocketClient, testInfo);
 
-	@ParameterizedWebSocketTest
-	void registerWebSocketHandlerWithSockJS(WebSocketTestServer server, WebSocketClient webSocketClient, TestInfo testInfo) throws Exception {
-		super.setup(server, webSocketClient, testInfo);
+    WebSocketSession session =
+        this.webSocketClient
+            .doHandshake(new AbstractWebSocketHandler() {}, getWsBaseUrl() + "/sockjs/websocket")
+            .get();
 
-		WebSocketSession session = this.webSocketClient.doHandshake(
-				new AbstractWebSocketHandler() {}, getWsBaseUrl() + "/sockjs/websocket").get();
+    TestHandler serverHandler = this.wac.getBean(TestHandler.class);
+    assertThat(serverHandler.connectLatch.await(2, TimeUnit.SECONDS)).isTrue();
 
-		TestHandler serverHandler = this.wac.getBean(TestHandler.class);
-		assertThat(serverHandler.connectLatch.await(2, TimeUnit.SECONDS)).isTrue();
+    session.close();
+  }
 
-		session.close();
-	}
+  @Configuration
+  @EnableWebSocket
+  static class TestConfig implements WebSocketConfigurer {
 
+    @Autowired
+    private HandshakeHandler handshakeHandler; // can't rely on classpath for server detection
 
-	@Configuration
-	@EnableWebSocket
-	static class TestConfig implements WebSocketConfigurer {
+    @Override
+    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+      registry.addHandler(serverHandler(), "/ws").setHandshakeHandler(this.handshakeHandler);
+      registry
+          .addHandler(serverHandler(), "/sockjs")
+          .withSockJS()
+          .setTransportHandlerOverrides(new WebSocketTransportHandler(this.handshakeHandler));
+    }
 
-		@Autowired
-		private HandshakeHandler handshakeHandler; // can't rely on classpath for server detection
+    @Bean
+    public TestHandler serverHandler() {
+      return new TestHandler();
+    }
+  }
 
-		@Override
-		public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-			registry.addHandler(serverHandler(), "/ws")
-					.setHandshakeHandler(this.handshakeHandler);
-			registry.addHandler(serverHandler(), "/sockjs").withSockJS()
-					.setTransportHandlerOverrides(new WebSocketTransportHandler(this.handshakeHandler));
-		}
+  private static class TestHandler extends AbstractWebSocketHandler {
 
-		@Bean
-		public TestHandler serverHandler() {
-			return new TestHandler();
-		}
-	}
+    private CountDownLatch connectLatch = new CountDownLatch(1);
 
-
-	private static class TestHandler extends AbstractWebSocketHandler {
-
-		private CountDownLatch connectLatch = new CountDownLatch(1);
-
-		@Override
-		public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-			this.connectLatch.countDown();
-		}
-	}
-
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+      this.connectLatch.countDown();
+    }
+  }
 }

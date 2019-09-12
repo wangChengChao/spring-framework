@@ -32,16 +32,16 @@ import org.springframework.util.MBeanTestUtils;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * <p>If you run into the <em>"Unsupported protocol: jmxmp"</em> error, you will need to
- * download the <a href="https://www.oracle.com/technetwork/java/javase/tech/download-jsp-141676.html">JMX
- * Remote API 1.0.1_04 Reference Implementation</a> from Oracle and extract
- * {@code jmxremote_optional.jar} into your classpath, for example in the {@code lib/ext}
- * folder of your JVM.
+ * If you run into the <em>"Unsupported protocol: jmxmp"</em> error, you will need to download the
+ * <a href="https://www.oracle.com/technetwork/java/javase/tech/download-jsp-141676.html">JMX Remote
+ * API 1.0.1_04 Reference Implementation</a> from Oracle and extract {@code jmxremote_optional.jar}
+ * into your classpath, for example in the {@code lib/ext} folder of your JVM.
  *
  * <p>See also:
+ *
  * <ul>
- * <li><a href="https://jira.spring.io/browse/SPR-8093">SPR-8093</a></li>
- * <li><a href="https://issuetracker.springsource.com/browse/EBR-349">EBR-349</a></li>
+ *   <li><a href="https://jira.spring.io/browse/SPR-8093">SPR-8093</a>
+ *   <li><a href="https://issuetracker.springsource.com/browse/EBR-349">EBR-349</a>
  * </ul>
  *
  * @author Rob Harrop
@@ -52,64 +52,57 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public abstract class AbstractMBeanServerTests {
 
-	protected MBeanServer server;
+  protected MBeanServer server;
 
+  @BeforeEach
+  public final void setUp() throws Exception {
+    this.server = MBeanServerFactory.createMBeanServer();
+    try {
+      onSetUp();
+    } catch (Exception ex) {
+      releaseServer();
+      throw ex;
+    }
+  }
 
-	@BeforeEach
-	public final void setUp() throws Exception {
-		this.server = MBeanServerFactory.createMBeanServer();
-		try {
-			onSetUp();
-		}
-		catch (Exception ex) {
-			releaseServer();
-			throw ex;
-		}
-	}
+  protected ConfigurableApplicationContext loadContext(String configLocation) {
+    GenericApplicationContext ctx = new GenericApplicationContext();
+    new XmlBeanDefinitionReader(ctx).loadBeanDefinitions(configLocation);
+    ctx.getDefaultListableBeanFactory().registerSingleton("server", this.server);
+    ctx.refresh();
+    return ctx;
+  }
 
-	protected ConfigurableApplicationContext loadContext(String configLocation) {
-		GenericApplicationContext ctx = new GenericApplicationContext();
-		new XmlBeanDefinitionReader(ctx).loadBeanDefinitions(configLocation);
-		ctx.getDefaultListableBeanFactory().registerSingleton("server", this.server);
-		ctx.refresh();
-		return ctx;
-	}
+  @AfterEach
+  public void tearDown() throws Exception {
+    releaseServer();
+    onTearDown();
+  }
 
-	@AfterEach
-	public void tearDown() throws Exception {
-		releaseServer();
-		onTearDown();
-	}
+  private void releaseServer() throws Exception {
+    MBeanServerFactory.releaseMBeanServer(getServer());
+    MBeanTestUtils.resetMBeanServers();
+  }
 
-	private void releaseServer() throws Exception {
-		MBeanServerFactory.releaseMBeanServer(getServer());
-		MBeanTestUtils.resetMBeanServers();
-	}
+  protected void onTearDown() throws Exception {}
 
-	protected void onTearDown() throws Exception {
-	}
+  protected void onSetUp() throws Exception {}
 
-	protected void onSetUp() throws Exception {
-	}
+  public MBeanServer getServer() {
+    return this.server;
+  }
 
-	public MBeanServer getServer() {
-		return this.server;
-	}
+  /** Start the specified {@link MBeanExporter}. */
+  protected void start(MBeanExporter exporter) {
+    exporter.afterPropertiesSet();
+    exporter.afterSingletonsInstantiated();
+  }
 
-	/**
-	 * Start the specified {@link MBeanExporter}.
-	 */
-	protected void start(MBeanExporter exporter) {
-		exporter.afterPropertiesSet();
-		exporter.afterSingletonsInstantiated();
-	}
+  protected void assertIsRegistered(String message, ObjectName objectName) {
+    assertThat(getServer().isRegistered(objectName)).as(message).isTrue();
+  }
 
-	protected void assertIsRegistered(String message, ObjectName objectName) {
-		assertThat(getServer().isRegistered(objectName)).as(message).isTrue();
-	}
-
-	protected void assertIsNotRegistered(String message, ObjectName objectName) {
-		assertThat(getServer().isRegistered(objectName)).as(message).isFalse();
-	}
-
+  protected void assertIsNotRegistered(String message, ObjectName objectName) {
+    assertThat(getServer().isRegistered(objectName)).as(message).isFalse();
+  }
 }

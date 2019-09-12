@@ -24,32 +24,27 @@ import org.springframework.http.server.reactive.bootstrap.HttpServer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * @author Arjen Poutsma
- */
+/** @author Arjen Poutsma */
 class InvalidHttpMethodIntegrationTests extends AbstractRouterFunctionIntegrationTests {
 
-	@Override
-	protected RouterFunction<?> routerFunction() {
-		return RouterFunctions.route(RequestPredicates.GET("/"),
-				request -> ServerResponse.ok().bodyValue("FOO"))
-				.andRoute(RequestPredicates.all(), request -> ServerResponse.ok().bodyValue("BAR"));
-	}
+  @Override
+  protected RouterFunction<?> routerFunction() {
+    return RouterFunctions.route(
+            RequestPredicates.GET("/"), request -> ServerResponse.ok().bodyValue("FOO"))
+        .andRoute(RequestPredicates.all(), request -> ServerResponse.ok().bodyValue("BAR"));
+  }
 
-	@ParameterizedHttpServerTest
-	void invalidHttpMethod(HttpServer httpServer) throws Exception {
-		startServer(httpServer);
+  @ParameterizedHttpServerTest
+  void invalidHttpMethod(HttpServer httpServer) throws Exception {
+    startServer(httpServer);
 
-		OkHttpClient client = new OkHttpClient();
+    OkHttpClient client = new OkHttpClient();
 
-		Request request = new Request.Builder()
-				.method("BAZ", null)
-				.url("http://localhost:" + port + "/")
-				.build();
+    Request request =
+        new Request.Builder().method("BAZ", null).url("http://localhost:" + port + "/").build();
 
-		try (Response response = client.newCall(request).execute()) {
-			assertThat(response.body().string()).isEqualTo("BAR");
-		}
-	}
-
+    try (Response response = client.newCall(request).execute()) {
+      assertThat(response.body().string()).isEqualTo("BAR");
+    }
+  }
 }

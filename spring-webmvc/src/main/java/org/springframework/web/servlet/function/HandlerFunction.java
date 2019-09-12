@@ -27,11 +27,11 @@ package org.springframework.web.servlet.function;
 @FunctionalInterface
 public interface HandlerFunction<T extends ServerResponse> {
 
-	/**
-	 * Handle the given request.
-	 * @param request the request to handle
-	 * @return the response
-	 */
-	T handle(ServerRequest request) throws Exception;
-
+  /**
+   * Handle the given request.
+   *
+   * @param request the request to handle
+   * @return the response
+   */
+  T handle(ServerRequest request) throws Exception;
 }

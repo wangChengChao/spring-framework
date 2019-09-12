@@ -39,58 +39,62 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
  */
 public class TypePatternClassFilterTests {
 
-	@Test
-	public void testInvalidPattern() {
-		// should throw - pattern must be recognized as invalid
-		assertThatIllegalArgumentException().isThrownBy(() ->
-				new TypePatternClassFilter("-"));
-	}
+  @Test
+  public void testInvalidPattern() {
+    // should throw - pattern must be recognized as invalid
+    assertThatIllegalArgumentException().isThrownBy(() -> new TypePatternClassFilter("-"));
+  }
 
-	@Test
-	public void testValidPatternMatching() {
-		TypePatternClassFilter tpcf = new TypePatternClassFilter("org.springframework.tests.sample.beans.*");
-		assertThat(tpcf.matches(TestBean.class)).as("Must match: in package").isTrue();
-		assertThat(tpcf.matches(ITestBean.class)).as("Must match: in package").isTrue();
-		assertThat(tpcf.matches(IOther.class)).as("Must match: in package").isTrue();
-		assertThat(tpcf.matches(DeepBean.class)).as("Must be excluded: in wrong package").isFalse();
-		assertThat(tpcf.matches(BeanFactory.class)).as("Must be excluded: in wrong package").isFalse();
-		assertThat(tpcf.matches(DefaultListableBeanFactory.class)).as("Must be excluded: in wrong package").isFalse();
-	}
+  @Test
+  public void testValidPatternMatching() {
+    TypePatternClassFilter tpcf =
+        new TypePatternClassFilter("org.springframework.tests.sample.beans.*");
+    assertThat(tpcf.matches(TestBean.class)).as("Must match: in package").isTrue();
+    assertThat(tpcf.matches(ITestBean.class)).as("Must match: in package").isTrue();
+    assertThat(tpcf.matches(IOther.class)).as("Must match: in package").isTrue();
+    assertThat(tpcf.matches(DeepBean.class)).as("Must be excluded: in wrong package").isFalse();
+    assertThat(tpcf.matches(BeanFactory.class)).as("Must be excluded: in wrong package").isFalse();
+    assertThat(tpcf.matches(DefaultListableBeanFactory.class))
+        .as("Must be excluded: in wrong package")
+        .isFalse();
+  }
 
-	@Test
-	public void testSubclassMatching() {
-		TypePatternClassFilter tpcf = new TypePatternClassFilter("org.springframework.tests.sample.beans.ITestBean+");
-		assertThat(tpcf.matches(TestBean.class)).as("Must match: in package").isTrue();
-		assertThat(tpcf.matches(ITestBean.class)).as("Must match: in package").isTrue();
-		assertThat(tpcf.matches(CountingTestBean.class)).as("Must match: in package").isTrue();
-		assertThat(tpcf.matches(IOther.class)).as("Must be excluded: not subclass").isFalse();
-		assertThat(tpcf.matches(DefaultListableBeanFactory.class)).as("Must be excluded: not subclass").isFalse();
-	}
+  @Test
+  public void testSubclassMatching() {
+    TypePatternClassFilter tpcf =
+        new TypePatternClassFilter("org.springframework.tests.sample.beans.ITestBean+");
+    assertThat(tpcf.matches(TestBean.class)).as("Must match: in package").isTrue();
+    assertThat(tpcf.matches(ITestBean.class)).as("Must match: in package").isTrue();
+    assertThat(tpcf.matches(CountingTestBean.class)).as("Must match: in package").isTrue();
+    assertThat(tpcf.matches(IOther.class)).as("Must be excluded: not subclass").isFalse();
+    assertThat(tpcf.matches(DefaultListableBeanFactory.class))
+        .as("Must be excluded: not subclass")
+        .isFalse();
+  }
 
-	@Test
-	public void testAndOrNotReplacement() {
-		TypePatternClassFilter tpcf = new TypePatternClassFilter("java.lang.Object or java.lang.String");
-		assertThat(tpcf.matches(Number.class)).as("matches Number").isFalse();
-		assertThat(tpcf.matches(Object.class)).as("matches Object").isTrue();
-		assertThat(tpcf.matches(String.class)).as("matchesString").isTrue();
-		tpcf = new TypePatternClassFilter("java.lang.Number+ and java.lang.Float");
-		assertThat(tpcf.matches(Float.class)).as("matches Float").isTrue();
-		assertThat(tpcf.matches(Double.class)).as("matches Double").isFalse();
-		tpcf = new TypePatternClassFilter("java.lang.Number+ and not java.lang.Float");
-		assertThat(tpcf.matches(Float.class)).as("matches Float").isFalse();
-		assertThat(tpcf.matches(Double.class)).as("matches Double").isTrue();
-	}
+  @Test
+  public void testAndOrNotReplacement() {
+    TypePatternClassFilter tpcf =
+        new TypePatternClassFilter("java.lang.Object or java.lang.String");
+    assertThat(tpcf.matches(Number.class)).as("matches Number").isFalse();
+    assertThat(tpcf.matches(Object.class)).as("matches Object").isTrue();
+    assertThat(tpcf.matches(String.class)).as("matchesString").isTrue();
+    tpcf = new TypePatternClassFilter("java.lang.Number+ and java.lang.Float");
+    assertThat(tpcf.matches(Float.class)).as("matches Float").isTrue();
+    assertThat(tpcf.matches(Double.class)).as("matches Double").isFalse();
+    tpcf = new TypePatternClassFilter("java.lang.Number+ and not java.lang.Float");
+    assertThat(tpcf.matches(Float.class)).as("matches Float").isFalse();
+    assertThat(tpcf.matches(Double.class)).as("matches Double").isTrue();
+  }
 
-	@Test
-	public void testSetTypePatternWithNullArgument() throws Exception {
-		assertThatIllegalArgumentException().isThrownBy(() ->
-				new TypePatternClassFilter(null));
-	}
+  @Test
+  public void testSetTypePatternWithNullArgument() throws Exception {
+    assertThatIllegalArgumentException().isThrownBy(() -> new TypePatternClassFilter(null));
+  }
 
-	@Test
-	public void testInvocationOfMatchesMethodBlowsUpWhenNoTypePatternHasBeenSet() throws Exception {
-		assertThatIllegalStateException().isThrownBy(() ->
-				new TypePatternClassFilter().matches(String.class));
-	}
-
+  @Test
+  public void testInvocationOfMatchesMethodBlowsUpWhenNoTypePatternHasBeenSet() throws Exception {
+    assertThatIllegalStateException()
+        .isThrownBy(() -> new TypePatternClassFilter().matches(String.class));
+  }
 }

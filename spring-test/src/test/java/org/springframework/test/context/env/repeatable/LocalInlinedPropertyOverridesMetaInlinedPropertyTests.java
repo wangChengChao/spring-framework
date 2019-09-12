@@ -21,8 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.context.TestPropertySource;
 
 /**
- * Integration tests for {@link TestPropertySource @TestPropertySource} as a
- * repeatable annotation.
+ * Integration tests for {@link TestPropertySource @TestPropertySource} as a repeatable annotation.
  *
  * @author Anatoliy Korovin
  * @author Sam Brannen
@@ -30,11 +29,11 @@ import org.springframework.test.context.TestPropertySource;
  */
 @TestPropertySource(properties = "enigma = local override")
 @MetaInlinedTestProperty
-class LocalInlinedPropertyOverridesMetaInlinedPropertyTests extends AbstractRepeatableTestPropertySourceTests {
+class LocalInlinedPropertyOverridesMetaInlinedPropertyTests
+    extends AbstractRepeatableTestPropertySourceTests {
 
-	@Test
-	void test() {
-		assertEnvironmentValue("enigma", "local override");
-	}
-
+  @Test
+  void test() {
+    assertEnvironmentValue("enigma", "local override");
+  }
 }

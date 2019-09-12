@@ -28,78 +28,72 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * @author Mark Fisher
- */
+/** @author Mark Fisher */
 public class PropertiesConversionSpelTests {
 
-	private static final SpelExpressionParser parser = new SpelExpressionParser();
+  private static final SpelExpressionParser parser = new SpelExpressionParser();
 
-	@Test
-	public void props() {
-		Properties props = new Properties();
-		props.setProperty("x", "1");
-		props.setProperty("y", "2");
-		props.setProperty("z", "3");
-		Expression expression = parser.parseExpression("foo(#props)");
-		StandardEvaluationContext context = new StandardEvaluationContext();
-		context.setVariable("props", props);
-		String result = expression.getValue(context, new TestBean(), String.class);
-		assertThat(result).isEqualTo("123");
-	}
+  @Test
+  public void props() {
+    Properties props = new Properties();
+    props.setProperty("x", "1");
+    props.setProperty("y", "2");
+    props.setProperty("z", "3");
+    Expression expression = parser.parseExpression("foo(#props)");
+    StandardEvaluationContext context = new StandardEvaluationContext();
+    context.setVariable("props", props);
+    String result = expression.getValue(context, new TestBean(), String.class);
+    assertThat(result).isEqualTo("123");
+  }
 
-	@Test
-	public void mapWithAllStringValues() {
-		Map<String, Object> map = new HashMap<>();
-		map.put("x", "1");
-		map.put("y", "2");
-		map.put("z", "3");
-		Expression expression = parser.parseExpression("foo(#props)");
-		StandardEvaluationContext context = new StandardEvaluationContext();
-		context.setVariable("props", map);
-		String result = expression.getValue(context, new TestBean(), String.class);
-		assertThat(result).isEqualTo("123");
-	}
+  @Test
+  public void mapWithAllStringValues() {
+    Map<String, Object> map = new HashMap<>();
+    map.put("x", "1");
+    map.put("y", "2");
+    map.put("z", "3");
+    Expression expression = parser.parseExpression("foo(#props)");
+    StandardEvaluationContext context = new StandardEvaluationContext();
+    context.setVariable("props", map);
+    String result = expression.getValue(context, new TestBean(), String.class);
+    assertThat(result).isEqualTo("123");
+  }
 
-	@Test
-	public void mapWithNonStringValue() {
-		Map<String, Object> map = new HashMap<>();
-		map.put("x", "1");
-		map.put("y", 2);
-		map.put("z", "3");
-		map.put("a", new UUID(1, 1));
-		Expression expression = parser.parseExpression("foo(#props)");
-		StandardEvaluationContext context = new StandardEvaluationContext();
-		context.setVariable("props", map);
-		String result = expression.getValue(context, new TestBean(), String.class);
-		assertThat(result).isEqualTo("1null3");
-	}
+  @Test
+  public void mapWithNonStringValue() {
+    Map<String, Object> map = new HashMap<>();
+    map.put("x", "1");
+    map.put("y", 2);
+    map.put("z", "3");
+    map.put("a", new UUID(1, 1));
+    Expression expression = parser.parseExpression("foo(#props)");
+    StandardEvaluationContext context = new StandardEvaluationContext();
+    context.setVariable("props", map);
+    String result = expression.getValue(context, new TestBean(), String.class);
+    assertThat(result).isEqualTo("1null3");
+  }
 
-	@Test
-	public void customMapWithNonStringValue() {
-		CustomMap map = new CustomMap();
-		map.put("x", "1");
-		map.put("y", 2);
-		map.put("z", "3");
-		Expression expression = parser.parseExpression("foo(#props)");
-		StandardEvaluationContext context = new StandardEvaluationContext();
-		context.setVariable("props", map);
-		String result = expression.getValue(context, new TestBean(), String.class);
-		assertThat(result).isEqualTo("1null3");
-	}
+  @Test
+  public void customMapWithNonStringValue() {
+    CustomMap map = new CustomMap();
+    map.put("x", "1");
+    map.put("y", 2);
+    map.put("z", "3");
+    Expression expression = parser.parseExpression("foo(#props)");
+    StandardEvaluationContext context = new StandardEvaluationContext();
+    context.setVariable("props", map);
+    String result = expression.getValue(context, new TestBean(), String.class);
+    assertThat(result).isEqualTo("1null3");
+  }
 
+  private static class TestBean {
 
-	private static class TestBean {
+    @SuppressWarnings("unused")
+    public String foo(Properties props) {
+      return props.getProperty("x") + props.getProperty("y") + props.getProperty("z");
+    }
+  }
 
-		@SuppressWarnings("unused")
-		public String foo(Properties props) {
-			return props.getProperty("x") + props.getProperty("y") + props.getProperty("z");
-		}
-	}
-
-
-	@SuppressWarnings("serial")
-	private static class CustomMap extends HashMap<String, Object> {
-	}
-
+  @SuppressWarnings("serial")
+  private static class CustomMap extends HashMap<String, Object> {}
 }

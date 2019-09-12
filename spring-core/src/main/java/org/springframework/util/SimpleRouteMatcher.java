@@ -23,84 +23,76 @@ import org.springframework.lang.Nullable;
 /**
  * {@code RouteMatcher} that delegates to a {@link PathMatcher}.
  *
- * <p><strong>Note:</strong> This implementation is not efficient since
- * {@code PathMatcher} treats paths and patterns as Strings. For more optimized
- * performance use the {@code PathPatternRouteMatcher} from {@code spring-web}
- * which enables use of parsed routes and patterns.
+ * <p><strong>Note:</strong> This implementation is not efficient since {@code PathMatcher} treats
+ * paths and patterns as Strings. For more optimized performance use the {@code
+ * PathPatternRouteMatcher} from {@code spring-web} which enables use of parsed routes and patterns.
  *
  * @author Rossen Stoyanchev
  * @since 5.2
  */
 public class SimpleRouteMatcher implements RouteMatcher {
 
-	private final PathMatcher pathMatcher;
+  private final PathMatcher pathMatcher;
 
+  public SimpleRouteMatcher(PathMatcher pathMatcher) {
+    Assert.notNull(pathMatcher, "PathMatcher is required");
+    this.pathMatcher = pathMatcher;
+  }
 
-	public SimpleRouteMatcher(PathMatcher pathMatcher) {
-		Assert.notNull(pathMatcher, "PathMatcher is required");
-		this.pathMatcher = pathMatcher;
-	}
+  public PathMatcher getPathMatcher() {
+    return this.pathMatcher;
+  }
 
+  @Override
+  public Route parseRoute(String route) {
+    return new DefaultRoute(route);
+  }
 
-	public PathMatcher getPathMatcher() {
-		return this.pathMatcher;
-	}
+  @Override
+  public boolean isPattern(String route) {
+    return this.pathMatcher.isPattern(route);
+  }
 
+  @Override
+  public String combine(String pattern1, String pattern2) {
+    return this.pathMatcher.combine(pattern1, pattern2);
+  }
 
-	@Override
-	public Route parseRoute(String route) {
-		return new DefaultRoute(route);
-	}
+  @Override
+  public boolean match(String pattern, Route route) {
+    return this.pathMatcher.match(pattern, route.value());
+  }
 
-	@Override
-	public boolean isPattern(String route) {
-		return this.pathMatcher.isPattern(route);
-	}
+  @Override
+  @Nullable
+  public Map<String, String> matchAndExtract(String pattern, Route route) {
+    if (!match(pattern, route)) {
+      return null;
+    }
+    return this.pathMatcher.extractUriTemplateVariables(pattern, route.value());
+  }
 
-	@Override
-	public String combine(String pattern1, String pattern2) {
-		return this.pathMatcher.combine(pattern1, pattern2);
-	}
+  @Override
+  public Comparator<String> getPatternComparator(Route route) {
+    return this.pathMatcher.getPatternComparator(route.value());
+  }
 
-	@Override
-	public boolean match(String pattern, Route route) {
-		return this.pathMatcher.match(pattern, route.value());
-	}
+  private static class DefaultRoute implements Route {
 
-	@Override
-	@Nullable
-	public Map<String, String> matchAndExtract(String pattern, Route route) {
-		if (!match(pattern, route)) {
-			return null;
-		}
-		return this.pathMatcher.extractUriTemplateVariables(pattern, route.value());
-	}
+    private final String path;
 
-	@Override
-	public Comparator<String> getPatternComparator(Route route) {
-		return this.pathMatcher.getPatternComparator(route.value());
-	}
+    DefaultRoute(String path) {
+      this.path = path;
+    }
 
+    @Override
+    public String value() {
+      return this.path;
+    }
 
-	private static class DefaultRoute implements Route {
-
-		private final String path;
-
-
-		DefaultRoute(String path) {
-			this.path = path;
-		}
-
-
-		@Override
-		public String value() {
-			return this.path;
-		}
-
-		@Override
-		public String toString() {
-			return value();
-		}
-	}
-
+    @Override
+    public String toString() {
+      return value();
+    }
+  }
 }

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 
 <xsd:schema xmlns="http://www.springframework.org/schema/task"
-			xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-			xmlns:tool="http://www.springframework.org/schema/tool"
-			targetNamespace="http://www.springframework.org/schema/task"
-			elementFormDefault="qualified"
-			attributeFormDefault="unqualified">
+		xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+		xmlns:tool="http://www.springframework.org/schema/tool"
+		targetNamespace="http://www.springframework.org/schema/task"
+		elementFormDefault="qualified"
+		attributeFormDefault="unqualified">
 
 	<xsd:annotation>
 		<xsd:documentation><![CDATA[
@@ -13,8 +13,10 @@
 		]]></xsd:documentation>
 	</xsd:annotation>
 
-	<xsd:import namespace="http://www.springframework.org/schema/beans" schemaLocation="https://www.springframework.org/schema/beans/spring-beans.xsd"/>
-	<xsd:import namespace="http://www.springframework.org/schema/tool" schemaLocation="https://www.springframework.org/schema/tool/spring-tool.xsd"/>
+	<xsd:import namespace="http://www.springframework.org/schema/beans"
+			schemaLocation="https://www.springframework.org/schema/beans/spring-beans.xsd"/>
+	<xsd:import namespace="http://www.springframework.org/schema/tool"
+			schemaLocation="https://www.springframework.org/schema/tool/spring-tool.xsd"/>
 
 	<xsd:element name="annotation-driven">
 		<xsd:annotation>
@@ -217,7 +219,8 @@
 		</xsd:annotation>
 		<xsd:complexType>
 			<xsd:sequence>
-				<xsd:element name="scheduled" type="scheduledTaskType" minOccurs="1" maxOccurs="unbounded"/>
+				<xsd:element name="scheduled" type="scheduledTaskType" minOccurs="1"
+						maxOccurs="unbounded"/>
 			</xsd:sequence>
 			<xsd:attribute name="scheduler" type="xsd:string" use="optional">
 				<xsd:annotation>
@@ -227,7 +230,8 @@
 					]]></xsd:documentation>
 					<xsd:appinfo>
 						<tool:annotation kind="ref">
-							<tool:expected-type type="org.springframework.scheduling.TaskScheduler"/>
+							<tool:expected-type
+									type="org.springframework.scheduling.TaskScheduler"/>
 						</tool:annotation>
 					</xsd:appinfo>
 				</xsd:annotation>
@@ -286,7 +290,7 @@
 	Reference to an object that provides a method to be invoked.
 				]]></xsd:documentation>
 				<xsd:appinfo>
-					<tool:annotation kind="ref" />
+					<tool:annotation kind="ref"/>
 				</xsd:appinfo>
 			</xsd:annotation>
 		</xsd:attribute>

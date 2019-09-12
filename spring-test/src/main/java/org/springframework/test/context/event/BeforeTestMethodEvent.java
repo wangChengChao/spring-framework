@@ -20,8 +20,8 @@ import org.springframework.test.context.TestContext;
 
 /**
  * {@link TestContextEvent} published by the {@link EventPublishingTestExecutionListener} when
- * {@link org.springframework.test.context.TestExecutionListener#beforeTestMethod(TestContext)}
- * is invoked.
+ * {@link org.springframework.test.context.TestExecutionListener#beforeTestMethod(TestContext)} is
+ * invoked.
  *
  * @author Frank Scheffler
  * @since 5.2
@@ -30,8 +30,7 @@ import org.springframework.test.context.TestContext;
 @SuppressWarnings("serial")
 public class BeforeTestMethodEvent extends TestContextEvent {
 
-	public BeforeTestMethodEvent(TestContext source) {
-		super(source);
-	}
-
+  public BeforeTestMethodEvent(TestContext source) {
+    super(source);
+  }
 }

@@ -30,8 +30,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests for {@link TestPropertySource @TestPropertySource} support with
- * inlined properties that overrides properties files.
+ * Integration tests for {@link TestPropertySource @TestPropertySource} support with inlined
+ * properties that overrides properties files.
  *
  * @author Sam Brannen
  * @since 4.3
@@ -41,22 +41,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(locations = "explicit.properties", properties = "explicit = inlined")
 class InlinedPropertiesOverridePropertiesFilesTestPropertySourceTests {
 
-	@Autowired
-	Environment env;
+  @Autowired Environment env;
 
-	@Value("${explicit}")
-	String explicit;
+  @Value("${explicit}")
+  String explicit;
 
+  @Test
+  void inlinedPropertyOverridesValueFromPropertiesFile() {
+    assertThat(env.getProperty("explicit")).isEqualTo("inlined");
+    assertThat(this.explicit).isEqualTo("inlined");
+  }
 
-	@Test
-	void inlinedPropertyOverridesValueFromPropertiesFile() {
-		assertThat(env.getProperty("explicit")).isEqualTo("inlined");
-		assertThat(this.explicit).isEqualTo("inlined");
-	}
-
-
-	@Configuration
-	static class Config {
-	}
-
+  @Configuration
+  static class Config {}
 }

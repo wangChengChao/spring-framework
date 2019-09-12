@@ -30,8 +30,8 @@ import org.springframework.web.context.WebApplicationContext;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * JUnit-based integration tests that verify support for loading a
- * {@link WebApplicationContext} with a custom {@link WebTestContextBootstrapper}.
+ * JUnit-based integration tests that verify support for loading a {@link WebApplicationContext}
+ * with a custom {@link WebTestContextBootstrapper}.
  *
  * @author Sam Brannen
  * @author Phillip Webb
@@ -41,33 +41,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 @BootstrapWith(CustomWebTestContextBootstrapper.class)
 class WebAppConfigurationBootstrapWithTests {
 
-	@Autowired
-	WebApplicationContext wac;
+  @Autowired WebApplicationContext wac;
 
+  @Test
+  void webApplicationContextIsLoaded() {
+    // from: src/test/webapp/resources/Spring.js
+    Resource resource = wac.getResource("/resources/Spring.js");
+    assertThat(resource).isNotNull();
+    assertThat(resource.exists()).isTrue();
+  }
 
-	@Test
-	void webApplicationContextIsLoaded() {
-		// from: src/test/webapp/resources/Spring.js
-		Resource resource = wac.getResource("/resources/Spring.js");
-		assertThat(resource).isNotNull();
-		assertThat(resource.exists()).isTrue();
-	}
+  @Configuration
+  static class Config {}
 
+  /**
+   * Custom {@link WebTestContextBootstrapper} that requires {@code @WebAppConfiguration} but hard
+   * codes the resource base path.
+   */
+  static class CustomWebTestContextBootstrapper extends WebTestContextBootstrapper {
 
-	@Configuration
-	static class Config {
-	}
-
-	/**
-	 * Custom {@link WebTestContextBootstrapper} that requires {@code @WebAppConfiguration}
-	 * but hard codes the resource base path.
-	 */
-	static class CustomWebTestContextBootstrapper extends WebTestContextBootstrapper {
-
-		@Override
-		protected MergedContextConfiguration processMergedContextConfiguration(MergedContextConfiguration mergedConfig) {
-			return new WebMergedContextConfiguration(mergedConfig, "src/test/webapp");
-		}
-	}
-
+    @Override
+    protected MergedContextConfiguration processMergedContextConfiguration(
+        MergedContextConfiguration mergedConfig) {
+      return new WebMergedContextConfiguration(mergedConfig, "src/test/webapp");
+    }
+  }
 }

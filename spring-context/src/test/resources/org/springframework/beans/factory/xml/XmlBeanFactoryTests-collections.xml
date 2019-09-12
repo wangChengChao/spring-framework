@@ -3,16 +3,24 @@
 		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-	<bean id="jenny" class="org.springframework.tests.sample.beans.TestBean">
-		<property name="name"><value>Jenny</value></property>
-		<property name="age"><value>30</value></property>
+	<bean
+			id="jenny"
+			class="org.springframework.tests.sample.beans.TestBean">
+		<property name="name">
+			<value>Jenny</value>
+		</property>
+		<property name="age">
+			<value>30</value>
+		</property>
 		<property name="spouse">
-		<!-- Could use id and href -->
+			<!-- Could use id and href -->
 			<ref bean="david"/>
 		</property>
 	</bean>
 
-	<bean id="david" class="org.springframework.tests.sample.beans.TestBean">
+	<bean
+			id="david"
+			class="org.springframework.tests.sample.beans.TestBean">
 		<description>
 			Simple bean, without any collections.
 		</description>
@@ -20,12 +28,20 @@
 			<description>The name of the user</description>
 			<value>David</value>
 		</property>
-		<property name="age"><value>27</value></property>
+		<property name="age">
+			<value>27</value>
+		</property>
 	</bean>
 
-	<bean id="rod" class="org.springframework.tests.sample.beans.TestBean">
-		<property name="name"><value>Rod</value></property>
-		<property name="age"><value>32</value></property>
+	<bean
+			id="rod"
+			class="org.springframework.tests.sample.beans.TestBean">
+		<property name="name">
+			<value>Rod</value>
+		</property>
+		<property name="age">
+			<value>32</value>
+		</property>
 		<property name="friends">
 			<description>List of Rod's friends</description>
 			<list>
@@ -35,23 +51,44 @@
 		</property>
 	</bean>
 
-	<bean id="pJenny" class="org.springframework.tests.sample.beans.TestBean" scope="prototype">
-		<property name="name"><value>Jenny</value></property>
-		<property name="age"><value>30</value></property>
+	<bean
+			id="pJenny"
+			class="org.springframework.tests.sample.beans.TestBean"
+			scope="prototype">
+		<property name="name">
+			<value>Jenny</value>
+		</property>
+		<property name="age">
+			<value>30</value>
+		</property>
 		<property name="spouse">
-		<!-- Could use id and href -->
+			<!-- Could use id and href -->
 			<ref bean="david"/>
 		</property>
 	</bean>
 
-	<bean id="pDavid" class="org.springframework.tests.sample.beans.TestBean" scope="prototype">
-		<property name="name"><value>David</value></property>
-		<property name="age"><value>27</value></property>
+	<bean
+			id="pDavid"
+			class="org.springframework.tests.sample.beans.TestBean"
+			scope="prototype">
+		<property name="name">
+			<value>David</value>
+		</property>
+		<property name="age">
+			<value>27</value>
+		</property>
 	</bean>
 
-	<bean id="pRod" class="org.springframework.tests.sample.beans.TestBean" scope="prototype">
-		<property name="name"><value>Rod</value></property>
-		<property name="age"><value>32</value></property>
+	<bean
+			id="pRod"
+			class="org.springframework.tests.sample.beans.TestBean"
+			scope="prototype">
+		<property name="name">
+			<value>Rod</value>
+		</property>
+		<property name="age">
+			<value>32</value>
+		</property>
 		<property name="friends">
 			<list>
 				<ref bean="pJenny"/>
@@ -63,9 +100,15 @@
 	<!--
 		Try setting a collection property to a single value
 	-->
-	<bean id="loner" class="org.springframework.tests.sample.beans.TestBean">
-		<property name="name"><value>loner</value></property>
-		<property name="age"><value>26</value></property>
+	<bean
+			id="loner"
+			class="org.springframework.tests.sample.beans.TestBean">
+		<property name="name">
+			<value>loner</value>
+		</property>
+		<property name="age">
+			<value>26</value>
+		</property>
 		<property name="friends">
 			<list>
 				<description>My List</description>
@@ -74,7 +117,9 @@
 		</property>
 	</bean>
 
-	<bean id="jumble" class="org.springframework.beans.factory.xml.MixedCollectionBean">
+	<bean
+			id="jumble"
+			class="org.springframework.beans.factory.xml.MixedCollectionBean">
 		<property name="jumble">
 			<list>
 				<ref bean="david"/>
@@ -85,7 +130,10 @@
 		</property>
 	</bean>
 
-	<bean id="jumble2" class="org.springframework.beans.factory.xml.MixedCollectionBean" lazy-init="true">
+	<bean
+			id="jumble2"
+			class="org.springframework.beans.factory.xml.MixedCollectionBean"
+			lazy-init="true">
 		<property name="jumble">
 			<list>
 				<ref bean="david"/>
@@ -97,51 +145,75 @@
 		</property>
 	</bean>
 
-	<bean id="verbose" class="org.springframework.tests.sample.beans.TestBean">
-		<property name="name"><value>verbose</value></property>
+	<bean
+			id="verbose"
+			class="org.springframework.tests.sample.beans.TestBean">
+		<property name="name">
+			<value>verbose</value>
+		</property>
 	</bean>
 
-	<bean id="verbose2" class="org.springframework.tests.sample.beans.TestBean">
-		<property name="name"><idref bean="verbose"/></property>
+	<bean
+			id="verbose2"
+			class="org.springframework.tests.sample.beans.TestBean">
+		<property name="name">
+			<idref bean="verbose"/>
+		</property>
 	</bean>
 
-	<bean id="verbose3" class="org.springframework.tests.sample.beans.TestBean">
-		<property name="name"><idref bean="verbose"/></property>
+	<bean
+			id="verbose3"
+			class="org.springframework.tests.sample.beans.TestBean">
+		<property name="name">
+			<idref bean="verbose"/>
+		</property>
 	</bean>
 
-	<bean id="emptyMap" class="org.springframework.tests.sample.beans.HasMap">
+	<bean
+			id="emptyMap"
+			class="org.springframework.tests.sample.beans.HasMap">
 		<property name="map">
 			<map>
 			</map>
 		</property>
 	</bean>
 
-	<bean id="literalMap" class="org.springframework.tests.sample.beans.HasMap">
+	<bean
+			id="literalMap"
+			class="org.springframework.tests.sample.beans.HasMap">
 		<property name="map">
 			<map>
-				<entry key="foo" value="bar"/>
-				<entry key="fi" value="fum"/>
-				<entry key="fa"><null/></entry>
+				<entry
+						key="foo"
+						value="bar"/>
+				<entry
+						key="fi"
+						value="fum"/>
+				<entry key="fa">
+					<null/>
+				</entry>
 			</map>
 		</property>
 	</bean>
 
-	<bean id="mixedMap" class="org.springframework.tests.sample.beans.HasMap">
+	<bean
+			id="mixedMap"
+			class="org.springframework.tests.sample.beans.HasMap">
 		<property name="map">
 			<map>
 				<entry key-ref="fooKey">
 					<value type="java.lang.Integer">10</value>
 				</entry>
 				<entry>
- 					<key>
+					<key>
 						<ref bean="jennyKey"/>
 					</key>
 					<ref bean="jenny"/>
 				</entry>
 				<entry>
- 					<key>
- 						<bean class="java.lang.Integer">
- 							<constructor-arg value="5"/>
+					<key>
+						<bean class="java.lang.Integer">
+							<constructor-arg value="5"/>
 						</bean>
 					</key>
 					<idref bean="david"/>
@@ -150,37 +222,58 @@
 		</property>
 	</bean>
 
-	<bean id="fooKey" class="java.lang.String">
+	<bean
+			id="fooKey"
+			class="java.lang.String">
 		<constructor-arg value="foo"/>
 	</bean>
 
-	<bean id="jennyKey" class="java.lang.String">
+	<bean
+			id="jennyKey"
+			class="java.lang.String">
 		<constructor-arg value="jenny"/>
 	</bean>
 
-	<bean id="pMixedMap" class="org.springframework.tests.sample.beans.HasMap" scope="prototype">
+	<bean
+			id="pMixedMap"
+			class="org.springframework.tests.sample.beans.HasMap"
+			scope="prototype">
 		<property name="map">
 			<map>
-				<entry key="foo" value="bar"/>
-				<entry key="jenny" value-ref="pJenny"/>
+				<entry
+						key="foo"
+						value="bar"/>
+				<entry
+						key="jenny"
+						value-ref="pJenny"/>
 			</map>
 		</property>
 	</bean>
 
-	<bean id="mixedMapWithList" class="org.springframework.tests.sample.beans.HasMap">
+	<bean
+			id="mixedMapWithList"
+			class="org.springframework.tests.sample.beans.HasMap">
 		<property name="map">
 			<map>
 				<entry>
-					<key><null/></key>
+					<key>
+						<null/>
+					</key>
 					<value>bar</value>
 				</entry>
-				<entry key="jenny"><ref bean="jenny"/></entry>
+				<entry key="jenny">
+					<ref bean="jenny"/>
+				</entry>
 				<entry key="list">
 					<list>
 						<value>zero</value>
 						<map>
-							<entry key="fo"><value>bar</value></entry>
-							<entry key="jen"><ref bean="jenny"/></entry>
+							<entry key="fo">
+								<value>bar</value>
+							</entry>
+							<entry key="jen">
+								<ref bean="jenny"/>
+							</entry>
 						</map>
 						<list>
 							<ref bean="jenny"/>
@@ -191,15 +284,21 @@
 				</entry>
 				<entry key="map">
 					<map>
-						<entry key="foo"><value>bar</value></entry>
-						<entry key="jenny"><ref bean="jenny"/></entry>
+						<entry key="foo">
+							<value>bar</value>
+						</entry>
+						<entry key="jenny">
+							<ref bean="jenny"/>
+						</entry>
 					</map>
 				</entry>
 			</map>
 		</property>
 	</bean>
 
-	<bean id="emptySet" class="org.springframework.tests.sample.beans.HasMap">
+	<bean
+			id="emptySet"
+			class="org.springframework.tests.sample.beans.HasMap">
 		<property name="set">
 			<set>
 			</set>
@@ -207,7 +306,9 @@
 	</bean>
 
 
-	<bean id="set" class="org.springframework.tests.sample.beans.HasMap">
+	<bean
+			id="set"
+			class="org.springframework.tests.sample.beans.HasMap">
 		<property name="set">
 			<set>
 				<value>bar</value>
@@ -217,7 +318,9 @@
 		</property>
 	</bean>
 
-	<bean id="emptyProps" class="org.springframework.tests.sample.beans.HasMap">
+	<bean
+			id="emptyProps"
+			class="org.springframework.tests.sample.beans.HasMap">
 		<property name="props">
 			<props>
 			</props>
@@ -225,7 +328,9 @@
 	</bean>
 
 
-	<bean id="props" class="org.springframework.tests.sample.beans.HasMap">
+	<bean
+			id="props"
+			class="org.springframework.tests.sample.beans.HasMap">
 		<property name="props">
 			<props>
 				<prop key="foo">bar</prop>
@@ -234,16 +339,24 @@
 		</property>
 	</bean>
 
-	<bean id="propsViaMap" class="org.springframework.tests.sample.beans.HasMap">
+	<bean
+			id="propsViaMap"
+			class="org.springframework.tests.sample.beans.HasMap">
 		<property name="props">
 			<map>
-				<entry key="foo" value="bar"/>
-				<entry key="2" value="TWO"/>
+				<entry
+						key="foo"
+						value="bar"/>
+				<entry
+						key="2"
+						value="TWO"/>
 			</map>
 		</property>
 	</bean>
 
-	<bean id="objectArray" class="org.springframework.tests.sample.beans.HasMap">
+	<bean
+			id="objectArray"
+			class="org.springframework.tests.sample.beans.HasMap">
 		<property name="objectArray">
 			<list>
 				<value>one</value>
@@ -252,7 +365,9 @@
 		</property>
 	</bean>
 
-	<bean id="classArray" class="org.springframework.tests.sample.beans.HasMap">
+	<bean
+			id="classArray"
+			class="org.springframework.tests.sample.beans.HasMap">
 		<property name="classArray">
 			<list>
 				<value>java.lang.String</value>
@@ -261,7 +376,9 @@
 		</property>
 	</bean>
 
-	<bean id="integerArray" class="org.springframework.tests.sample.beans.HasMap">
+	<bean
+			id="integerArray"
+			class="org.springframework.tests.sample.beans.HasMap">
 		<property name="integerArray">
 			<list>
 				<value>0</value>
@@ -271,7 +388,9 @@
 		</property>
 	</bean>
 
-	<bean id="listFactory" class="org.springframework.beans.factory.config.ListFactoryBean">
+	<bean
+			id="listFactory"
+			class="org.springframework.beans.factory.config.ListFactoryBean">
 		<property name="sourceList">
 			<list>
 				<value>bar</value>
@@ -283,7 +402,9 @@
 		</property>
 	</bean>
 
-	<bean id="pListFactory" class="org.springframework.beans.factory.config.ListFactoryBean">
+	<bean
+			id="pListFactory"
+			class="org.springframework.beans.factory.config.ListFactoryBean">
 		<property name="sourceList">
 			<list>
 				<value>bar</value>
@@ -298,7 +419,9 @@
 		</property>
 	</bean>
 
-	<bean id="setFactory" class="org.springframework.beans.factory.config.SetFactoryBean">
+	<bean
+			id="setFactory"
+			class="org.springframework.beans.factory.config.SetFactoryBean">
 		<property name="sourceSet">
 			<set>
 				<value>bar</value>
@@ -310,7 +433,9 @@
 		</property>
 	</bean>
 
-	<bean id="pSetFactory" class="org.springframework.beans.factory.config.SetFactoryBean">
+	<bean
+			id="pSetFactory"
+			class="org.springframework.beans.factory.config.SetFactoryBean">
 		<property name="sourceSet">
 			<set>
 				<value>bar</value>
@@ -325,11 +450,17 @@
 		</property>
 	</bean>
 
-	<bean id="mapFactory" class="org.springframework.beans.factory.config.MapFactoryBean">
+	<bean
+			id="mapFactory"
+			class="org.springframework.beans.factory.config.MapFactoryBean">
 		<property name="sourceMap">
 			<map>
-				<entry key="foo"><value>bar</value></entry>
-				<entry key="jen"><value>jenny</value></entry>
+				<entry key="foo">
+					<value>bar</value>
+				</entry>
+				<entry key="jen">
+					<value>jenny</value>
+				</entry>
 			</map>
 		</property>
 		<property name="targetMapClass">
@@ -337,11 +468,17 @@
 		</property>
 	</bean>
 
-	<bean id="pMapFactory" class="org.springframework.beans.factory.config.MapFactoryBean">
+	<bean
+			id="pMapFactory"
+			class="org.springframework.beans.factory.config.MapFactoryBean">
 		<property name="sourceMap">
 			<map>
-				<entry key="foo"><value>bar</value></entry>
-				<entry key="jen"><value>jenny</value></entry>
+				<entry key="foo">
+					<value>bar</value>
+				</entry>
+				<entry key="jen">
+					<value>jenny</value>
+				</entry>
 			</map>
 		</property>
 		<property name="targetMapClass">
@@ -352,18 +489,28 @@
 		</property>
 	</bean>
 
-	<bean id="setAndMap" class="org.springframework.beans.factory.xml.MapAndSet">
+	<bean
+			id="setAndMap"
+			class="org.springframework.beans.factory.xml.MapAndSet">
 		<constructor-arg>
 			<map>
 				<description>My Map</description>
-				<entry key="key1" value="val1"/>
-				<entry key="key2" value="val2"/>
-				<entry key="key3" value="val3"/>
+				<entry
+						key="key1"
+						value="val1"/>
+				<entry
+						key="key2"
+						value="val2"/>
+				<entry
+						key="key3"
+						value="val3"/>
 			</map>
 		</constructor-arg>
 	</bean>
 
-	<bean id="enumSetFactory" class="org.springframework.beans.factory.config.SetFactoryBean">
+	<bean
+			id="enumSetFactory"
+			class="org.springframework.beans.factory.config.SetFactoryBean">
 		<property name="sourceSet">
 			<set>
 				<description>My Set</description>

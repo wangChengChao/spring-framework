@@ -33,10 +33,10 @@ import org.springframework.web.multipart.MultipartHttpServletRequest;
 import org.springframework.web.multipart.MultipartResolver;
 
 /**
- * {@link ServerHttpRequest} implementation that accesses one part of a multipart
- * request. If using {@link MultipartResolver} configuration the part is accessed
- * through a {@link MultipartFile}. Or if using Servlet 3.0 multipart processing
- * the part is accessed through {@code ServletRequest.getPart}.
+ * {@link ServerHttpRequest} implementation that accesses one part of a multipart request. If using
+ * {@link MultipartResolver} configuration the part is accessed through a {@link MultipartFile}. Or
+ * if using Servlet 3.0 multipart processing the part is accessed through {@code
+ * ServletRequest.getPart}.
  *
  * @author Rossen Stoyanchev
  * @author Juergen Hoeller
@@ -44,73 +44,68 @@ import org.springframework.web.multipart.MultipartResolver;
  */
 public class RequestPartServletServerHttpRequest extends ServletServerHttpRequest {
 
-	private final MultipartHttpServletRequest multipartRequest;
+  private final MultipartHttpServletRequest multipartRequest;
 
-	private final String partName;
+  private final String partName;
 
-	private final HttpHeaders headers;
+  private final HttpHeaders headers;
 
+  /**
+   * Create a new {@code RequestPartServletServerHttpRequest} instance.
+   *
+   * @param request the current servlet request
+   * @param partName the name of the part to adapt to the {@link ServerHttpRequest} contract
+   * @throws MissingServletRequestPartException if the request part cannot be found
+   * @throws MultipartException if MultipartHttpServletRequest cannot be initialized
+   */
+  public RequestPartServletServerHttpRequest(HttpServletRequest request, String partName)
+      throws MissingServletRequestPartException {
 
-	/**
-	 * Create a new {@code RequestPartServletServerHttpRequest} instance.
-	 * @param request the current servlet request
-	 * @param partName the name of the part to adapt to the {@link ServerHttpRequest} contract
-	 * @throws MissingServletRequestPartException if the request part cannot be found
-	 * @throws MultipartException if MultipartHttpServletRequest cannot be initialized
-	 */
-	public RequestPartServletServerHttpRequest(HttpServletRequest request, String partName)
-			throws MissingServletRequestPartException {
+    super(request);
 
-		super(request);
+    this.multipartRequest = MultipartResolutionDelegate.asMultipartHttpServletRequest(request);
+    this.partName = partName;
 
-		this.multipartRequest = MultipartResolutionDelegate.asMultipartHttpServletRequest(request);
-		this.partName = partName;
+    HttpHeaders headers = this.multipartRequest.getMultipartHeaders(this.partName);
+    if (headers == null) {
+      throw new MissingServletRequestPartException(partName);
+    }
+    this.headers = headers;
+  }
 
-		HttpHeaders headers = this.multipartRequest.getMultipartHeaders(this.partName);
-		if (headers == null) {
-			throw new MissingServletRequestPartException(partName);
-		}
-		this.headers = headers;
-	}
+  @Override
+  public HttpHeaders getHeaders() {
+    return this.headers;
+  }
 
+  @Override
+  public InputStream getBody() throws IOException {
+    if (this.multipartRequest instanceof StandardMultipartHttpServletRequest) {
+      try {
+        return this.multipartRequest.getPart(this.partName).getInputStream();
+      } catch (Exception ex) {
+        throw new MultipartException("Could not parse multipart servlet request", ex);
+      }
+    } else {
+      MultipartFile file = this.multipartRequest.getFile(this.partName);
+      if (file != null) {
+        return file.getInputStream();
+      } else {
+        String paramValue = this.multipartRequest.getParameter(this.partName);
+        return new ByteArrayInputStream(paramValue.getBytes(determineCharset()));
+      }
+    }
+  }
 
-	@Override
-	public HttpHeaders getHeaders() {
-		return this.headers;
-	}
-
-	@Override
-	public InputStream getBody() throws IOException {
-		if (this.multipartRequest instanceof StandardMultipartHttpServletRequest) {
-			try {
-				return this.multipartRequest.getPart(this.partName).getInputStream();
-			}
-			catch (Exception ex) {
-				throw new MultipartException("Could not parse multipart servlet request", ex);
-			}
-		}
-		else {
-			MultipartFile file = this.multipartRequest.getFile(this.partName);
-			if (file != null) {
-				return file.getInputStream();
-			}
-			else {
-				String paramValue = this.multipartRequest.getParameter(this.partName);
-				return new ByteArrayInputStream(paramValue.getBytes(determineCharset()));
-			}
-		}
-	}
-
-	private Charset determineCharset() {
-		MediaType contentType = getHeaders().getContentType();
-		if (contentType != null) {
-			Charset charset = contentType.getCharset();
-			if (charset != null) {
-				return charset;
-			}
-		}
-		String encoding = this.multipartRequest.getCharacterEncoding();
-		return (encoding != null ? Charset.forName(encoding) : FORM_CHARSET);
-	}
-
+  private Charset determineCharset() {
+    MediaType contentType = getHeaders().getContentType();
+    if (contentType != null) {
+      Charset charset = contentType.getCharset();
+      if (charset != null) {
+        return charset;
+      }
+    }
+    String encoding = this.multipartRequest.getCharacterEncoding();
+    return (encoding != null ? Charset.forName(encoding) : FORM_CHARSET);
+  }
 }
