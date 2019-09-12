@@ -40,7 +40,7 @@ import org.springframework.orm.jpa.EntityManagerHolder;
  */
 public class SessionHolder extends EntityManagerHolder {
 
-	private final Session session;
+	private final Sessiwon session;
 
 	@Nullable
 	private Transaction transaction;

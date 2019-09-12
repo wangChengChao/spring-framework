@@ -17,9 +17,8 @@
 package example.type;
 
 /**
- * We must use a standalone set of types to ensure that no one else is loading
- * them and interfering with
- * {@link org.springframework.core.type.ClassloadingAssertions#assertClassNotLoaded(String)}.
+ * We must use a standalone set of types to ensure that no one else is loading them and interfering
+ * with {@link org.springframework.core.type.ClassloadingAssertions#assertClassNotLoaded(String)}.
  *
  * @author Ramnivas Laddad
  * @author Juergen Hoeller
@@ -28,25 +27,18 @@ package example.type;
  */
 public class AssignableTypeFilterTestsTypes {
 
-	public static class TestNonInheritingClass {
-	}
+  public static class TestNonInheritingClass {}
 
-	public interface TestInterface {
-	}
+  public interface TestInterface {}
 
-	public static class TestInterfaceImpl implements TestInterface {
-	}
+  public static class TestInterfaceImpl implements TestInterface {}
 
-	public interface SomeDaoLikeInterface {
-	}
+  public interface SomeDaoLikeInterface {}
 
-	public static class SomeDaoLikeImpl extends SimpleJdbcDaoSupport implements SomeDaoLikeInterface {
-	}
+  public static class SomeDaoLikeImpl extends SimpleJdbcDaoSupport
+      implements SomeDaoLikeInterface {}
 
-	public interface JdbcDaoSupport {
-	}
+  public interface JdbcDaoSupport {}
 
-	public static class SimpleJdbcDaoSupport implements JdbcDaoSupport {
-	}
-
+  public static class SimpleJdbcDaoSupport implements JdbcDaoSupport {}
 }

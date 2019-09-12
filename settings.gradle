@@ -1,8 +1,9 @@
 pluginManagement {
-	repositories {
-		gradlePluginPortal()
-		maven { url 'https://repo.spring.io/plugins-release' }
-	}
+    repositories {
+        mavenLocal()
+        gradlePluginPortal()
+        maven { url 'https://repo.spring.io/plugins-release' }
+    }
 }
 
 enableFeaturePreview("GRADLE_METADATA")
@@ -34,6 +35,6 @@ include "framework-bom"
 include "integration-tests"
 
 rootProject.name = "spring"
-rootProject.children.each {project ->
-	project.buildFileName = "${project.name}.gradle"
+rootProject.children.each { project ->
+    project.buildFileName = "${project.name}.gradle"
 }

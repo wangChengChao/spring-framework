@@ -19,9 +19,8 @@ package example.type;
 import org.springframework.stereotype.Component;
 
 /**
- * We must use a standalone set of types to ensure that no one else is loading
- * them and interfering with
- * {@link org.springframework.core.type.ClassloadingAssertions#assertClassNotLoaded(String)}.
+ * We must use a standalone set of types to ensure that no one else is loading them and interfering
+ * with {@link org.springframework.core.type.ClassloadingAssertions#assertClassNotLoaded(String)}.
  *
  * @author Ramnivas Laddad
  * @author Sam Brannen
@@ -29,24 +28,17 @@ import org.springframework.stereotype.Component;
  */
 public class AspectJTypeFilterTestsTypes {
 
-	public interface SomeInterface {
-	}
+  public interface SomeInterface {}
 
-	public static class SomeClass {
-	}
+  public static class SomeClass {}
 
-	public static class SomeClassExtendingSomeClass extends SomeClass {
-	}
+  public static class SomeClassExtendingSomeClass extends SomeClass {}
 
-	public static class SomeClassImplementingSomeInterface implements SomeInterface {
-	}
+  public static class SomeClassImplementingSomeInterface implements SomeInterface {}
 
-	public static class SomeClassExtendingSomeClassExtendingSomeClassAndImplementingSomeInterface
-			extends SomeClassExtendingSomeClass implements SomeInterface {
-	}
+  public static class SomeClassExtendingSomeClassExtendingSomeClassAndImplementingSomeInterface
+      extends SomeClassExtendingSomeClass implements SomeInterface {}
 
-	@Component
-	public static class SomeClassAnnotatedWithComponent {
-	}
-
+  @Component
+  public static class SomeClassAnnotatedWithComponent {}
 }
